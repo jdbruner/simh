@@ -281,6 +281,10 @@
 */
 
 #include "pdp18b_defs.h"
+#ifdef USE_REALCONS
+#include "realcons.h"
+#include "realcons_console_pdp15.h"
+#endif
 
 #define SEXT(x)         ((int32) (((x) & SIGN)? (x) | ~DMASK: (x) & DMASK))
 
@@ -400,8 +404,16 @@ t_stat Ia (int32 ma, int32 *ea, t_bool jmp);
 int32 Incr_addr (int32 addr);
 int32 Jms_word (int32 t);
 #if defined (PDP15)
+#ifdef USE_REALCONS
+// Indexing in PAGE MODE (memm == 0). i = IR, x = MA = 12bit operand address from IR
+#define INDEX(i,x)      if (!memm && ((i) & I_IDX)) do {    \
+    x = ((x) + XR) & DMASK ;                                \
+    realcons_operand_address_register = x ;                 \
+} while(0)
+#else
 #define INDEX(i,x)      if (!memm && ((i) & I_IDX)) \
                             x = ((x) + XR) & DMASK
+#endif
 int32 Prot15 (int32 ma, t_bool bndchk);
 int32 Reloc15 (int32 ma, int32 acc);
 int32 RelocXVM (int32 ma, int32 acc);
@@ -572,6 +584,20 @@ DEVICE cpu_dev = {
     &cpu_ex, &cpu_dep, &cpu_reset,
     NULL, NULL, NULL
     };
+
+#ifdef USE_REALCONS
+// Extended PDP15 cpu state for panel logic,
+// 1. state for all cpu's in scp.c
+extern	t_addr realcons_memory_address_phys_register; // memory address
+extern 	t_value realcons_memory_data_register; // memory data
+extern 	int realcons_console_halt; // 1: CPU halted by realcons console
+
+// 2. state extension for PDP15, initialize in cpu_reset()
+int32   realcons_operand_address_register; // effective address, counter for EXAM/DEPOIST NEXT
+int32   realcons_IR; // must be global
+
+int32   realcons_eae_enabled;  
+#endif
 
 t_stat sim_instr (void)
 {
@@ -763,6 +789,20 @@ while (reason == 0) {                                   /* loop until halted */
 
     MA = (MA & B_EPCMASK) | (IR & B_DAMASK);            /* bank mode only */
 
+#endif
+#ifdef USE_REALCONS
+    realcons_eae_enabled = cpu_unit.flags & UNIT_NOEAE;
+
+    // register "OA" = effective operand address: 3 cases
+    // 1) BANK MODE (memm == 1)
+    //      OA = lower 13 bits of IR = IR & B_DAMASK
+    // 2) PAGE MODE (memm == 0), not indexed (bit IR.5 = 0)
+    //      OA = lower 12 bits  of IR = (IR & P_DAMASK)
+    // 3) PAGE MODE (memm == 0), indexed (bit IR.5 = 1)
+    //      OA = lower 12 bits  of IR + XR = (IR & P_DAMASK) + XR
+
+    realcons_operand_address_register = MA ; // case 1) and 2)
+    // case 3) is handled in the INDEX macro.
 #endif
 
     switch ((IR >> 13) & 037) {                         /* decode IR<0:4> */
@@ -1699,6 +1739,16 @@ while (reason == 0) {                                   /* loop until halted */
 
     api_usmd = 0;                                       /* API cycle over */
     last_IR = IR;                                       /* save IR for next */
+#ifdef USE_REALCONS
+    realcons_IR = IR;
+    realcons_service(cpu_realcons, 1); // high speed call
+
+                                       // check if the ENABLE/HALT switch was set to HALT
+    if (cpu_realcons->connected && realcons_console_halt) {
+        reason = SCPE_STOP; // transition is triggered at end of instr loop
+                            // last major state remains
+    }
+#endif
     }                                                   /* end while */
 
 /* Simulation halted */
@@ -1937,6 +1987,11 @@ if (usmd) {                                             /* user mode? */
         }
     }
 else pa = ma & AMASK;                                   /* no prot or reloc */
+#ifdef USE_REALCONS
+    realcons_memory_address_phys_register = pa; // not virtual ???
+    if (MEM_ADDR_OK(pa))
+        realcons_memory_data_register = M[pa] & DMASK;
+#endif
 if (MEM_ADDR_OK (pa))                                   /* valid mem? ok */
     *dat = M[pa] & DMASK;
 else {
@@ -1960,6 +2015,10 @@ if (usmd) {                                             /* user mode? */
         return MM_ERR;
     }
 else pa = ma & AMASK;                                   /* no prot or reloc */
+#ifdef USE_REALCONS
+realcons_memory_address_phys_register = pa; // not virtual ???
+realcons_memory_data_register = dat & DMASK;
+#endif
 if (MEM_ADDR_OK (pa))                                   /* valid mem? ok */
     M[pa] = dat & DMASK;
 else nexm = 1;                                          /* set flag, no trap */
@@ -2111,6 +2170,10 @@ usmd = usmd_buf = usmd_defer = 0;
 memm = memm_init;
 nexm = prvn = trap_pending = 0;
 emir_pending = rest_pending = 0;
+#ifdef USE_REALCONS
+realcons_operand_address_register = 0;
+#endif
+
 if (M == NULL)
     M = (int32 *) calloc (MEMSIZE, sizeof (int32));
 if (M == NULL)

@@ -136,6 +136,24 @@
    1-proceeded instructions clears 1-proceed.
 */
 
+#ifdef USE_REALCONS
+#include "realcons.h"	/* REAL-CONSOLE */
+// !!! must be included before pd10_defs.h, because  duplicate symbol INT_PTR
+// #1: realcons.h  -> .... -> rpc_blinkenlight_api.h -> rpc.h -> windows.h --> basetsd.h
+// #2: pdp11_defs.h
+
+/*
+  if REALCONS is enabled also a KI10-like console access
+  there are 3 new SimH registers:
+  "cds " - console data switches (readonly, state of DATA switches)
+  "cmi" - console memory indicator (write only, state of MI LEDs)
+  "caacs" - console address and address condition switches
+  See bitsavers, pdf/dec/pdp10/TOPS10/1973_Assembly_Language_Handbook/01_1973AsmRef_SysRef.pdf
+  document page "102".
+*/
+#define USE_KI10CONSREGS
+#endif
+
 #include "pdp10_defs.h"
 #include <setjmp.h>
 
@@ -204,6 +222,34 @@ int32 hst_p = 0;                                        /* history pointer */
 int32 hst_lnt = 0;                                      /* history length */
 InstHistory *hst = NULL;                                /* instruction history */
 int32 apr_serial = -1;                                  /* CPU Serial number */
+#ifdef USE_KI10CONSREGS
+d10 cds = 0;											/* console data switches */
+d10 cmi = 0;											/* console memory indicator */
+d10 caacs = 0;											/* console address and address condition switches */
+#endif
+
+#ifdef USE_REALCONS
+														// extended cpu state for panel logic
+														// 1. state for all cpu's in scp.c
+extern	t_addr realcons_memory_address_register; // memory address
+extern 	t_value realcons_memory_data_register; // memory data
+extern 	int realcons_console_halt; // 1: CPU halted by realcons console
+
+								   // 2. state extension for PDP10, initialize in cpu_reset()
+int32			realcons_PC ; // own buffer!
+uint64_t		realcons_instruction; // current instruction
+
+									  // Pointers to event handlers
+									  // Events are called in SimH-code as pointers to functions in panel logic
+extern console_controller_event_func_t	realcons_event_operator_halt; // scp.c, needed here
+console_controller_event_func_t	realcons_event_opcode_any; // triggered after any opcode execution
+console_controller_event_func_t realcons_event_opcode_halt; // triggered after execution of HALT
+console_controller_event_func_t realcons_event_opcode_reset; // triggered after execution of RESET
+console_controller_event_func_t realcons_event_opcode_wait; // triggered after execution of WAIT
+
+console_controller_event_func_t	realcons_event_program_write_memory_indicator;
+console_controller_event_func_t	realcons_event_program_write_address_addrcond;
+#endif
 
 /* Forward and external declarations */
 
@@ -240,6 +286,11 @@ a10 calc_ioea (d10 inst, int32 prv);
 d10 calc_jrstfea (d10 inst, int32 pflgs);
 void pi_dismiss (void);
 void set_newflags (d10 fl, t_bool jrst);
+#ifdef USE_KI10CONSREGS
+t_bool rdcds (a10 ea, int32 prv); // read console data switches
+t_bool wrcmi (a10 ea, int32 prv); // console memory indicator
+t_bool wrcaacs (a10 ea, int32 prv); // console address and address condition switches
+#endif
 extern t_bool aprid (a10 ea, int32 prv);
 t_bool wrpi (a10 ea, int32 prv);
 t_bool rdpi (a10 ea, int32 prv);
@@ -387,6 +438,11 @@ REG cpu_reg[] = {
     { ORDATAD (WRU, sim_int_char, 8, "interrupt character") },
     { FLDATA (STOP_ILL, stop_op0, 0) },
     { BRDATAD (REG, acs, 8, 36, AC_NUM * AC_NBLK, "register sets") },
+#ifdef USE_KI10CONSREGS
+    { ORDATAD (CDS, cds, 36, "console data switches (readonly, state of DATA switches)") },
+    { ORDATAD (CMI, cmi, 36, "console memory indicator (write only, state of MI LEDs)") },
+    { ORDATAD (CAACS, caacs, 36, "console address and address condition switches") },
+#endif
     { NULL }
     };
 
@@ -447,10 +503,17 @@ const d10 bytemask[64] = { 0,
  ONES, ONES, ONES, ONES, ONES, ONES, ONES, ONES, ONES
  };
 
+#ifdef USE_KI10CONSREGS
+static t_bool (*io700d[16])() = {
+    &aprid, &rdcds, NULL, NULL, &wrapr, &rdapr, &czapr, &coapr,
+    NULL, NULL, NULL, &wrcmi, &wrpi, &rdpi, &czpi, &copi
+    };
+#else
 static t_bool (*io700d[16])(a10, int32) = {
     &aprid, NULL, NULL, NULL, &wrapr, &rdapr, &czapr, &coapr,
     NULL, NULL, NULL, NULL, &wrpi, &rdpi, &czpi, &copi
     };
+#endif
 static t_bool (*io701d[16])(a10, int32) = {
     NULL, &rdubr, &clrpt, &wrubr, &wrebr, &rdebr, NULL, NULL,
     NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL
@@ -657,6 +720,13 @@ if ((abortval > 0) || pager_pi) {                       /* stop or pi err? */
     saved_PC = pager_PC & AMASK;                        /* failing instr PC */
     set_ac_display (ac_cur);                            /* set up AC display */
     pcq_r->qptr = pcq_p;                                /* update pc q ptr */
+#ifdef USE_REALCONS
+	// exit from instruction loop
+	if (abortval == SCPE_STOP)
+			REALCONS_EVENT(cpu_realcons, realcons_event_operator_halt) ;
+	else if	 (abortval == STOP_HALT)
+		REALCONS_EVENT(cpu_realcons, realcons_event_opcode_halt) ;
+#endif
     return abortval;                                    /* return to SCP */
     }
 
@@ -876,6 +946,12 @@ if (hst_lnt) {                                          /* history enabled? */
     hst[hst_p].ir = inst;
     hst[hst_p].ac = AC(ac);
     }
+#ifdef USE_REALCONS
+	realcons_PC = PC;  // copy: PSW not atomic
+	realcons_instruction = inst ; // copy: PSW not atomic
+	REALCONS_EVENT(cpu_realcons, realcons_event_opcode_any) ;
+#endif
+
 switch (op) {                                           /* case on opcode */
 
 /* UUO's (0000 - 0077) - checked against KS10 ucode */
@@ -1546,6 +1622,14 @@ if (its_2pr) {                                          /* 1-proc trap? */
         set_newflags (mb, FALSE);                       /* set new flags */
         }
     }                                                   /* end if 2-proc */
+#ifdef USE_REALCONS
+	realcons_service(cpu_realcons,1) ; // high speed call
+
+	if (cpu_realcons->connected && realcons_console_halt) {
+		ABORT (SCPE_STOP);
+	}
+
+#endif
 }                                                       /* end for */
 
 /* Should never get here */
@@ -2173,6 +2257,43 @@ return;
         (CONSZ APR)             test system flags
 */
 
+#ifdef USE_KI10CONSREGS
+/*
+ * "CDS" = "Console Data Switches": in KI10 it read the content of the 36 DATA switches
+ */
+t_bool rdcds (a10 ea, int32 prv)
+{
+// transfer content of cds to ea
+Write (ea, cds, prv);
+return FALSE;
+}
+
+/*
+ * "CMI" = "console memory indicator":
+ */
+t_bool wrcmi (a10 ea, int32 prv)
+{
+// transfer content of ea to cmi
+cmi = Read (ea, prv); // what about prv? what does it do?
+// program has written data to memory indicators
+REALCONS_EVENT(cpu_realcons,realcons_event_program_write_memory_indicator) ;
+return FALSE;
+}
+
+/*
+ * "CAACS" = "address and address condition switches":
+ */
+t_bool wrcaacs (a10 ea, int32 prv)
+{
+// transfer content of ea to cmi
+caacs = Read (ea, prv);
+// program has written data to address and address condition switches
+REALCONS_EVENT(cpu_realcons,realcons_event_program_write_address_addrcond) ;
+return FALSE;
+}
+
+#endif
+
 t_bool aprid (a10 ea, int32 prv)
 {
 d10 value = (Q_ITS)? UC_AIDITS: UC_AIDDEC;
@@ -2386,6 +2507,12 @@ if (pcq_r)
     pcq_r->qptr = 0;
 else
     return SCPE_IERR;
+#ifdef USE_REALCONS
+// initialize realcons cpu state extension here
+realcons_PC = 0 ;
+realcons_instruction = 0;
+#endif
+
 sim_brk_types = sim_brk_dflt = SWMASK ('E');
 return SCPE_OK;
 }

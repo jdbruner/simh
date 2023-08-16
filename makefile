@@ -1548,6 +1548,55 @@ ifneq (,${SIM_VERSION_MODE})
 endif
 export LDFLAGS := ${OS_LDFLAGS} ${NETWORK_LDFLAGS} ${VIDEO_LDFLAGS} ${VIDEO_TTF_LDFLAGS} ${LDFLAGS_O}
 
+# REALCONS support
+ifeq ($(USE_REALCONS),1)
+BLINKENLIGHT_COMMON_DIR=BlinkenBone/projects/00_common/
+BLINKENLIGHT_API_DIR=BlinkenBone/projects/07.0_blinkenlight_api/
+REALCONS_DIR=REALCONS/
+# generic sources
+REALCONS= \
+        $(REALCONS_DIR)realcons.c     \
+        $(REALCONS_DIR)realcons_simh.c \
+        $(BLINKENLIGHT_API_DIR)blinkenlight_api_client.c \
+        $(BLINKENLIGHT_API_DIR)/rpcgen_linux/rpc_blinkenlight_api_clnt.c \
+        $(BLINKENLIGHT_API_DIR)/rpcgen_linux/rpc_blinkenlight_api_xdr.c \
+        $(BLINKENLIGHT_API_DIR)blinkenlight_panels.c \
+        $(BLINKENLIGHT_COMMON_DIR)bitcalc.c
+# PDP11 part
+REALCONS_PDP11= \
+	    $(REALCONS_DIR)realcons_console_pdp11_20.c \
+	    $(REALCONS_DIR)realcons_console_pdp11_40.c \
+	    $(REALCONS_DIR)realcons_console_pdp11_70.c
+
+REALCONS_PDP10= \
+        $(REALCONS_DIR)realcons_pdp10_control.c \
+        $(REALCONS_DIR)realcons_pdp10.c \
+        $(REALCONS_DIR)realcons_pdp10_operpanel.c \
+        $(REALCONS_DIR)realcons_pdp10_maintpanel.c
+
+REALCONS_PDP8= \
+        $(REALCONS_DIR)realcons_console_pdp8i.c
+
+REALCONS_PDP15= \
+        $(REALCONS_DIR)realcons_console_pdp15.c
+
+REALCONS_OPT=-DUSE_REALCONS \
+	-DBLINKENLIGHT_CLIENT	\
+	-IREALCONS \
+	-I$(BLINKENLIGHT_COMMON_DIR) \
+	-I$(BLINKENLIGHT_API_DIR)rpcgen_linux \
+	-I$(BLINKENLIGHT_API_DIR) \
+	-I/usr/include/tirpc \
+	-ltirpc
+else
+REALCONS_OPT=
+REALCONS=
+REALCONS_PDP11=
+REALCONS_PDP10=
+REALCONS_PDP8=
+REALCONS_PDP15=
+endif
+
 #
 # Common Libraries
 #
@@ -1652,7 +1701,7 @@ PDP11 = ${PDP11D}/pdp11_fp.c ${PDP11D}/pdp11_cpu.c ${PDP11D}/pdp11_dz.c \
 	${PDP11D}/pdp11_dh.c ${PDP11D}/pdp11_ng.c ${PDP11D}/pdp11_daz.c \
 	${PDP11D}/pdp11_tv.c ${PDP11D}/pdp11_mb.c \
 	${DISPLAYL} ${DISPLAYNG} ${DISPLAYVT} $(NETWORK_DEPS)
-PDP11_OPT = -DVM_PDP11 -I ${PDP11D} ${NETWORK_OPT} ${DISPLAY_OPT}
+PDP11_OPT = -DVM_PDP11 -I ${PDP11D} ${NETWORK_OPT} ${DISPLAY_OPT} ${REALCONS_OPT}
 
 
 UC15D = ${SIMHD}/PDP11
@@ -1866,7 +1915,7 @@ PDP10 = ${PDP10D}/pdp10_fe.c ${PDP11D}/pdp11_dz.c ${PDP10D}/pdp10_cpu.c \
 	${PDP11D}/pdp11_dup.c ${PDP11D}/pdp11_dmc.c ${PDP11D}/pdp11_kmc.c \
 	${PDP11D}/pdp11_xu.c ${PDP11D}/pdp11_ch.c \
 	$(NETWORK_DEPS)
-PDP10_OPT = -DVM_PDP10 -DUSE_INT64 -I ${PDP10D} -I ${PDP11D} ${NETWORK_OPT}
+PDP10_OPT = -DVM_PDP10 -DUSE_INT64 -I ${PDP10D} -I ${PDP11D} ${NETWORK_OPT} ${REALCONS_OPT}
 
 
 IMLACD = ${SIMHD}/imlac
@@ -1892,7 +1941,7 @@ PDP8 = ${PDP8D}/pdp8_cpu.c ${PDP8D}/pdp8_clk.c ${PDP8D}/pdp8_df.c \
 	${PDP8D}/pdp8_rx.c ${PDP8D}/pdp8_sys.c ${PDP8D}/pdp8_tt.c \
 	${PDP8D}/pdp8_ttx.c ${PDP8D}/pdp8_rl.c ${PDP8D}/pdp8_tsc.c \
 	${PDP8D}/pdp8_td.c ${PDP8D}/pdp8_ct.c ${PDP8D}/pdp8_fpp.c
-PDP8_OPT = -I ${PDP8D}
+PDP8_OPT = -I ${PDP8D} ${REALCONS_OPT}
 
 
 H316D = ${SIMHD}/H316
@@ -2419,7 +2468,7 @@ $(BIN)pdp7$(EXE) : $(PDP18B) ${PDP18BD}/pdp18b_dpy.c ${DISPLAYL} ${DISPLAY340} $
 
 pdp8 : $(BIN)pdp8$(EXE)
 
-$(BIN)pdp8$(EXE) : ${PDP8} ${SIM}
+$(BIN)pdp8$(EXE) : ${PDP8} ${SIM} ${REALCONS} ${REALCONS_PDP8}
 	$(MAKEIT) OPTS="$(PDP8_OPT)"
 
 
@@ -2431,13 +2480,13 @@ $(BIN)pdp9$(EXE) : ${PDP18B} ${SIM}
 
 pdp15 : $(BIN)pdp15$(EXE)
 
-$(BIN)pdp15$(EXE) : ${PDP18B} ${SIM}
+$(BIN)pdp15$(EXE) : ${PDP18B} ${SIM} ${REALCONS} ${REALCONS_PDP15}
 	$(MAKEIT) OPTS="$(PDP15_OPT)"
 
 
 pdp10 : $(BIN)pdp10$(EXE)
 
-$(BIN)pdp10$(EXE) : ${PDP10} ${SIM}
+$(BIN)pdp10$(EXE) : ${PDP10} ${SIM} ${REALCONS} ${REALCONS_PDP10}
 	$(MAKEIT) OPTS="$(PDP10_OPT)"
 
 
@@ -2455,7 +2504,7 @@ $(BIN)tt2500$(EXE) : ${TT2500} ${SIM}
 
 pdp11 : $(BIN)pdp11$(EXE)
 
-$(BIN)pdp11$(EXE) : ${PDP11} ${SIM} ${BUILD_ROMS}
+$(BIN)pdp11$(EXE) : ${PDP11} ${SIM} ${BUILD_ROMS} ${REALCONS} ${REALCONS_PDP11}
 	$(MAKEIT) OPTS="$(PDP11_OPT)"
 
 

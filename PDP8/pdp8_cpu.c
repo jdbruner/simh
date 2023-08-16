@@ -195,6 +195,10 @@
 */
 
 #include "pdp8_defs.h"
+#ifdef USE_REALCONS
+#include "realcons.h"
+#include "realcons_console_pdp8i.h"
+#endif
 
 #define PCQ_SIZE        64                              /* must be 2**n */
 #define PCQ_MASK        (PCQ_SIZE - 1)
@@ -322,6 +326,100 @@ DEVICE cpu_dev = {
     NULL, 0
     };
 
+#ifdef USE_REALCONS
+// Extended cpu state for panel logic,
+// State of MAJORSTATE signals and some flip-flops is added.
+// 
+// 1. state for all cpu's in scp.c
+extern	t_addr realcons_memory_address_phys_register; // memory address
+extern 	t_value realcons_memory_data_register; // memory data
+extern 	int realcons_console_halt; // 1: CPU halted by realcons console
+
+// 2. state extension for PDP8, initialize in cpu_reset()
+
+// bit mask for singals indicating last decoded and executed instruction, see REALCONS_PDP8I_INSTRUCTION_DECODE_*
+int32 realcons_instruction_decode;
+
+// Signals set for the major state indicator of an instruction
+// "One of these indicates that the processor is currently performing or
+// has performed a certain cycle."
+// major states: SimH cannot single step through instruction sub cycles.
+// so all cycles of current instructions are ORed together and shown
+// simulataneously at isntruction end.
+// See Maintenance Manual PDP-8I Volume I (Jul 1969, DEC-8I-HR1A-D), Chapter 4.7ff
+int32 realcons_majorstate_curinstr; // all states of current instruction
+int32 realcons_majorstate_last; // last active state
+#define MAJORSTATE_CLEAR	do { realcons_majorstate_curinstr = realcons_majorstate_last = 0; } while (0)
+#define MAJORSTATE_ENTER(state_bit) do { \
+	realcons_majorstate_curinstr |= state_bit ;		\
+	realcons_majorstate_last = state_bit	;			\
+} while (0)
+#define STATE_FETCH			REALCONS_PDP8I_MAJORSTATE_FETCH			
+#define STATE_EXECUTE		REALCONS_PDP8I_MAJORSTATE_EXECUTE		
+#define STATE_DEFER			REALCONS_PDP8I_MAJORSTATE_DEFER			
+#define STATE_WORDCOUNT		REALCONS_PDP8I_MAJORSTATE_WORDCOUNT		
+#define STATE_CURRENTADDRESS REALCONS_PDP8I_MAJORSTATE_CURRENTADDRESS
+#define STATE_BREAK			REALCONS_PDP8I_MAJORSTATE_BREAK		
+
+						   // Signals set by miscellaneous flip flops
+// Ion indicates the 1 status of the INT.ENABLE flip - flop.
+//		When lit, the interrupt control is enabled for
+//		information exchange with an I / O device.
+// Pause indicates the 1 status of the PAUSE flip - flop when lit.
+//		The PAUSE flip - flop is set for 2.75 us by any IOT
+//		instruction that requires generation of IOP pulses or by
+//		any EAE instruction that require shifting of information.
+// Run	indicates the 1 status of the RUN flip - flop. When lit,
+//      the internal timing circuits are enabled and the machine
+int32 realcons_flipflops; // see REALCONS_PDP8I_FLIFLOP_*
+
+#define FLIPFLOP_SET(flipflop_bit) do { realcons_flipflops |= (flipflop_bit) ; } while(0)
+#define FLIPFLOP_CLR(flipflop_bit) do { realcons_flipflops &= ~(flipflop_bit) ; } while(0)
+#define FLIPFLOP_RUN	REALCONS_PDP8I_FLIPFLOP_RUN 
+#define FLIPFLOP_PAUSE	REALCONS_PDP8I_FLIPFLOP_PAUSE
+#define FLIPFLOP_ION	REALCONS_PDP8I_FLIPFLOP_ION
+
+// Pointers to event handlers
+// Events are called in SimH-code as pointers to functions in panel logic
+//	console_controller_event_func_t	realcons_event_opcode_any ; // triggered after any opcode execution
+//	console_controller_event_func_t realcons_event_opcode_halt ;
+
+//  To be called as
+// 		REALCONS_EVENT(cpu_realcons, realcons_event_opcode_halt) ;
+
+/* Model proper use of physical MA and MB register,
+ * they are update on every memory access
+ * "MB" in sim_instr() seems just to be scratchpad and does not correspond to the real MB.
+ *
+ * "Usually, the contents of MA indicators denote the core memory address of the word currently or
+ * previously read or written. After operation either the Dep or Exam key, the contents of MA
+ * indicate the core memory address just examined or deposited into.
+ * Usually, the contents of MB indicators designate the word just written at the core
+ * memory address in MA."
+ * TODO: MB does not contain read words also? Check later
+ */
+static uint16 pdp8_memread(uint32 memaddr) {
+	realcons_memory_address_phys_register = memaddr;
+	return M[memaddr];
+}
+static uint16 pdp8_memset(uint32 memaddr, uint16 memval) {
+	M[memaddr] = memval;
+	realcons_memory_address_phys_register = memaddr;
+	realcons_memory_data_register = memval; // PDP8 doc: memory buffer = "MB"
+	return memval;
+}
+
+#define PHYSICAL_MEMREAD(addr)	pdp8_memread(addr)
+#define PHYSICAL_MEMWRITE(addr,val) pdp8_memset(addr,val)
+#else
+// disable extended simulation
+#define FLIPFLOP_SET(flipflop_bit) do { } while(0)
+#define MAJORSTATE_ENTER(state_bit) do { } while(0)
+#define MAJORSTATE_CLEAR do { } while(0)
+#define PHYSICAL_MEMREAD(addr)	M[addr]
+#define PHYSICAL_MEMWRITE(addr,val) (M[addr]=(val))
+#endif
+
 t_stat sim_instr (void)
 {
 int32 IR, MB, IF, DF, LAC, MQ;
@@ -429,6 +527,31 @@ while (reason == 0) {                                   /* loop until halted */
             hst[hst_p].opnd = M[ea];                    /* save operand */
             }
         }
+
+#ifdef USE_REALCONS
+		// 2nd instruction decoder, else too much "#ifdef USE_REALCONS" in following code
+		{
+			unsigned opcode = (IR >> 7) & 037;  /* decode IR<0:4> */
+			if (opcode >= 000 && opcode <= 003)
+				realcons_instruction_decode = REALCONS_PDP8I_INSTRUCTION_DECODE_AND;
+			else if (opcode >= 004 && opcode <= 007)
+				realcons_instruction_decode = REALCONS_PDP8I_INSTRUCTION_DECODE_TAD;
+			else if (opcode >= 010 && opcode <= 013)
+				realcons_instruction_decode = REALCONS_PDP8I_INSTRUCTION_DECODE_ISZ;
+			else if (opcode >= 014 && opcode <= 017)
+				realcons_instruction_decode = REALCONS_PDP8I_INSTRUCTION_DECODE_DCA;
+			else if (opcode >= 020 && opcode <= 023)
+				realcons_instruction_decode = REALCONS_PDP8I_INSTRUCTION_DECODE_JMS;
+			else if (opcode >= 024 && opcode <= 027)
+				realcons_instruction_decode = REALCONS_PDP8I_INSTRUCTION_DECODE_JMP;
+			else if (opcode >= 030 && opcode <= 033)
+				realcons_instruction_decode = REALCONS_PDP8I_INSTRUCTION_DECODE_IOT;
+			else if (opcode >= 034 && opcode <= 037)
+				realcons_instruction_decode = REALCONS_PDP8I_INSTRUCTION_DECODE_OPR;
+			else
+				realcons_instruction_decode = 0;// never reached
+		}
+#endif
 
 switch ((IR >> 7) & 037) {                              /* decode IR<0:4> */
 
@@ -1360,6 +1483,22 @@ switch ((IR >> 7) & 037) {                              /* decode IR<0:4> */
             }                                           /* end switch device */
         break;                                          /* end case IOT */
         }                                               /* end switch opcode */
+#ifdef USE_REALCONS
+	// update state, used by for realcons. Code copy from after while()
+		saved_PC = IF | (PC & 07777);                           /* save copies */
+		saved_DF = DF & 070000;
+		saved_LAC = LAC & 017777;
+		saved_MQ = MQ & 07777;
+
+														// show last major state
+		realcons_service(cpu_realcons, 1); // high speed call
+
+		// check if the ENABLE/HALT switch was set to HALT
+		if (cpu_realcons->connected && realcons_console_halt) {
+			reason = SCPE_STOP; // transition is triggered at end of instr loop
+			// last major state remains
+		}
+#endif
     }                                                   /* end while */
 
 /* Simulation halted */
@@ -1400,6 +1539,11 @@ if (pcq_r)
     pcq_r->qptr = 0;
 else 
     return SCPE_IERR;
+#ifdef USE_REALCONS
+	// initialize realcons cpu state extension here
+	realcons_instruction_decode = 0;
+	realcons_flipflops = 0;
+#endif
 sim_clock_precalibrate_commands = pdp8_clock_precalibrate_commands;
 sim_vm_initial_ips = 10 * SIM_INITIAL_IPS;
 sim_brk_types = SWMASK ('E') | SWMASK('I');
