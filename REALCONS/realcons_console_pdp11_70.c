@@ -762,13 +762,30 @@ t_stat realcons_console_pdp11_70_service(realcons_console_logic_pdp11_70_t *_thi
     blinkenlight_control_t *action_switch; // current action switch
 
     if (_this->keyswitch_power->value == 0) {
-        SIGNAL_SET(cpusignal_console_halt, 1); // stop execution
         if (_this->keyswitch_power->value_previous == 1) {
+            SIGNAL_SET(cpusignal_console_halt, 1); // stop execution
+#ifdef USE_PIDP11
+            // The PiDP11 alse generates this event when the rotary switch is pressed.
+            // The PiDP11 has either placed an exit or quit command in the temporary file.
+            // To avoid arbitrary code execution, treat anything other than "exit\n" as "quit"
+            // strcpy/strcmp are safe here because we know the buffers are large enough
+            {
+                char buf[8], *cmd = "quit";
+                FILE *bootfil = fopen("/run/pidp11/tmpsimhcommand.txt", "r");
+                if (bootfil != NULL) {
+                    if (fgets(buf, sizeof buf, bootfil) != NULL && strcmp(buf, "exit\n") == 0)
+                        cmd = buf;
+                    fclose(bootfil);
+                }
+                strcpy(_this->realcons->simh_cmd_buffer, cmd);
+            }
+#else
             // Power switch transition to POWER OFF: terminate SimH
             // This is drastic, but will teach users not to twiddle with the power switch.
             // when panel is disconnected, panel mode goes to POWERLESS and power switch goes OFF.
             // But shutdown sequence is not initiated, because we're disconnected then.
             sprintf(_this->realcons->simh_cmd_buffer, "quit"); // do not confirm the quit with ENTER
+#endif
         }
         // do nothing, if power is off. else cpusignal_console_halt may be deactivate by HALT switch
         return SCPE_OK;

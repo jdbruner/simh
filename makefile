@@ -1548,8 +1548,8 @@ ifneq (,${SIM_VERSION_MODE})
 endif
 export LDFLAGS := ${OS_LDFLAGS} ${NETWORK_LDFLAGS} ${VIDEO_LDFLAGS} ${VIDEO_TTF_LDFLAGS} ${LDFLAGS_O}
 
-# REALCONS support
-ifeq ($(USE_REALCONS),1)
+# PIDP11 and REALCONS support (PIDP11 implies REALCONS)
+ifneq (,$(or $(USE_PIDP11),$(USE_REALCONS)))
 BLINKENLIGHT_COMMON_DIR=BlinkenBone/projects/00_common/
 BLINKENLIGHT_API_DIR=BlinkenBone/projects/07.0_blinkenlight_api/
 REALCONS_DIR=REALCONS/
@@ -1588,6 +1588,11 @@ REALCONS_OPT=-DUSE_REALCONS \
 	-I$(BLINKENLIGHT_API_DIR) \
 	-I/usr/include/tirpc \
 	-ltirpc
+
+ifneq ($(USE_PIDP11),)
+REALCONS_OPT += -DUSE_PIDP11
+endif
+
 else
 REALCONS_OPT=
 REALCONS=
