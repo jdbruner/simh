@@ -35,6 +35,8 @@ obj/
 _ReSharper*/
 [Tt]est[Rr]esult*
 *.o
+*.class
+*.jar
 *~
 *#
 BIN/

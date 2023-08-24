@@ -1550,8 +1550,8 @@ export LDFLAGS := ${OS_LDFLAGS} ${NETWORK_LDFLAGS} ${VIDEO_LDFLAGS} ${VIDEO_TTF_
 
 # PIDP11 and REALCONS support (PIDP11 implies REALCONS)
 ifneq (,$(or $(USE_PIDP11),$(USE_REALCONS)))
-BLINKENLIGHT_COMMON_DIR=BlinkenBone/projects/00_common/
-BLINKENLIGHT_API_DIR=BlinkenBone/projects/07.0_blinkenlight_api/
+BLINKENLIGHT_COMMON_DIR=BlinkenBone/common/
+BLINKENLIGHT_API_DIR=BlinkenBone/blinkenlight_api/
 REALCONS_DIR=REALCONS/
 # generic sources
 REALCONS= \
