@@ -1,5 +1,3 @@
-
-
 # call with MAKE_TARGET_ARCH=X86 or =RPI
 
 
@@ -28,7 +26,7 @@ ifeq ($(MAKE_TARGET_ARCH),BEAGLEBONE)
 	LDFLAGS += -lrt
 else
 ifeq ($(MAKE_TARGET_ARCH),RPI)
-	CC=arm-linux-gnueabihf-gcc -std=c99 -U__STRICT_ANSI__ $(CC_DBG_FLAGS) $(OS_CCDEFS) -I.
+	# CC=arm-linux-gnueabihf-gcc -std=c99 -U__STRICT_ANSI__ $(CC_DBG_FLAGS) $(OS_CCDEFS) -I.
 	OBJDIR=bin-rpi
 	SSHTARGET=pi@raspberrypi
 	LDFLAGS += -lrt
@@ -48,11 +46,11 @@ CCDEFS= \
 	$(CC_DBG_FLAGS) $(OS_CCDEFS)
 
 
-BLINKENLIGHT_COMMON_DIR=../../00_common
+BLINKENLIGHT_COMMON_DIR=../../common
 # sub dir for the API. is same level (= sibling) as server and client
-BLINKENLIGHT_API_DIR=../../07.0_blinkenlight_api
+BLINKENLIGHT_API_DIR=../../blinkenlight_api
 # dir of standard server
-BLINKENLIGHT_SERVER_DIR=../../07.1_blinkenlight_server
+BLINKENLIGHT_SERVER_DIR=../../blinkenlight_server
 # *_svc, *_xdr and api.h sources must be created with rpcgen
 BLINKENLIGHT_API_SOURCES.c = \
 	$(BLINKENLIGHT_API_DIR)/blinkenlight_panels.c	\

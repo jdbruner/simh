@@ -560,7 +560,7 @@ static void output_append(FILE *stream, char *line, int linesize, char *s, int l
 			for (_i_ = 0; _i_ < indent; _i_++) line[_i_] = ' ';
 		line[_i_] = 0;
 	}
-	strncat(line, s, linesize);
+	strncat(line, s, linesize - strlen(line));
 	line[linesize - 1] = 0;
 }
 
