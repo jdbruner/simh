@@ -40,6 +40,7 @@ panelsim_all.jar
 *~
 *#
 BIN/
+BlinkenBone/**/bin-*/
 ipch/
 # We only care about specific files in the Visual Studio Projects 
 # folder.  Things which are there on the fly to support debugging 
