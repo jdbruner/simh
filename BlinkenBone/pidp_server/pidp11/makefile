@@ -12,18 +12,19 @@ LDFLAGS = -pthread
 	# all other cases: X86
 	OBJDIR=bin-x86
 
-ifeq ($(MAKE_TARGET_ARCH),BEAGLEBONE)
+ifeq ($(MAKE_TARGET_ARCH),X86)
+	OBJDIR=bin-x86
+else ifeq ($(MAKE_TARGET_ARCH),BEAGLEBONE)
 	#### !!! when cross compiling !!!!
 	# fuer beaglebone und angstrom stand alone toolchain
 	CC=arm-angstrom-linux-gnueabi-gcc -mthumb -march=armv7-a -std=c99 -U__STRICT_ANSI__ $(CC_DBG_FLAGS) $(OS_CCDEFS) -I.
 	OBJDIR=bin-beaglebone
 	SSHTARGET=root@beaglebone
 	LDFLAGS += -lrt
-else ifeq ($(MAKE_TARGET_ARCH),RPI)
-	# CC=arm-linux-gnueabihf-gcc -std=c99 -U__STRICT_ANSI__ $(CC_DBG_FLAGS)  -I.
+else
 	OBJDIR=bin-rpi
 	SSHTARGET=pi@raspberrypi
-	LDFLAGS=-lrt -pthread
+	LDFLAGS=-lrt -pthread -lgpiod
 endif
 
 # Reference also the standard blinkenbone server in BLINKENLIGHT_SERVER_DIR
@@ -64,6 +65,8 @@ BLINKENLIGHT_API_SOURCES.h = \
 	$(BLINKENLIGHT_COMMON_DIR)/mcout.h	\
 	$(BLINKENLIGHT_COMMON_DIR)/errno2txt.h
 
+all:    pidp1170_blinkenlightd
+
 $(BLINKENLIGHT_API_SOURCES.c) $(BLINKENLIGHT_API_SOURCES.h):
 	# rpcgen
 	make --directory=$(BLINKENLIGHT_API_DIR)/rpcgen_linux sources
@@ -73,7 +76,6 @@ $(BLINKENLIGHT_API_SOURCES.c) $(BLINKENLIGHT_API_SOURCES.h):
 
 SOURCES.h = \
 	main.h	\
-	gpio.h	\
 	gpiopattern.h	\
 	$(BLINKENLIGHT_SERVER_DIR)/print.h	\
 	$(BLINKENLIGHT_API_DIR)/blinkenlight_panels.h
@@ -88,10 +90,8 @@ SOURCES.c = \
 
 OBJECTS = $(SOURCES.c:%.c=%.o)
 #
-# Build everything
+# Build everything (target 'all' is above)
 #
-all:    pidp1170_blinkenlightd
-
 clean:
 	echo "CLEAN"
 	rm -f core pidp1170_blinkenlightd $(OBJECTS) $(OBJDIR)/pidp1170_blinkenlightd

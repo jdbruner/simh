@@ -75,7 +75,6 @@
 #include "print.h"
 
 #include "main.h"
-#include "gpio.h"
 #include "gpiopattern.h"
 
 char program_info[1024];
