@@ -1789,7 +1789,9 @@ if ((w_idle < 500) || (w_ms == 0)) {                    /* shorter than 1/2 the 
     }
 if (w_ms > 1000) {                                      /* too long a wait (runaway calibration) */
     sim_printf ("sim_idle() - waiting too long:  w_ms=%d usecs, w_idle=%d usecs, sim_interval=%d, rtc->currd=%d\n", w_ms, w_idle, sim_interval, rtc->currd);
+#ifndef USE_PIDP11
     SIM_SCP_ABORT ("sim_idle() - waiting too long");
+#endif
     }
 in_nowait = FALSE;
 if (sim_clock_queue == QUEUE_LIST_END)
