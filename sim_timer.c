@@ -306,11 +306,13 @@ return sim_os_sleep_min_ms;
 #if defined(SIM_ASYNCH_IO)
 uint32 sim_idle_ms_sleep (unsigned int msec)
 {
-struct timespec start_time, end_time, done_time, delta_time;
+struct timespec start_time, end_time;                   /* using CLOCK_REALTIME */
+struct timespec mon_start_time, done_time, delta_time;  /* using CLOCK_MONOTONIC */
 uint32 delta_ms;
 t_bool timedout = FALSE;
 
 clock_gettime(CLOCK_REALTIME, &start_time);
+clock_gettime(CLOCK_MONOTONIC, &mon_start_time);
 end_time = start_time;
 end_time.tv_sec += (msec/1000);
 end_time.tv_nsec += 1000000*(msec%1000);
@@ -326,11 +328,11 @@ else
     sim_asynch_check = 0;                 /* force check of asynch queue now */
 sim_idle_wait = FALSE;
 pthread_mutex_unlock (&sim_asynch_lock);
-clock_gettime(CLOCK_REALTIME, &done_time);
+clock_gettime(CLOCK_MONOTONIC, &done_time);
 if (!timedout) {
     AIO_UPDATE_QUEUE;
     }
-sim_timespec_diff (&delta_time, &done_time, &start_time);
+sim_timespec_diff (&delta_time, &done_time, &mon_start_time);
 delta_ms = (uint32)((delta_time.tv_sec * 1000) + ((delta_time.tv_nsec + 500000) / 1000000));
 return delta_ms;
 }
@@ -1789,9 +1791,7 @@ if ((w_idle < 500) || (w_ms == 0)) {                    /* shorter than 1/2 the 
     }
 if (w_ms > 1000) {                                      /* too long a wait (runaway calibration) */
     sim_printf ("sim_idle() - waiting too long:  w_ms=%d usecs, w_idle=%d usecs, sim_interval=%d, rtc->currd=%d\n", w_ms, w_idle, sim_interval, rtc->currd);
-#ifndef USE_PIDP11
     SIM_SCP_ABORT ("sim_idle() - waiting too long");
-#endif
     }
 in_nowait = FALSE;
 if (sim_clock_queue == QUEUE_LIST_END)
