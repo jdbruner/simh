@@ -9,9 +9,6 @@ OS_CCDEFS =
 CC_DBG_FLAGS = -ggdb3 -O0
 LDFLAGS = -pthread
 
-	# all other cases: X86
-	OBJDIR=bin-x86
-
 ifeq ($(MAKE_TARGET_ARCH),X86)
 	OBJDIR=bin-x86
 else ifeq ($(MAKE_TARGET_ARCH),BEAGLEBONE)
@@ -22,7 +19,7 @@ else ifeq ($(MAKE_TARGET_ARCH),BEAGLEBONE)
 	SSHTARGET=root@beaglebone
 	LDFLAGS += -lrt
 else
-	OBJDIR=bin-rpi
+	OBJDIR=../../../BIN
 	SSHTARGET=pi@raspberrypi
 	LDFLAGS=-lrt -pthread -lgpiod
 endif
@@ -65,7 +62,7 @@ BLINKENLIGHT_API_SOURCES.h = \
 	$(BLINKENLIGHT_COMMON_DIR)/mcout.h	\
 	$(BLINKENLIGHT_COMMON_DIR)/errno2txt.h
 
-all:    pidp1170_blinkenlightd
+all:    $(OBJDIR)/pidp1170_blinkenlightd $(OBJDIR)/scansw
 
 $(BLINKENLIGHT_API_SOURCES.c) $(BLINKENLIGHT_API_SOURCES.h):
 	# rpcgen
@@ -94,23 +91,22 @@ OBJECTS = $(SOURCES.c:%.c=%.o)
 #
 clean:
 	echo "CLEAN"
-	rm -f core pidp1170_blinkenlightd $(OBJECTS) $(OBJDIR)/pidp1170_blinkenlightd
+	rm -f core $(OBJECTS) $(OBJDIR)/pidp1170_blinkenlightd $(OBJDIR)/scansw
 	make --directory=$(BLINKENLIGHT_API_DIR)/rpcgen_linux clean
 
 install:
+ifeq ($(MAKE_TARGET_ARCH),RPI)
+	# no-op for now
+	# eventually this should copy the binaries and set the capabilities for the panel server
+else
 	echo "copy server to beaglebone/rpi ... call only for ARM server!"
-ifneq ($(MAKE_TARGET_ARCH),RPI)
 	echo --- set remote time
 	ssh $(SSHTARGET) "date -u `date -u +%m%d%H%M%Y.%S`; echo `cat /etc/timezone` > /etc/timezone"
 endif
-	echo copy module ...
-	scp $(OBJDIR)/pidp1170_blinkenlightd $(SSHTARGET):
 
 
-pidp1170_blinkenlightd:	$(SOURCES.c) $(SOURCES.h)
-	# printenv | sort >env.make
-	${CC} $^ -o $@ $(CCDEFS) ${LDFLAGS}
-	mkdir -p $(OBJDIR)
-	mv $@ $(OBJDIR)
-	# Verify: was it x86 or ARM?
-	file $(OBJDIR)/$@
+$(OBJDIR)/pidp1170_blinkenlightd:	$(SOURCES.c) $(SOURCES.h)
+	${CC} -o $@ $(CCDEFS) $^ ${LDFLAGS}
+
+$(OBJDIR)/scansw: scansw.c
+	$(CC) -o $@ $^ -lgpiod
