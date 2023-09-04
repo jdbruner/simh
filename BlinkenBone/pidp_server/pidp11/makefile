@@ -107,6 +107,8 @@ endif
 
 $(OBJDIR)/pidp1170_blinkenlightd:	$(SOURCES.c) $(SOURCES.h)
 	${CC} -o $@ $(CCDEFS) $^ ${LDFLAGS}
+	file $@
 
 $(OBJDIR)/scansw: scansw.c
 	$(CC) -o $@ $^ -lgpiod
+	file $@

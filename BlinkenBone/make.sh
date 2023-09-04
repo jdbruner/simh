@@ -32,7 +32,7 @@ if [ -e /usr/bin/raspi-config ]; then
 set -e
 
 # Debugging:
-set -x
+# set -x
 
 # needed packages:
 
