@@ -26,10 +26,11 @@ else ifeq ($(MAKE_TARGET_ARCH),BBB)
 	SSHTARGET=root@beaglebone
 	LDFLAGS=-lrt -pthread
 else ifeq ($(MAKE_TARGET_ARCH),RPI)
-	CC=arm-linux-gnueabihf-gcc -std=c99 -U__STRICT_ANSI__ $(CC_DBG_FLAGS)  -I.
+	CC=cc -std=c99 -U__STRICT_ANSI__ $(CC_DBG_FLAGS)  -I.
+	OS_CCDEFS = -I/usr/include/tirpc
 	OBJDIR=bin-rpi
 	SSHTARGET=pi@raspberrypi
-	LDFLAGS=-lrt -pthread
+	LDFLAGS=-lrt -pthread -ltirpc
 else ifeq ($(MAKE_TARGET_ARCH),X86)
     OS_CCDEFS = -m32 -I/usr/include/tirpc
 	OBJDIR=bin-ubuntu-x86

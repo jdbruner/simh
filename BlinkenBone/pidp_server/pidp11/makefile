@@ -19,9 +19,10 @@ else ifeq ($(MAKE_TARGET_ARCH),BEAGLEBONE)
 	SSHTARGET=root@beaglebone
 	LDFLAGS += -lrt
 else
+	OS_CCDEFS=-I/usr/include/tirpc
 	OBJDIR=../../../BIN
 	SSHTARGET=pi@raspberrypi
-	LDFLAGS=-lrt -pthread -lgpiod
+	LDFLAGS=-lrt -pthread -lgpiod -ltirpc
 endif
 
 # Reference also the standard blinkenbone server in BLINKENLIGHT_SERVER_DIR

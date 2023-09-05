@@ -23,12 +23,14 @@
             <fileset file="${dir.root}/3rdparty/jsap/lib/JSAP-2.1.jar"/>
         </path>
 
-        <!-- Compile for JDK 1.6, since that is used in the deployed package-->
+        <!-- Compile for Java 8. Builds will fail with later versions because
+             sun.java2d.pipe is private.
+        -->
      <target name="compile" depends="init">
         <!-- The Blinkenlight API-->
         <javac srcdir="${dir.root}/blinkenlight_api/java"
                 destdir="${dir.project}/bin"
-                target="1.6" source="1.6" >
+                target="8" source="8" >
                 <compilerarg line="-encoding utf-8"/>
                 <classpath refid="otherjars"/>
         </javac>
@@ -36,7 +38,7 @@
         <!-- The panel simulations-->
         <javac srcdir="${dir.project}/src"
                 destdir="${dir.project}/bin"
-                target="1.6" source="1.6" >
+                target="8" source="8" >
                 <compilerarg line="-encoding utf-8"/>
                 <classpath refid="otherjars"/>
         </javac>
