@@ -47,7 +47,7 @@ export MAKE_CONFIGURATION=RELEASE
 
 (
     # All classes and resources for all Java panels into one jar
-    #sudo apt-get install ant openjdk-7-jdk
+    # sudo apt-get install ant default-jdk
     cd javapanelsim
     ant -f build.xml compile jar
 )

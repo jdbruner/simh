@@ -30,6 +30,7 @@
         <!-- The Blinkenlight API-->
         <javac srcdir="${dir.root}/blinkenlight_api/java"
                 destdir="${dir.project}/bin"
+                includeantruntime="false"
                 target="8" source="8" >
                 <compilerarg line="-encoding utf-8"/>
                 <classpath refid="otherjars"/>
@@ -38,6 +39,7 @@
         <!-- The panel simulations-->
         <javac srcdir="${dir.project}/src"
                 destdir="${dir.project}/bin"
+                includeantruntime="false"
                 target="8" source="8" >
                 <compilerarg line="-encoding utf-8"/>
                 <classpath refid="otherjars"/>
