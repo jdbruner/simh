@@ -1,8 +1,8 @@
 #! /bin/bash
 #
 # This is a revision of the original make.sh script from the BlinkenBone project
-# which only builds on the local machine (no cross-compiling).
-# TODO: This does not currently work on a non-Raspberry Pi ARM Linux machine.
+# which only builds on the local machine (no cross-compiling) and currently
+# only builds the Java panel simulation and the PiDP11 panel server and scansw
 #
 
 if [ -e /usr/bin/raspi-config ]; then
@@ -52,12 +52,32 @@ export MAKE_CONFIGURATION=RELEASE
     ant -f build.xml compile jar
 )
 
+if [ $MAKE_TARGET_ARCH = RPI ]; then
+    (
+        # the Blinkenligt API server for Oscar Vermeulen's PiDP11
+        cd pidp_server/pidp11
+        echo ; echo "*** blinkenlight_server for PiDP11"
+        make $MAKEOPTIONS $MAKETARGETS
+    )
+fi
 
+echo
+echo "All OK!"
+exit 0
+
+# the following is not (yet) updated, so don't build any of it
 (
-    # the Blinkenligt API server for BlinkenBus is only useful on BEAGLEBONE
+    # the Blinkenlight API server for BlinkenBus is only useful on BEAGLEBONE
     # Simulation and syntax test modes work also on desktop Linuxes
     cd blinkenlight_server
     echo ; echo "*** blinkenlight_server for $MAKE_TARGET_NAME"
+    make $MAKEOPTIONS $MAKETARGETS
+)
+
+(
+    # The Blinkenligt API test client for all platforms
+    cd blinkenlight_test
+    echo ; echo "*** blinkenlight_test for $MAKE_TARGET_NAME"
     make $MAKEOPTIONS $MAKETARGETS
 )
 
@@ -77,20 +97,4 @@ if [ $MAKE_TARGET_ARCH = RPI ]; then
         echo ; echo "*** blinkenlight_server for PiDP8"
         make $MAKEOPTIONS $MAKETARGETS
     )
-    (
-        # the Blinkenligt API server for Oscar Vermeulen's PiDP11
-        cd pidp_server/pidp11
-        echo ; echo "*** blinkenlight_server for PiDP11"
-        make $MAKEOPTIONS $MAKETARGETS
-    )
 fi
-
-(
-    # The Blinkenligt API test client for all platforms
-    cd blinkenlight_test
-    echo ; echo "*** blinkenlight_test for $MAKE_TARGET_NAME"
-    make $MAKEOPTIONS $MAKETARGETS
-)
-
-echo
-echo "All OK!"
