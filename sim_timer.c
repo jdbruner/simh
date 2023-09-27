@@ -304,6 +304,9 @@ return sim_os_sleep_min_ms;
 #endif /* defined(MS_MIN_GRANULARITY) && (MS_MIN_GRANULARITY != 1) */
 
 #if defined(SIM_ASYNCH_IO)
+#ifndef CLOCK_MONOTONIC
+#define CLOCK_MONOTONIC CLOCK_REALTIME
+#endif
 uint32 sim_idle_ms_sleep (unsigned int msec)
 {
 struct timespec start_time, end_time;                   /* using CLOCK_REALTIME */
