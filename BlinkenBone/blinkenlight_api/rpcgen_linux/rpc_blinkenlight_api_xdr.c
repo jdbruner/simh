@@ -8,8 +8,6 @@
 bool_t
 xdr_rpc_blinkenlight_api_nametype (XDR *xdrs, rpc_blinkenlight_api_nametype *objp)
 {
-	register int32_t *buf;
-
 	 if (!xdr_string (xdrs, objp, RPC_BLINKENLIGHT_API_MAX_NAME_LEN))
 		 return FALSE;
 	return TRUE;
@@ -18,8 +16,6 @@ xdr_rpc_blinkenlight_api_nametype (XDR *xdrs, rpc_blinkenlight_api_nametype *obj
 bool_t
 xdr_rpc_blinkenlight_api_infostringtype (XDR *xdrs, rpc_blinkenlight_api_infostringtype *objp)
 {
-	register int32_t *buf;
-
 	 if (!xdr_string (xdrs, objp, RPC_BLINKENLIGHT_API_MAX_INFOSTRING_LEN))
 		 return FALSE;
 	return TRUE;
@@ -28,8 +24,6 @@ xdr_rpc_blinkenlight_api_infostringtype (XDR *xdrs, rpc_blinkenlight_api_infostr
 bool_t
 xdr_rpc_blinkenlight_api_control_type_enum (XDR *xdrs, rpc_blinkenlight_api_control_type_enum *objp)
 {
-	register int32_t *buf;
-
 	 if (!xdr_enum (xdrs, (enum_t *) objp))
 		 return FALSE;
 	return TRUE;
@@ -38,8 +32,6 @@ xdr_rpc_blinkenlight_api_control_type_enum (XDR *xdrs, rpc_blinkenlight_api_cont
 bool_t
 xdr_rpc_blinkenlight_api_control_type_t (XDR *xdrs, rpc_blinkenlight_api_control_type_t *objp)
 {
-	register int32_t *buf;
-
 	 if (!xdr_rpc_blinkenlight_api_control_type_enum (xdrs, objp))
 		 return FALSE;
 	return TRUE;
@@ -48,10 +40,9 @@ xdr_rpc_blinkenlight_api_control_type_t (XDR *xdrs, rpc_blinkenlight_api_control
 bool_t
 xdr_rpc_blinkenlight_api_panel_struct (XDR *xdrs, rpc_blinkenlight_api_panel_struct *objp)
 {
-	register int32_t *buf;
+        register int32_t *buf;
 
-
-	if (xdrs->x_op == XDR_ENCODE) {
+        if (xdrs->x_op == XDR_ENCODE) {
 		 if (!xdr_rpc_blinkenlight_api_nametype (xdrs, &objp->name))
 			 return FALSE;
 		buf = XDR_INLINE (xdrs, 4 * BYTES_PER_XDR_UNIT);
@@ -109,8 +100,6 @@ xdr_rpc_blinkenlight_api_panel_struct (XDR *xdrs, rpc_blinkenlight_api_panel_str
 bool_t
 xdr_rpc_blinkenlight_api_control_struct (XDR *xdrs, rpc_blinkenlight_api_control_struct *objp)
 {
-	register int32_t *buf;
-
 	 if (!xdr_rpc_blinkenlight_api_nametype (xdrs, &objp->name))
 		 return FALSE;
 	 if (!xdr_u_char (xdrs, &objp->is_input))
@@ -129,8 +118,6 @@ xdr_rpc_blinkenlight_api_control_struct (XDR *xdrs, rpc_blinkenlight_api_control
 bool_t
 xdr_rpc_blinkenlight_api_controlvalues_struct (XDR *xdrs, rpc_blinkenlight_api_controlvalues_struct *objp)
 {
-	register int32_t *buf;
-
 	 if (!xdr_int (xdrs, &objp->error_code))
 		 return FALSE;
 	 if (!xdr_array (xdrs, (char **)&objp->value_bytes.value_bytes_val, (u_int *) &objp->value_bytes.value_bytes_len, ~0,
@@ -142,8 +129,6 @@ xdr_rpc_blinkenlight_api_controlvalues_struct (XDR *xdrs, rpc_blinkenlight_api_c
 bool_t
 xdr_rpc_blinkenlight_api_getinfo_res (XDR *xdrs, rpc_blinkenlight_api_getinfo_res *objp)
 {
-	register int32_t *buf;
-
 	 if (!xdr_int (xdrs, &objp->error_code))
 		 return FALSE;
 	 if (!xdr_rpc_blinkenlight_api_infostringtype (xdrs, &objp->info))
@@ -154,8 +139,6 @@ xdr_rpc_blinkenlight_api_getinfo_res (XDR *xdrs, rpc_blinkenlight_api_getinfo_re
 bool_t
 xdr_rpc_blinkenlight_api_getpanelinfo_res (XDR *xdrs, rpc_blinkenlight_api_getpanelinfo_res *objp)
 {
-	register int32_t *buf;
-
 	 if (!xdr_int (xdrs, &objp->error_code))
 		 return FALSE;
 	 if (!xdr_rpc_blinkenlight_api_panel_struct (xdrs, &objp->panel))
@@ -166,8 +149,6 @@ xdr_rpc_blinkenlight_api_getpanelinfo_res (XDR *xdrs, rpc_blinkenlight_api_getpa
 bool_t
 xdr_rpc_blinkenlight_api_getcontrolinfo_res (XDR *xdrs, rpc_blinkenlight_api_getcontrolinfo_res *objp)
 {
-	register int32_t *buf;
-
 	 if (!xdr_int (xdrs, &objp->error_code))
 		 return FALSE;
 	 if (!xdr_rpc_blinkenlight_api_control_struct (xdrs, &objp->control))
@@ -178,8 +159,6 @@ xdr_rpc_blinkenlight_api_getcontrolinfo_res (XDR *xdrs, rpc_blinkenlight_api_get
 bool_t
 xdr_rpc_blinkenlight_api_setpanel_controlvalues_res (XDR *xdrs, rpc_blinkenlight_api_setpanel_controlvalues_res *objp)
 {
-	register int32_t *buf;
-
 	 if (!xdr_int (xdrs, &objp->error_code))
 		 return FALSE;
 	return TRUE;
@@ -188,8 +167,6 @@ xdr_rpc_blinkenlight_api_setpanel_controlvalues_res (XDR *xdrs, rpc_blinkenlight
 bool_t
 xdr_rpc_param_cmd_get_struct (XDR *xdrs, rpc_param_cmd_get_struct *objp)
 {
-	register int32_t *buf;
-
 	 if (!xdr_u_int (xdrs, &objp->object_class))
 		 return FALSE;
 	 if (!xdr_u_int (xdrs, &objp->object_handle))
@@ -203,7 +180,6 @@ bool_t
 xdr_rpc_param_result_struct (XDR *xdrs, rpc_param_result_struct *objp)
 {
 	register int32_t *buf;
-
 
 	if (xdrs->x_op == XDR_ENCODE) {
 		buf = XDR_INLINE (xdrs, 5 * BYTES_PER_XDR_UNIT);
@@ -267,7 +243,6 @@ xdr_rpc_param_cmd_set_struct (XDR *xdrs, rpc_param_cmd_set_struct *objp)
 {
 	register int32_t *buf;
 
-
 	if (xdrs->x_op == XDR_ENCODE) {
 		buf = XDR_INLINE (xdrs, 4 * BYTES_PER_XDR_UNIT);
 		if (buf == NULL) {
@@ -320,8 +295,6 @@ xdr_rpc_param_cmd_set_struct (XDR *xdrs, rpc_param_cmd_set_struct *objp)
 bool_t
 xdr_rpc_test_cmdstatus_struct (XDR *xdrs, rpc_test_cmdstatus_struct *objp)
 {
-	register int32_t *buf;
-
 	 if (!xdr_int (xdrs, &objp->bytecount))
 		 return FALSE;
 	return TRUE;
@@ -330,8 +303,6 @@ xdr_rpc_test_cmdstatus_struct (XDR *xdrs, rpc_test_cmdstatus_struct *objp)
 bool_t
 xdr_rpc_test_data_struct (XDR *xdrs, rpc_test_data_struct *objp)
 {
-	register int32_t *buf;
-
 	 if (!xdr_int (xdrs, &objp->fixdata1))
 		 return FALSE;
 	 if (!xdr_int (xdrs, &objp->fixdata2))

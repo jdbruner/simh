@@ -20,9 +20,8 @@
 /* this is derived from a public domain version of getopt */
 
 #include <string.h>
-#include <stdio.h>
 
-#ifdef _PPC_
+#if defined(_PPC_) || defined(WIN32)
 #include <io.h>
 #define write _write
 #define ERR(s, c)	if(opterr){\
@@ -33,6 +32,7 @@
 	(void) write(2, errbuf, 2);}
 
 #else
+#include <stdio.h>
 
 #define ERR(s, c)	if(opterr){\
 	char errbuf[2];\
