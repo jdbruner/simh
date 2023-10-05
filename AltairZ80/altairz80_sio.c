@@ -1,6 +1,6 @@
 /*  altairz80_sio.c: MITS Altair serial I/O card
 
-    Copyright (c) 2002-2014, Peter Schorn
+    Copyright (c) 2002-2023, Peter Schorn
 
     Permission is hereby granted, free of charge, to any person obtaining a
     copy of this software and associated documentation files (the "Software"),
@@ -1168,7 +1168,17 @@ int32 nulldev(const int32 port, const int32 io, const int32 data) {
 }
 
 int32 sr_dev(const int32 port, const int32 io, const int32 data) {
-    return io == 0 ? SR : 0;
+    if (io == 0) {
+        return SR;
+    }
+
+    /* Simulate IMSAI functionality of displaying the A */
+    /* register on the Programmed Output front panel LEDs */
+    if (cpu_unit.flags & UNIT_CPU_PO) {
+        sim_printf("PO: %02X\n", data & 0xff);
+    }
+
+    return 0;
 }
 
 static int32 toBCD(const int32 x) {

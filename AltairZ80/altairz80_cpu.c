@@ -1,6 +1,6 @@
 /*  altairz80_cpu.c: MITS Altair CPU (8080 and Z80)
 
-    Copyright (c) 2002-2014, Peter Schorn
+    Copyright (c) 2002-2023, Peter Schorn
 
     Permission is hereby granted, free of charge, to any person obtaining a
     copy of this software and associated documentation files (the "Software"),
@@ -451,7 +451,7 @@ REG cpu_reg[] = {
     }, /* 65 M68K, PREF_ADDR            */
     { HRDATAD (M68K_PREF_DATA,  m68k_registers[M68K_REG_PREF_DATA], 32, "M68K Last Prefetch Data register"),
     }, /* 66 M68K, PREF_DATA            */
-    { HRDATAD (M68K_PPC,         m68k_registers[M68K_REG_PPC],      32, "M68K Previous Proram Counter register"),
+    { HRDATAD (M68K_PPC,         m68k_registers[M68K_REG_PPC],      32, "M68K Previous Program Counter register"),
     }, /* 67 M68K, PPC                  */
     { HRDATAD (M68K_IR,          m68k_registers[M68K_REG_IR],       32, "M68K Instruction Register"),
     }, /* 68 M68K, IR                   */
@@ -547,6 +547,10 @@ static MTAB cpu_mod[] = {
         NULL, "Sets CPU switcher port for 8080 / Z80 / 8086"   },
     { UNIT_CPU_SWITCHER,    0,                  "NOSWITCHER",   "NOSWITCHER",   &cpu_reset_switcher, &cpu_show_switcher,
         NULL, "Resets CPU switcher port for 8080 / Z80 / 8086" },
+    { UNIT_CPU_PO,     UNIT_CPU_PO,              "PO",          "PO",           NULL, NULL,
+        NULL, "Enable programmed output messages"     },
+    { UNIT_CPU_PO,          0,                   "NOPO",        "NOPO",         NULL, NULL,
+        NULL, "Disable programmed output messages"             },
     { MTAB_XTD | MTAB_VDV,  0,                  NULL,           "AZ80",         &cpu_set_ramtype,
         NULL, NULL, "Sets the RAM type to AltairZ80 RAM for 8080 / Z80 / 8086"  },
     { MTAB_XTD | MTAB_VDV,  1,                  NULL,           "HRAM",         &cpu_set_ramtype,
@@ -2352,9 +2356,6 @@ static t_stat sim_instr_mmu (void) {
         }
 
         PCX = PC;
-        INCR(1);
-
-        op = RAM_PP(PC);
 
         /* 8080 INT/Z80 Interrupt Mode 0
            Instruction to execute (ex. RST0-7) is on the data bus
@@ -2377,6 +2378,9 @@ static t_stat sim_instr_mmu (void) {
 
             sim_debug(INT_MSG, &cpu_dev, ADDRESS_FORMAT
                 " INT(mode=0 vectorInterrupt=%X intVector=%d op=%02X)\n", PCX, vectorInterrupt, intVector, op);
+        } else {
+            INCR(1);
+            op = RAM_PP(PC);
         }
 
         switch(op) {
@@ -6384,7 +6388,7 @@ static t_stat sim_instr_mmu (void) {
 
 /*
  * This sequence of instructions is a mix that mimics
- * a resonable instruction set that is a close estimate
+ * a reasonable instruction set that is a close estimate
  * to the calibrated result.
  */
 
