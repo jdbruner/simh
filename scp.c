@@ -2330,7 +2330,7 @@ static const char simh_help2[] =
       " The syntax of the regular expressions available are those supported\n"
       " by the Perl Compatible Regular Expression package (aka PCRE).  As\n"
       " the name implies, the syntax is generally the same as Perl regular\n"
-      " expressions.  See http://perldoc.perl.org/perlre.html for more\n\n"
+      " expressions.  See http://perldoc.perl.org/perlre.html for more\n"
       " details.\n\n"
       "5-i\n"
       " If a regular expression expect rule is defined with the -i switch,\n"
@@ -2400,6 +2400,11 @@ static const char simh_help2[] =
       " arbitrary floating point number.  Given two or more arguments, pause\n"
       " for the amount of time specified by the sum of their values.\n"
       " NOTE: A SLEEP command is interruptable with SIGINT (CTRL+C).\n\n"
+      "4Switches\n"
+      " A switch can be used to influence the behavior of the SLEEP command\n\n"
+      "5-v\n"
+      " Causes the sleep command to visibly count down the time left until\n"
+      " the sleeping will finish.\n\n"
       /***************** 80 character line width template *************************/
 #define HLP_ASSERT      "*Commands Executing_Command_Files Testing_Simulator_State"
 #define HLP_IF          "*Commands Executing_Command_Files Testing_Simulator_State"
@@ -2960,23 +2965,19 @@ free (*tmpname);
 static t_stat sim_snprint_sym (char *buf, size_t bufsize, t_bool vm_flag, t_addr addr, t_value *val, UNIT *uptr, int32 sw, int32 dfltinc, int32 rdx, uint32 width, uint32 fmt)
 {
 t_stat reason;
-size_t str_width;
-size_t s;
+MEMFILE mbuf;
 
-rewind (sim_tmpfile);
+memset (&mbuf, 0, sizeof (mbuf));
+mbuf.buf = malloc (512);            /* Pre allocate a memory buffer to avoid */
+mbuf.size = 512;                    /* potential double vsnprintf to expand the buffer */
+sim_mfile = &mbuf;
 if (vm_flag || ((reason = fprint_sym (sim_tmpfile, addr, val, uptr, sw)) > 0)) {
     fprint_val (sim_tmpfile, val[0], rdx, width, fmt);
     reason = dfltinc;
     }
-str_width = (size_t)ftell(sim_tmpfile);
-if (str_width > width)
-    str_width = width;
-if (bufsize > str_width)
-    memset (buf + str_width, 0, bufsize - width);
-rewind (sim_tmpfile);
-s = fread (buf, 1, str_width, sim_tmpfile);
-if (s < bufsize)
-    buf[s] = '\0';
+sim_mfile = NULL;
+strlcpy (buf, mbuf.buf, MIN(bufsize, mbuf.pos + 1));
+free (mbuf.buf);
 return reason;
 }
 
@@ -3240,8 +3241,9 @@ if ((stat = sim_brk_init ()) != SCPE_OK) {
     sim_exit_status = EXIT_FAILURE;
     goto cleanup_and_exit;
     }
-/* always check for register definition problems */
-sim_sanity_check_register_declarations (NULL);
+/* always check for register definition problems, unless we already did that */
+if (register_check == FALSE)
+    sim_sanity_check_register_declarations (NULL);
 
 if (device_unit_tests) {
     int i;
@@ -5890,6 +5892,7 @@ t_stat sleep_cmd (int32 flag, CONST char *cptr)
 char *tptr;
 double wait;
 
+GET_SWITCHES (cptr);                                    /* get switches */
 while (*cptr) {
     wait = strtod (cptr, &tptr);
     switch (*tptr) {
@@ -5921,10 +5924,16 @@ while (*cptr) {
         }
     wait *= 1000.0;                             /* Convert to Milliseconds */
     cptr = tptr;
-    while ((wait > 1000.0) && (!stop_cpu))
+    while ((wait > 1000.0) && (!stop_cpu)) {
+        if (sim_switches & SWMASK ('V'))
+            sim_printf ("Sleeping for: %s          \r", sim_fmt_secs (wait / 1000.0));
         wait -= sim_os_ms_sleep (1000);
-    if ((wait > 0.0) && (!stop_cpu))
+        }
+    if ((wait > 0.0) && (!stop_cpu)) {
+        if (sim_switches & SWMASK ('V'))
+            sim_printf ("Sleeping for: %s          \r", sim_fmt_secs (wait / 1000.0));
         sim_os_ms_sleep ((unsigned)wait);
+        }
     }
 stop_cpu = FALSE;                   /* Clear in case sleep was interrupted */
 return SCPE_OK;
@@ -9248,8 +9257,13 @@ for (i = 0; i < (device_count + sim_internal_device_count); i++) {/* loop thru d
         fputc ('\n', sfile);
         WRITE_I (rptr->depth);                          /* [V2.10] depth */
         for (j = 0; j < rptr->depth; j++) {             /* loop thru values */
-            val = get_rval (rptr, j);                   /* get value */
-            WRITE_I (val);                              /* store */
+            if ((rptr->macro != NULL) && (memcmp (rptr->macro, "DBRDATA", 7) == 0)) {
+                fprintf (sfile, "%f\n", *(((double *)(rptr->loc)) + j));
+                }
+            else {
+                val = get_rval (rptr, j);                   /* get value */
+                WRITE_I (val);                              /* store */
+                }
             }
         }
     fputc ('\n', sfile);                                /* end registers */
@@ -9571,6 +9585,11 @@ for ( ;; ) {                                            /* device loop */
         else                                            /* otherwise */
             max = width_mask[rptr->width];              /*   the mask defines the maximum value */
         for (us = 0; us < depth; us++) {                /* loop thru values */
+            if ((rptr->macro != NULL) && (memcmp (rptr->macro, "DBRDATA", 7) == 0)) {
+                READ_S (buf);
+                sscanf(buf, "%lf", (((double *)rptr->loc) + us));
+                continue;
+                }
             READ_I (val);                               /* read value */
             if (val > max) {                            /* value ok? */
                 sim_printf ("Invalid register value: %s %s\n", sim_dname (dptr), buf);
@@ -9648,7 +9667,7 @@ if (warned)
 return r;
 }
 
-void sim_flush_buffered_files (void)
+void sim_flush_buffered_files (t_bool debug_flush)
 {
 uint32 i, j;
 DEVICE *dptr;
@@ -9656,7 +9675,7 @@ UNIT *uptr;
 
 if (sim_log)                                            /* flush console log */
     fflush (sim_log);
-if (sim_deb)                                            /* flush debug log */
+if (debug_flush && (sim_deb != NULL))                   /* flush debug log */
     _sim_debug_flush ();
 for (i = 1; (dptr = sim_devices[i]) != NULL; i++) {     /* flush attached files */
     for (j = 0; j < dptr->numunits; j++) {              /* if not buffered in mem */
@@ -9684,7 +9703,7 @@ t_stat
 flush_svc (UNIT *uptr)
 {
 sim_activate_after (uptr, sim_flush_interval * 1000000);
-sim_flush_buffered_files ();
+sim_flush_buffered_files (FALSE);
 return SCPE_OK;
 }
 
@@ -9998,7 +10017,7 @@ sim_brk_clrall (BRK_TYP_DYN_STEPOVER);                  /* cancel any step/over 
 signal (SIGHUP, sigterm_received ? SIG_IGN : SIG_DFL);  /* cancel WRU */
 #endif
 signal (SIGTERM, sigterm_received ? SIG_IGN : SIG_DFL); /* cancel WRU */
-sim_flush_buffered_files();
+sim_flush_buffered_files (TRUE);
 sim_cancel (&sim_flush_unit);                           /* cancel flush timer */
 sim_cancel_step ();                                     /* cancel step timer */
 sim_throt_cancel ();                                    /* cancel throttle */
@@ -10226,6 +10245,9 @@ for (gptr = gbuf, reason = SCPE_OK;
         if ((!sim_oline) && (sim_log && (ofile == stdout)))
             exdep_reg_loop (sim_log, sim_schrptr, EX_E, cptr,
                 lowr, --highr, 0, 0xFFFFFFFF);
+        if (sim_deb && (sim_deb != stdout) && (sim_deb != sim_log))
+            exdep_reg_loop (sim_deb, sim_schrptr, EX_E, cptr,
+                lowr, --highr, 0, 0xFFFFFFFF);
         continue;
         }
 
@@ -10258,6 +10280,9 @@ for (gptr = gbuf, reason = SCPE_OK;
         if ((flag & EX_E) && (!sim_oline) && (sim_log && (ofile == stdout)))
             exdep_reg_loop (sim_log, sim_schrptr, EX_E, cptr,
                 lowr, highr, (uint32) low, (uint32) high);
+        if ((flag & EX_E) && (!sim_oline) && (sim_deb && (sim_deb != stdout) && (sim_deb != sim_log)))
+            exdep_reg_loop (sim_deb, sim_schrptr, EX_E, cptr,
+                lowr, highr, (uint32) low, (uint32) high);
         continue;
         }
 
@@ -10279,6 +10304,9 @@ for (gptr = gbuf, reason = SCPE_OK;
         sim_dfdev, sim_dfunit);
     if ((flag & EX_E) && (!sim_oline) && (sim_log && (ofile == stdout)))
         exdep_addr_loop (sim_log, sim_schaptr, EX_E, cptr, low, high,
+            sim_dfdev, sim_dfunit);
+    if ((flag & EX_E) && (!sim_oline) && (sim_deb && (sim_deb != stdout) && (sim_deb != sim_log)))
+        exdep_addr_loop (sim_deb, sim_schaptr, EX_E, cptr, low, high,
             sim_dfdev, sim_dfunit);
     }                                                   /* end for */
 if (sim_ofile)                                          /* close output file */
@@ -10442,7 +10470,8 @@ if ((rptr->flags & REG_VMAD) && sim_vm_fprint_addr)
     sim_vm_fprint_addr (ofile, sim_dflt_dev, (t_addr) val);
 else {
     sim_snprint_sym (sim_last_val, sizeof (sim_last_val), !(rptr->flags & REG_VMFLAGS),
-                     (t_addr)((rptr->flags & REG_UFMASK) | rdx), sim_eval,
+                     (t_addr)((rptr->flags & REG_UFMASK) | rdx), 
+                     ((rptr->flags & REG_DOUBLE) == 0) ? sim_eval : (t_value *)rptr->loc,
                      NULL, sim_switches | SIM_SW_REG, 0, rdx, rptr->width, 
                      rptr->flags & REG_FMT);
     fprintf (ofile, "%s", sim_last_val);
@@ -12509,6 +12538,24 @@ t_bool negative = FALSE;
 int32 d, digit, ndigits, commas = 0;
 char dbuf[MAX_WIDTH + 1];
 
+if ((format & REG_DOUBLE) != 0) {
+    double dvalue = *((double *)&val);
+
+    snprintf (dbuf, sizeof (dbuf), "%f", dvalue);
+    if ((strrchr (dbuf, 'E') == NULL) && (strrchr (dbuf, 'e') == NULL) && (strchr (dbuf, '.') != NULL)) {
+        while (dbuf[strlen (dbuf) - 1] == '0')
+            dbuf[strlen (dbuf) - 1] = '\0';
+        if (dbuf[strlen (dbuf) - 1] == '.')
+            dbuf[strlen (dbuf) - 1] = '\0';
+        }
+    if (!buffer)
+        return strlen(dbuf);
+    *buffer = '\0';
+    if (width < strlen(dbuf))
+        return sim_messagef (SCPE_IOERR, "Invalid width (%u) for buffer size (%u)\n", width, (uint32)strlen(dbuf));
+    strcpy(buffer, dbuf);
+    return SCPE_OK;
+    }
 if (((format == PV_LEFTSIGN) || (format == PV_RCOMMASIGN)) &&
     (0 > (t_svalue)val)) {
     val = (t_value)(-((t_svalue)val));
@@ -14456,9 +14503,9 @@ return SCPE_OK;
 void _sim_scp_abort (const char *msg, const char *file, int linenum)
 {
 sim_printf ("%s - aborting from %s:%d\n", msg, file, linenum);
-sim_flush_buffered_files ();
+sim_flush_buffered_files (TRUE);
 if (sim_deb)
-    fclose (sim_deb);
+    sim_set_deboff (0, NULL);
 abort ();
 }
 
@@ -14493,7 +14540,7 @@ static void _debug_fwrite (const char *buf, size_t len)
 {
 size_t move_size;
 
-if (sim_deb_buffer == NULL) {
+if ((sim_deb_buffer == NULL) || (!sim_is_running)) {
     _debug_fwrite_all (buf, len, sim_deb);  /* output now. */
     return;
     }
@@ -16948,6 +16995,7 @@ for (i = 0; (dptr = devices[i]) != NULL; i++) {
     int reg_entry = -1;
 
     for (rptr = dptr->registers; (rptr != NULL) && (rptr->name != NULL); rptr++) {
+        uint32 format = rptr->flags & REG_FMT;
         uint32 bytes = 1;
         uint32 rsz = SZ_R(rptr);
         uint32 memsize = (rptr->depth >= 1) ? rptr->depth * rsz : rsz;
@@ -16992,13 +17040,27 @@ for (i = 0; (dptr = devices[i]) != NULL; i++) {
             }
 
         if (sim_switches & SWMASK ('R'))            /* Debug output */
-            sim_printf ("%5s:%-9.9s %s%s%s(rdx=%u, wd=%u, off=%u, dep=%u, strsz=%u, objsz=%u, oobjsz=%u, elesz=%u, rsz=%u, %s%s%s membytes=%u)\n", 
+            sim_printf ("%5s:%-9.9s %s%s%s(rdx=%u, wd=%u, off=%u, dep=%u, strsz=%u, objsz=%u, oobjsz=%u, elesz=%u, rsz=%u, %s%s%s%s membytes=%u)\n", 
                         dptr->name, rptr->name, rptr->desc ? rptr->desc : "", rptr->desc ? "\n\t" : "", rptr->macro ? rptr->macro : "", 
                         rptr->radix, rptr->width, rptr->offset, rptr->depth, (uint32)rptr->stride, (uint32)rptr->obj_size, (uint32)rptr->pobj_size, (uint32)rptr->size, rsz,
                         (rptr->flags & REG_VMAD) ? " REG_VMAD" : "", (rptr->flags & REG_VMIO) ? " REG_VMIO" : "",
-                        (rptr->flags & REG_DEPOSIT) ? " REG_DEPOSIT" : "", memsize);
+                        (rptr->flags & REG_DEPOSIT) ? " REG_DEPOSIT" : "", (rptr->flags & REG_DEPOSIT) ? " REG_DOUBLE" : "", memsize);
 
         MFlush (f);
+        if (rptr->flags & REG_DOUBLE) {
+            Mprintf (f, "%s %s:%s used the %s macro but had REG_DOUBLE flag bit set\n", sim_name, dptr->name, rptr->name, rptr->macro);
+            Mprintf (f, "%s %s:%s REG_DOUBLE shoule never be specified as a register flag bit\n", sim_name, dptr->name, rptr->name, rptr->macro);
+            Bad = TRUE;
+            }
+        if ((rptr->macro != NULL) && (0 == memcmp (rptr->macro, "DBRDATA", 7))) {
+            if (rptr->flags != 0) {
+                Mprintf (f, "%s %s:%s used the %s macro but had flags bit set\n", sim_name, dptr->name, rptr->name, rptr->macro);
+                Mprintf (f, "%s %s:%s No flags should be specified for %s registers\n", sim_name, dptr->name, rptr->name, rptr->macro);
+                Bad = TRUE;
+                }
+            else
+                rptr->flags |= REG_DOUBLE|REG_RO;
+            }
         if (rptr->depth == 1) {
             if (rptr->offset)
                 Mprintf (f, "%s %s:%s used the %s macro to describe a %u bit%s wide field at offset %u\n", sim_name, dptr->name, rptr->name, rptr->macro, rptr->width, (rptr->width == 1) ? "" : "s", rptr->offset);
@@ -17098,6 +17160,12 @@ for (i = 0; (dptr = devices[i]) != NULL; i++) {
         }
     }
 MClose (f);
+if (devices == sim_devices) {               /* Testing defaulted to simulator's DEVICEs? */
+    t_stat int_stat = sim_sanity_check_register_declarations (sim_internal_devices); /* Also test simulator's Internal Devices */
+
+    if (int_stat != SCPE_OK)
+        return int_stat;
+    }
 return stat;
 }
 
