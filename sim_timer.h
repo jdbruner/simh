@@ -102,11 +102,13 @@ int clock_gettime(int clock_id, struct timespec *tp);
 #define TIMER_DBG_MUX   0x004                       /* Debug Flag for Asynch Queue Debugging */
 
 t_bool sim_timer_init (void);
-void sim_timespec_diff (struct timespec *diff, struct timespec *min, struct timespec *sub);
+void sim_timespec_diff (struct timespec *diff, struct timespec *min, const struct timespec *sub);
 double sim_timenow_double (void);
 int32 sim_rtcn_init (int32 time, int32 tmr);
 int32 sim_rtcn_init_unit (UNIT *uptr, int32 time, int32 tmr);
 int32 sim_rtcn_init_unit_ticks (UNIT *uptr, int32 time, int32 tmr, int32 ticksper);
+void sim_rtcn_set_debug_basetime (const struct timespec *basetime);
+const struct timespec *sim_rtcn_get_debug_basetime (void);
 void sim_rtcn_debug_time (struct timespec *now);
 void sim_rtcn_get_time (struct timespec *now, int tmr);
 time_t sim_get_time (time_t *now);
@@ -159,6 +161,7 @@ uint32 sim_get_rom_delay_factor (void);
 void sim_set_rom_delay_factor (uint32 delay);
 int32 sim_rom_read_with_delay (int32 val);
 double sim_host_speed_factor (void);
+t_stat sim_os_process_cpu_times (double *system, double *user);
 
 extern t_bool sim_idle_enab;                        /* idle enabled flag */
 extern volatile t_bool sim_idle_wait;               /* idle waiting flag */

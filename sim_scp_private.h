@@ -188,9 +188,6 @@ extern pthread_cond_t sim_asynch_wake;
 extern pthread_mutex_t sim_timer_lock;
 extern pthread_cond_t sim_timer_wake;
 extern t_bool sim_timer_event_canceled;
-extern int32 sim_tmxr_poll_count;
-extern pthread_cond_t sim_tmxr_poll_cond;
-extern pthread_mutex_t sim_tmxr_poll_lock;
 extern pthread_t sim_asynch_main_threadid;
 extern UNIT * volatile sim_asynch_queue;
 extern volatile t_bool sim_idle_wait;
@@ -234,7 +231,7 @@ extern int32 sim_asynch_inst_latency;
 
 #if defined(__DECC_VER)
 #include <builtins>
-#if defined(__IA64)
+#if defined(__IA64) || defined(__ia64)
 #define USE_AIO_INTRINSICS 1
 #endif
 #endif
@@ -265,21 +262,25 @@ extern int32 sim_asynch_inst_latency;
       pthread_cond_destroy(&sim_asynch_wake);                     \
       pthread_mutex_destroy(&sim_timer_lock);                     \
       pthread_cond_destroy(&sim_timer_wake);                      \
-      pthread_mutex_destroy(&sim_tmxr_poll_lock);                 \
-      pthread_cond_destroy(&sim_tmxr_poll_cond);                  \
       } while (0)
 #ifdef _WIN32
 #elif defined(__GCC_HAVE_SYNC_COMPARE_AND_SWAP_4) || defined(__GCC_HAVE_SYNC_COMPARE_AND_SWAP_8)
-#define InterlockedCompareExchangePointer(Destination, Exchange, Comparand) __sync_val_compare_and_swap(Destination, Comparand, Exchange)
+#define InterlockedCompareExchangePointerAcquire(Destination, Exchange, Comparand) __sync_val_compare_and_swap(Destination, Comparand, Exchange)
+#define InterlockedCompareExchangePointerRelease(Destination, Exchange, Comparand) __sync_val_compare_and_swap(Destination, Comparand, Exchange)
 #elif defined(__DECC_VER)
-#define InterlockedCompareExchangePointer(Destination, Exchange, Comparand) (void *)((int32)_InterlockedCompareExchange64(Destination, Exchange, Comparand))
+#define InterlockedCompareExchangePointerAcquire(Destination, Exchange, Comparand) _InterlockedCompareExchange64_acq(Destination, Exchange, Comparand)
+#define InterlockedCompareExchangePointerRelease(Destination, Exchange, Comparand) _InterlockedCompareExchange64_rel(Destination, Exchange, Comparand)
 #else
 #error "Implementation of function InterlockedCompareExchangePointer() is needed to build with USE_AIO_INTRINSICS"
 #endif
 #define AIO_ILOCK AIO_LOCK
 #define AIO_IUNLOCK AIO_UNLOCK
-#define AIO_QUEUE_VAL (UNIT *)(InterlockedCompareExchangePointer((void * volatile *)&sim_asynch_queue, (void *)sim_asynch_queue, NULL))
-#define AIO_QUEUE_SET(newval, oldval) (UNIT *)(InterlockedCompareExchangePointer((void * volatile *)&sim_asynch_queue, (void *)newval, oldval))
+#if defined(_M_IX86) || defined(_M_X64)
+#define AIO_QUEUE_VAL ((UNIT *)sim_asynch_queue)
+#else /* !defined(_M_IX86) || defined(_M_X64) */
+#define AIO_QUEUE_VAL (UNIT *)(InterlockedCompareExchangePointerAcquire((void * volatile *)&sim_asynch_queue, (void *)sim_asynch_queue, NULL))
+#endif /* defined(_M_IX86) || defined(_M_X64) */
+#define AIO_QUEUE_SET(newval, oldval) ((UNIT *)(InterlockedCompareExchangePointerRelease((void * volatile *)&sim_asynch_queue, (void *)newval, oldval)))
 #define AIO_UPDATE_QUEUE sim_aio_update_queue ()
 #define AIO_ACTIVATE(caller, uptr, event_time)                                   \
     if (!pthread_equal ( pthread_self(), sim_asynch_main_threadid )) {           \
@@ -311,8 +312,6 @@ extern int32 sim_asynch_inst_latency;
       pthread_cond_destroy(&sim_asynch_wake);                     \
       pthread_mutex_destroy(&sim_timer_lock);                     \
       pthread_cond_destroy(&sim_timer_wake);                      \
-      pthread_mutex_destroy(&sim_tmxr_poll_lock);                 \
-      pthread_cond_destroy(&sim_tmxr_poll_cond);                  \
       } while (0)
 #define AIO_ILOCK AIO_LOCK
 #define AIO_IUNLOCK AIO_UNLOCK
@@ -321,10 +320,11 @@ extern int32 sim_asynch_inst_latency;
 #define AIO_UPDATE_QUEUE sim_aio_update_queue ()
 #define AIO_ACTIVATE(caller, uptr, event_time)                         \
     if (!pthread_equal ( pthread_self(), sim_asynch_main_threadid )) { \
-      sim_debug (SIM_DBG_AIO_QUEUE, sim_dflt_dev, "Queueing Asynch event for %s after %d instructions\n", sim_uname(uptr), event_time);\
+      sim_debug (SIM_DBG_AIO_QUEUE, sim_dflt_dev, "Lock Based Queueing Asynch event for %s after %d %s\n", sim_uname(uptr), event_time, sim_vm_interval_units);\
       AIO_LOCK;                                                        \
       if (uptr->a_next) {                       /* already queued? */  \
         uptr->a_activate_call = sim_activate_abs;                      \
+        uptr->a_event_time = MIN (uptr->a_event_time, event_time);     \
       } else {                                                         \
         uptr->a_next = sim_asynch_queue;                               \
         uptr->a_event_time = event_time;                               \
@@ -334,13 +334,13 @@ extern int32 sim_asynch_inst_latency;
       if (sim_idle_wait) {                                             \
         if (sim_deb) {  /* only while debug do lock/unlock overhead */ \
           AIO_UNLOCK;                                                  \
-          sim_debug (TIMER_DBG_IDLE, &sim_timer_dev, "waking due to event on %s after %d instructions\n", sim_uname(uptr), event_time);\
+          sim_debug (TIMER_DBG_IDLE, &sim_timer_dev, "wakeup from idle due to async event on %s after %d %s\n", sim_uname(uptr), event_time, sim_vm_interval_units);\
           AIO_LOCK;                                                    \
           }                                                            \
         pthread_cond_signal (&sim_asynch_wake);                        \
         }                                                              \
       AIO_UNLOCK;                                                      \
-      sim_asynch_check = 0;                                            \
+      sim_asynch_check = 0;     /* try to force check */               \
       return SCPE_OK;                                                  \
     } else (void)0
 #endif /* USE_AIO_INTRINSICS */

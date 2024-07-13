@@ -2188,7 +2188,10 @@ else
     if (kmap_char <= 26)
         fprintf (st, " = ^%c\n", '@' + (kmap_char&0xFF));
     else
-        fprintf (st, "\n");
+        if (kmap_char == 28)
+            fprintf (st, " = ^\\\n");
+        else
+            fprintf (st, "\n");
 return SCPE_OK;
 }
 
@@ -2224,7 +2227,7 @@ if (sim_tt_pchar) {
     static const char *pchars[] = {"NUL(^@)", "SOH(^A)", "STX(^B)", "ETX(^C)", "EOT(^D)", "ENQ(^E)", "ACK(^F)", "BEL(^G)", 
                                    "BS(^H)" , "HT(^I)",  "LF(^J)",  "VT(^K)",  "FF(^L)",  "CR(^M)",  "SO(^N)",  "SI(^O)",
                                    "DLE(^P)", "DC1(^Q)", "DC2(^R)", "DC3(^S)", "DC4(^T)", "NAK(^U)", "SYN(^V)", "ETB(^W)",
-                                   "CAN(^X)", "EM(^Y)",  "SUB(^Z)", "ESC",     "FS",      "GS",      "RS",      "US"};
+                                   "CAN(^X)", "EM(^Y)",  "SUB(^Z)", "ESC",     "FS(^\\)", "GS",      "RS",      "US"};
     int i;
     t_bool found = FALSE;
 
@@ -2353,7 +2356,7 @@ if (sim_switches & SWMASK ('B')) {
     if ((buffer_size == 0) || (buffer_size > 1024))
         return sim_messagef (SCPE_ARG, "Invalid debug memory buffersize %u MB\n", (unsigned int)buffer_size);
     }
-cptr = get_glyph_nc (cptr, gbuf, 0);                    /* get file name */
+cptr = get_glyph_quoted (cptr, gbuf, 0);                /* get file name */
 if (*cptr != 0)                                         /* now eol? */
     return SCPE_2MARG;
 r = sim_open_logfile (gbuf, FALSE, &sim_deb, &sim_deb_ref);
@@ -2366,13 +2369,15 @@ sim_set_deb_switches (sim_switches);
 if (sim_deb_switches & SWMASK ('R')) {
     struct tm loc_tm, gmt_tm;
     time_t time_t_now;
+    struct timespec basetime;
 
-    sim_rtcn_get_time(&sim_deb_basetime, 0);
-    time_t_now = (time_t)sim_deb_basetime.tv_sec;
+    sim_rtcn_get_time(&basetime, 0);
+    time_t_now = (time_t)basetime.tv_sec;
     /* Adjust the relative timebase to reflect the localtime GMT offset */
     loc_tm = *localtime (&time_t_now);
     gmt_tm = *gmtime (&time_t_now);
-    sim_deb_basetime.tv_sec -= mktime (&gmt_tm) - mktime (&loc_tm);
+    basetime.tv_sec -= mktime (&gmt_tm) - mktime (&loc_tm);
+    sim_rtcn_set_debug_basetime (&basetime);
     if (!(sim_deb_switches & (SWMASK ('A') | SWMASK ('T'))))
         sim_deb_switches |= SWMASK ('T');
     }
@@ -2752,7 +2757,7 @@ const char *tptr;
 
 if ((filename == NULL) || (*filename == 0))             /* too few arguments? */
     return SCPE_2FARG;
-tptr = get_glyph (filename, gbuf, 0);
+tptr = get_glyph_quoted (filename, gbuf, 0);
 if (*tptr != 0)                                         /* now eol? */
     return SCPE_2MARG;
 sim_close_logfile (pref);

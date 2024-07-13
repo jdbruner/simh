@@ -79,6 +79,12 @@ extern DEVICE m2sio0_dev;
 extern DEVICE m2sio1_dev;
 extern DEVICE pmmi_dev;
 extern DEVICE hayes_dev;
+extern DEVICE daz_dev;
+extern DEVICE js1_dev;
+extern DEVICE jair_dev;
+extern DEVICE jairs0_dev;
+extern DEVICE jairs1_dev;
+extern DEVICE jairp_dev;
 extern DEVICE mmd_dev;
 extern DEVICE mmdm_dev;
 extern DEVICE sol20_dev;
@@ -88,6 +94,9 @@ extern DEVICE sol20s_dev;
 extern DEVICE sol20p_dev;
 extern DEVICE vdm1_dev;
 
+extern DEVICE tuart0_dev;
+extern DEVICE tuart1_dev;
+extern DEVICE tuart2_dev;
 extern DEVICE cromfdc_dev;
 extern DEVICE wd179x_dev;
 extern DEVICE n8vem_dev;
@@ -130,7 +139,7 @@ DEVICE      *sim_devices[]  = {
     /* Compupro Devices */
     &disk1a_dev, &disk2_dev, &disk3_dev, &ss1_dev, &mdriveh_dev, &selchan_dev, &if3_dev,
     /* Cromemco Devices */
-    &cromfdc_dev,
+    &cromfdc_dev, &tuart0_dev, &tuart1_dev, &tuart2_dev,
     /* Integrated Business Computers (IBC) Devices */
     &ibc_dev,
     &ibctimer_device,
@@ -171,6 +180,14 @@ DEVICE      *sim_devices[]  = {
     &pmmi_dev,
     /* HAYES MODEM */
     &hayes_dev,
+    /* IDE/CF */
+    &daz_dev,
+    &js1_dev,
+    /* JAIR SBC */
+    &jair_dev,
+    &jairs0_dev,
+    &jairs1_dev,
+    &jairp_dev,
     /* Vector Graphic Devices */
     &fw2_dev, &vfdhd_dev,
     /* Single-Board Computers */
