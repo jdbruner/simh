@@ -340,6 +340,7 @@ static DEBTAB scp_debug[] = {
   {"SAVE",      SIM_DBG_SAVE,       "Save Activities"},
   {"RESTORE",   SIM_DBG_RESTORE,    "Restore Activities"},
   {"INIT",      SIM_DBG_INIT,       "Initialization Activities"},
+  {"SHUTDOWN",  SIM_DBG_SHUTDOWN,   "Shutdown Activities"},
   {0}
 };
 
@@ -1366,7 +1367,7 @@ static const char simh_help1[] =
       "+SET CONSOLE WRU=value       specify console drop to simh character\n"
       "+SET CONSOLE BRK=value       specify console Break character\n"
       "+SET CONSOLE DEL=value       specify console delete character\n"
-#if (defined(__GNUC__) && !defined(__OPTIMIZE__) && !defined(_WIN32))/* Debug build? */
+#if (defined(__GNUC__) && !defined(_WIN32))/* Debug build? */
       "+SET CONSOLE DBGINT=value    specify SIGINT character in debugger\n"
 #endif
       "+SET CONSOLE PCHAR=bitmask   bit mask of printable characters in\n"
@@ -1392,6 +1393,9 @@ static const char simh_help1[] =
       "++++++++                     specify console serial port and optionally\n"
       "++++++++                     the port config (i.e. ;9600-8n1)\n"
       "+SET CONSOLE NOSERIAL        disable console serial session\n"
+      "+SET CONSOLE DBSIGNAL        enable gdb debugger signals via the\n"
+      "++++++++                     specified DBGINT character\n"
+      "+SET CONSOLE NODBSIGNAL      disable gdb debugger signals\n"
        /***************** 80 character line width template *************************/
 #define HLP_SET_REMOTE "*Commands SET REMOTE"
       "3Remote\n"
@@ -3353,15 +3357,19 @@ if (SCPE_BARE_STATUS(stat) == SCPE_OPENERR)             /* didn't exist/can't op
     stat = SCPE_OK;
 
 if (SCPE_BARE_STATUS(stat) != SCPE_EXIT)
-    process_stdin_commands (SCPE_BARE_STATUS(stat), argv, FALSE);
+    stat = process_stdin_commands (SCPE_BARE_STATUS(stat), argv, FALSE);
 
 cleanup_and_exit:
 
+sim_debug (SIM_DBG_SHUTDOWN, &sim_scp_dev, "Shutting Down: Status = %d - %s\n", SCPE_BARE_STATUS (stat), sim_error_text (stat));
 detach_all (0, TRUE);                                   /* close files */
 #ifdef USE_REALCONS
 	realcons_disconnect(cpu_realcons) ;
 #endif
-sim_set_deboff (0, NULL);                               /* close debug */
+if (sim_deb) {                                          /* If debugging */
+    sim_switches |= SWMASK ('Q');                       /*   close debugging quietly */
+    sim_set_deboff (0, NULL);                           /*   and cleanly */
+    }
 sim_set_logoff (0, NULL);                               /* close log */
 sim_set_notelnet (0, NULL);                             /* close Telnet */
 vid_close_all ();                                       /* close video */
@@ -3515,10 +3523,6 @@ t_stat r = SCPE_EXIT;
 if (cptr && *cptr) {
     sim_exit_status = atoi (cptr);
     r |= SCPE_NOMESSAGE;            /* exit silently with the specified status */
-    }
-if (sim_deb) {                      /* If debugging, then close debugging cleanly */
-    sim_switches |= SWMASK ('Q');   /*   and quietly */
-    sim_set_deboff (0, NULL);
     }
 return r;
 }
@@ -9037,6 +9041,8 @@ for (i = start; (dptr = sim_devices[i]) != NULL; i++) { /* loop thru dev */
         if ((uptr->flags & UNIT_ATT) ||                 /* attached? */
             (shutdown && dptr->detach &&                /* shutdown, spec rtn, */
             !(uptr->flags & UNIT_ATTABLE))) {           /* !attachable? */
+            if (shutdown)
+                sim_debug (SIM_DBG_SHUTDOWN, &sim_scp_dev, "Detaching: %s\n", sim_uname(uptr));
             r = scp_detach_unit (dptr, uptr);           /* detach unit */
 
             if ((r != SCPE_OK) && !shutdown)            /* error and not shutting down? */
@@ -14792,12 +14798,13 @@ static void _sim_debug_write_flush (const char *buf, size_t len, t_bool flush)
 {
 char *eol;
 
+AIO_LOCK;
 if (sim_deb_switches & SWMASK ('F')) {              /* filtering disabled? */
     if (len > 0)
         _debug_fwrite (buf, len);                   /* output now. */
+    AIO_UNLOCK;
     return;                                         /* done */
     }
-AIO_LOCK;
 if (debug_line_offset + len + 1 > debug_line_bufsize) {
     debug_line_bufsize += MAX(1024, debug_line_offset + len + 1);
     debug_line_buf = (char *)realloc (debug_line_buf, debug_line_bufsize);
@@ -14883,6 +14890,7 @@ struct timespec saved_deb_basetime;
 if (sim_deb == NULL)                                    /* no debug? */
     return SCPE_OK;
 
+AIO_LOCK;
 saved_deb_basetime = *sim_rtcn_get_debug_basetime ();
 
 _sim_debug_write_flush ("", 0, TRUE);
@@ -14905,6 +14913,7 @@ if ((saved_deb_switches & SWMASK ('B')) != 0) {
     sim_switches = saved_sim_switches;
     sim_quiet = saved_quiet;
     }
+AIO_UNLOCK;
 return SCPE_OK;
 }
 

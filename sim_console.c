@@ -148,7 +148,6 @@ int setenv(const char *envname, const char *envval, int overwrite);
 /* Forward Declarations of Platform specific routines */
 
 static t_stat sim_os_poll_kbd (void);
-static t_bool sim_os_poll_kbd_ready (int ms_timeout);
 static t_stat sim_os_putchar (int32 out);
 static t_stat sim_os_ttinit (void);
 static t_stat sim_os_ttrun (void);
@@ -178,6 +177,7 @@ static t_stat sim_set_delay (int32 flag, CONST char *cptr);
 
 int32 sim_int_char = 005;                               /* interrupt character */
 int32 sim_dbg_int_char = 0;                             /* SIGINT char under debugger */
+int32 sim_dbg_signal = 0;                               /* Enable SIGINT to debugger */
 static t_bool sigint_message_issued = FALSE;
 int32 sim_brk_char = 000;                               /* break character */
 int32 sim_tt_pchar = 0x00002780;
@@ -317,7 +317,6 @@ static CTAB set_con_tab[] = {
     { "WRU",     &sim_set_kmap, KMAP_WRU    | KMAP_NZ },
     { "BRK",     &sim_set_kmap, KMAP_BRK },
     { "DEL",     &sim_set_kmap, KMAP_DEL    | KMAP_NZ },
-    { "DBGINT",  &sim_set_kmap, KMAP_DBGINT | KMAP_NZ },
     { "PCHAR",   &sim_set_pchar, 0 },
     { "SPEED",   &sim_set_cons_speed, 0 },
     { "TELNET",  &sim_set_telnet, 0 },
@@ -334,6 +333,11 @@ static CTAB set_con_tab[] = {
     { "DELAY", &sim_set_delay, 0 },
     { "RESPONSE", &sim_set_response, 1 | CMD_WANTSTR },
     { "NORESPONSE", &sim_set_response, 0 },
+    { "DBGINT",  &sim_set_kmap, KMAP_DBGINT | KMAP_NZ },
+    { "DBGSIG", &sim_set_dbgsignal, 0 },
+    { "DBGSIGNAL", &sim_set_dbgsignal, 0 },
+    { "NODBGSIG", &sim_reset_dbgsignal, 0 },
+    { "NODBGSIGNAL", &sim_reset_dbgsignal, 0 },
     { NULL, NULL, 0 }
     };
 
@@ -352,7 +356,7 @@ static SHTAB show_con_tab[] = {
     { "WRU", &sim_show_kmap, KMAP_WRU },
     { "BRK", &sim_show_kmap, KMAP_BRK },
     { "DEL", &sim_show_kmap, KMAP_DEL },
-#if (defined(__GNUC__) && !defined(__OPTIMIZE__) && !defined(_WIN32))       /* Debug build? */
+#if !defined(_WIN32) && !defined(_WIN64) && !defined(VMS)
     { "DBGINT", &sim_show_kmap, KMAP_DBGINT },
 #endif
     { "PCHAR", &sim_show_pchar, 0 },
@@ -366,6 +370,7 @@ static SHTAB show_con_tab[] = {
     { "INPUT", &sim_show_cons_send_input, 0 },
     { "RESPONSE", &sim_show_cons_send_input, -1 },
     { "DELAY", &sim_show_cons_expect, -1 },
+    { "DBGSIGNAL", &sim_show_dbgsignal, 0 },
     { NULL, NULL, 0 }
     };
 
@@ -2192,7 +2197,7 @@ else
 if (isprint(kmap_char&0xFF))
     fprintf (st, " = '%c'\n", kmap_char&0xFF);
 else
-    if (kmap_char <= 26)
+    if (kmap_char <= 32)
         fprintf (st, " = ^%c\n", '@' + (kmap_char&0xFF));
     else
         if (kmap_char == 28)
@@ -2951,6 +2956,48 @@ fprintf (st, "Console Send processing:\n");
 return sim_show_send_input (st, &sim_con_send);
 }
 
+/* Enable console signal to debugger (for GNU C, Clang and not on Windows. */
+t_stat sim_set_dbgsignal (int32 flag, CONST char *cptr)
+{
+#if !defined(_WIN32) && !defined(_WIN64) && !defined(VMS)
+if (cptr != NULL && *cptr != '\0')
+    return SCPE_2FARG;
+
+sim_dbg_signal = TRUE;             /* Enable SIGINT to debugger */
+return sim_messagef(SCPE_OK, "SIGINT to debugger enabled.\n");
+#else
+return sim_messagef(SCPE_NOFNC, "Debugger interrupt not supported on this platform.\n");
+#endif
+}
+
+/* Turn off debugger signal */
+t_stat sim_reset_dbgsignal (int32 flag, CONST char *cptr)
+{
+#if !defined(_WIN32) && !defined(_WIN64) && !defined(VMS)
+if (cptr != NULL && *cptr != '\0') /* too many arguments? */
+    return SCPE_2MARG;
+
+sim_dbg_signal = FALSE;            /* Disable SIGINT to debugger */
+return sim_messagef(SCPE_OK, "SIGINT to debugger is disabled.\n");
+#else
+return sim_messagef(SCPE_NOFNC, "Debugger interrupt not supported on this platform.\n");
+#endif
+}
+
+t_stat sim_show_dbgsignal (FILE *st, DEVICE *dptr, UNIT *uptr, int32 flag, CONST char *cptr)
+{
+#if !defined(_WIN32) && !defined(_WIN64) && !defined(VMS)
+if (cptr != NULL && *cptr != '\0') /* too many arguments? */
+    return SCPE_2MARG;
+
+fprintf(st, "%s interrupts to the debugger.\n", sim_dbg_signal ? "Delivering" : "Not delivering");
+#else
+fprintf(st, "Debugger interrupt not supported on this platform.\n");
+#endif
+
+return SCPE_OK;
+}
+
 /* Poll for character */
 
 t_stat sim_poll_kbd (void)
@@ -3380,29 +3427,6 @@ if (response = buffered_character) {
 return sim_os_poll_kbd_data ();
 }
 
-static t_bool sim_os_poll_kbd_ready (int ms_timeout)
-{
-unsigned int status, term[2];
-unsigned char buf[4];
-IOSB iosb;
-
-term[0] = 0; term[1] = 0;
-status = sys$qiow (EFN, tty_chan,
-    IO$_READLBLK | IO$M_NOECHO | IO$M_NOFILTR | IO$M_TIMED | IO$M_TRMNOECHO,
-    &iosb, 0, 0, buf, 1, (ms_timeout+999)/1000, term, 0, 0);
-if ((status != SS$_NORMAL) || (iosb.status != SS$_NORMAL))
-    return FALSE;
-if (buf[0] == sim_int_char)
-    buffered_character = SCPE_STOP;
-else
-    if (sim_brk_char && (buf[0] == sim_brk_char))
-        buffered_character = SCPE_BREAK;
-    else
-        buffered_character = (buf[0] | SCPE_KFLAG);
-return TRUE;
-}
-
-
 static t_stat sim_os_putchar (int32 out)
 {
 unsigned int status;
@@ -3430,9 +3454,12 @@ return SCPE_NOFNC;
 #include <fcntl.h>
 #include <io.h>
 #define RAW_MODE 0
+typedef BOOL (WINAPI *std_output_writer_fn)(HANDLE, const void *, DWORD, LPDWORD, LPVOID);
+
 static HANDLE std_input;
 static HANDLE std_output;
 static HANDLE std_error;
+static std_output_writer_fn std_output_writer = NULL;
 static DWORD saved_input_mode;
 static DWORD saved_output_mode;
 static DWORD saved_error_mode;
@@ -3484,12 +3511,20 @@ SetConsoleCtrlHandler( ControlHandler, TRUE );
 std_input = GetStdHandle (STD_INPUT_HANDLE);
 std_output = GetStdHandle (STD_OUTPUT_HANDLE);
 std_error = GetStdHandle (STD_ERROR_HANDLE);
+
 if ((std_input) &&                                      /* Not Background process? */
     (std_input != INVALID_HANDLE_VALUE))
     GetConsoleMode (std_input, &saved_input_mode);      /* Save Input Mode */
 if ((std_output) &&                                     /* Not Background process? */
-    (std_output != INVALID_HANDLE_VALUE))
-    GetConsoleMode (std_output, &saved_output_mode);    /* Save Output Mode */
+    (std_output != INVALID_HANDLE_VALUE)) {             /* Save Output Mode */
+    std_output_writer = GetConsoleMode(std_output, &saved_output_mode)
+        ? WriteConsoleA
+        : (std_output_writer_fn) WriteFile;
+    }
+else {
+    /* Default to something resonable... */
+    std_output_writer = (std_output_writer_fn) WriteFile;
+    }
 if ((std_error) &&                                      /* Not Background process? */
     (std_error != INVALID_HANDLE_VALUE))
     GetConsoleMode (std_error, &saved_error_mode);      /* Save Output Mode */
@@ -3614,18 +3649,6 @@ if ((sim_brk_char && ((c & 0177) == sim_brk_char)) || (c & SCPE_BREAK))
 return c | SCPE_KFLAG;
 }
 
-static t_bool sim_os_poll_kbd_ready (int ms_timeout)
-{
-sim_debug (DBG_TRC, &sim_con_telnet, "sim_os_poll_kbd_ready()\n");
-if ((std_input == NULL) ||                              /* No keyboard for */
-    (std_input == INVALID_HANDLE_VALUE)) {              /* background processes */
-    Sleep (ms_timeout);
-    return FALSE;
-    }
-return (WAIT_OBJECT_0 == WaitForSingleObject (std_input, ms_timeout));
-}
-
-
 #define BELL_CHAR           7       /* Bell Character */
 #define BELL_INTERVAL_MS    500     /* No more than 2 Bell Characters Per Second */
 #define ESC_CHAR            033     /* Escape Character */
@@ -3637,11 +3660,20 @@ return (WAIT_OBJECT_0 == WaitForSingleObject (std_input, ms_timeout));
 static uint8 out_buf[ESC_HOLD_MAX]; /* Buffered characters pending output */
 static int32 out_ptr = 0;
 
-static t_stat sim_out_hold_svc (UNIT *uptr)
+static void sim_console_write(uint8 *outbuf, int32 outsz)
 {
 DWORD unused;
+BOOL result;
 
-WriteConsoleA(std_output, out_buf, out_ptr, &unused, NULL);
+/* Useful to see the return value from std_output_writer. */
+result = std_output_writer(std_output, outbuf, outsz, &unused, NULL);
+/* But squelch the set-but-not-used warnings. */
+(void) result;
+}
+
+static t_stat sim_out_hold_svc (UNIT *uptr)
+{
+sim_console_write(out_buf, out_ptr);
 out_ptr = 0;
 return SCPE_OK;
 }
@@ -3650,16 +3682,16 @@ return SCPE_OK;
 
 static t_stat sim_os_putchar (int32 c)
 {
-DWORD unused;
 uint32 now;
 static uint32 last_bell_time;
+uint8  ch = (c & 0xff);
 
-if (c != 0177) {
-    switch (c) {
+if (ch != 0177) {
+    switch (ch) {
         case BELL_CHAR:
             now = sim_os_msec ();
             if ((now - last_bell_time) > BELL_INTERVAL_MS) {
-                WriteConsoleA(std_output, &c, 1, &unused, NULL);
+                sim_console_write(&ch, 1);
                 last_bell_time = now;
                 }
             break;
@@ -3668,26 +3700,26 @@ if (c != 0177) {
         case CSI_CHAR:
         case ESC_CHAR:
             if (out_ptr) {
-                WriteConsoleA(std_output, out_buf, out_ptr, &unused, NULL);
+                sim_console_write(out_buf, out_ptr);
                 out_ptr = 0;
                 sim_cancel (&out_hold_unit);
                 }
-            out_buf[out_ptr++] = (uint8)c;
+            out_buf[out_ptr++] = ch;
             sim_activate_after (&out_hold_unit, ESC_HOLD_USEC_DELAY);
             out_hold_unit.action = &sim_out_hold_svc;
             break;
         default:
             if (out_ptr) {
                 if (out_ptr >= ESC_HOLD_MAX) {              /* Stop buffering if full */
-                    WriteConsoleA(std_output, out_buf, out_ptr, &unused, NULL);
+                    sim_console_write(out_buf, out_ptr);
                     out_ptr = 0;
-                    WriteConsoleA(std_output, &c, 1, &unused, NULL);
+                    sim_console_write(&ch, 1);
                     }
                 else
-                    out_buf[out_ptr++] = (uint8)c;
+                    out_buf[out_ptr++] = ch;
                 }
             else
-                WriteConsoleA(std_output, &c, 1, &unused, NULL);
+                sim_console_write(&ch, 1);
         }
     }
 return SCPE_OK;
@@ -3771,26 +3803,30 @@ static t_stat sim_os_ttrun (void)
 {
 sim_debug (DBG_TRC, &sim_con_telnet, "sim_os_ttrun() - BSDTTY\n");
 
-#if (defined(__GNUC__) && !defined(__OPTIMIZE__))       /* Debug build? */
-if (sim_dbg_int_char == 0)
-    sim_dbg_int_char = sim_int_char + 1;
-runtchars.t_intrc = sim_dbg_int_char;                   /* let debugger get SIGINT with next highest char */
-if (!sigint_message_issued) {
-    char sigint_name[8];
+if (sim_dbg_signal) {
+    if (sim_dbg_int_char == 0)
+        sim_dbg_int_char = sim_int_char + 1;            /* Set a reasonable default for the DBGINT char */
+    runtchars.t_intrc = sim_dbg_int_char;               /* let debugger get SIGINT with the DBGINT char */
 
-    if (isprint(sim_dbg_int_char&0xFF))
-        sprintf(sigint_name, "'%c'", sim_dbg_int_char&0xFF);
-    else
-        if (sim_dbg_int_char <= 26)
-            sprintf(sigint_name, "^%c", '@' + (sim_dbg_int_char&0xFF));
+    if (!sigint_message_issued) {
+        char sigint_name[8];
+
+        if (isprint(sim_dbg_int_char&0xFF))
+            sprintf(sigint_name, "'%c'", sim_dbg_int_char&0xFF);
         else
-            sprintf(sigint_name, "'\\%03o'", sim_dbg_int_char&0xFF);
-    sigint_message_issued = TRUE;
-    sim_messagef (SCPE_OK, "SIGINT will be delivered to your debugger when the %s character is entered\n", sigint_name);
+            if (sim_dbg_int_char <= 32)
+                sprintf(sigint_name, "'^%c'", '@' + (sim_dbg_int_char&0xFF));
+            else
+                sprintf(sigint_name, "'\\%03o'", sim_dbg_int_char&0xFF);
+
+        sim_messagef (SCPE_OK, "SIGINT will be delivered to your debugger when the %s character is entered\n",
+                      sigint_name);
+
+        sigint_message_issued = TRUE;
+        }
     }
-#else
-runtchars.t_intrc = sim_int_char;                       /* in case changed */
-#endif
+else
+    runtchars.t_intrc = sim_int_char;                   /* in case changed */
 fcntl (0, F_SETFL, runfl);                              /* non-block mode */
 if (ioctl (0, TIOCSETP, &runtty) < 0)
     return SCPE_TTIERR;
@@ -3842,22 +3878,6 @@ if (sim_brk_char && (buf[0] == sim_brk_char))
 if (sim_int_char && (buf[0] == sim_int_char))
     return SCPE_STOP;
 return (buf[0] | SCPE_KFLAG);
-}
-
-static t_bool sim_os_poll_kbd_ready (int ms_timeout)
-{
-fd_set readfds;
-struct timeval timeout;
-
-if (!isatty (0)) {                           /* skip if !tty */
-    sim_os_ms_sleep (ms_timeout);
-    return FALSE;
-    }
-FD_ZERO (&readfds);
-FD_SET (0, &readfds);
-timeout.tv_sec = (ms_timeout*1000)/1000000;
-timeout.tv_usec = (ms_timeout*1000)%1000000;
-return (1 == select (1, &readfds, NULL, NULL, &timeout));
 }
 
 static t_stat sim_os_putchar (int32 out)
@@ -3959,24 +3979,28 @@ runtty.c_cc[VINTR] = 0;                                 /* OS X doesn't deliver 
 #else
 runtty.c_cc[VINTR] = sim_int_char;                      /* in case changed */
 #endif
-#if (defined(__GNUC__) && !defined(__OPTIMIZE__))       /* Debug build? */
-if (sim_dbg_int_char == 0)
-    sim_dbg_int_char = sim_int_char + 1;
-runtty.c_cc[VINTR] = sim_dbg_int_char;                  /* let debugger get SIGINT with next highest char */
-if (!sigint_message_issued) {
-    char sigint_name[8];
+if (sim_dbg_signal) {
+    if (sim_dbg_int_char == 0)
+        sim_dbg_int_char = sim_int_char + 1;            /* Set a reasonable default for the DBGINT char */
+    runtty.c_cc[VINTR] = sim_dbg_int_char;              /* let debugger get SIGINT with the DBGINT char */
 
-    if (isprint(sim_dbg_int_char&0xFF))
-        sprintf(sigint_name, "'%c'", sim_dbg_int_char&0xFF);
-    else
-        if (sim_dbg_int_char <= 26)
-            sprintf(sigint_name, "^%c", '@' + (sim_dbg_int_char&0xFF));
+    if (!sigint_message_issued) {
+        char sigint_name[8];
+
+        if (isprint(sim_dbg_int_char&0xFF))
+            sprintf(sigint_name, "'%c'", sim_dbg_int_char&0xFF);
         else
-            sprintf(sigint_name, "'\\%03o'", sim_dbg_int_char&0xFF);
-    sigint_message_issued = TRUE;
-    sim_messagef (SCPE_OK, "SIGINT will be delivered to your debugger when the %s character is entered\n", sigint_name);
+            if (sim_dbg_int_char <= 32)
+                sprintf(sigint_name, "'^%c'", '@' + (sim_dbg_int_char&0xFF));
+            else
+                sprintf(sigint_name, "'\\%03o'", sim_dbg_int_char&0xFF);
+
+        sim_messagef (SCPE_OK, "SIGINT will be delivered to your debugger when the %s character is entered\n",
+                      sigint_name);
+
+        sigint_message_issued = TRUE;
+        }
     }
-#endif
 if (tcsetattr (fileno(stdin), TCSETATTR_ACTION, &runtty) < 0)
     return SCPE_TTIERR;
 sim_os_set_thread_priority (PRIORITY_BELOW_NORMAL);     /* try to lower pri */
@@ -4021,22 +4045,6 @@ if (sim_brk_char && (buf[0] == sim_brk_char))
 if (sim_int_char && (buf[0] == sim_int_char))
     return SCPE_STOP;
 return (buf[0] | SCPE_KFLAG);
-}
-
-static t_bool sim_os_poll_kbd_ready (int ms_timeout)
-{
-fd_set readfds;
-struct timeval timeout;
-
-if (!sim_ttisatty()) {                      /* skip if !tty */
-    sim_os_ms_sleep (ms_timeout);
-    return FALSE;
-    }
-FD_ZERO (&readfds);
-FD_SET (0, &readfds);
-timeout.tv_sec = (ms_timeout*1000)/1000000;
-timeout.tv_usec = (ms_timeout*1000)%1000000;
-return (1 == select (1, &readfds, NULL, NULL, &timeout));
 }
 
 static t_stat sim_os_putchar (int32 out)
