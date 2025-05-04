@@ -59,6 +59,20 @@ if [ $MAKE_TARGET_ARCH = RPI ]; then
         echo ; echo "*** blinkenlight_server for PiDP11"
         make $MAKEOPTIONS $MAKETARGETS
     )
+    (
+        # The Blinkenligt API test client for all platforms
+        # (but currently only being built for Raspberry)
+        cd blinkenlight_test
+        echo ; echo "*** blinkenlight_test for $MAKE_TARGET_NAME"
+        make $MAKEOPTIONS $MAKETARGETS
+    )
+    (
+        # An alternative to scansw for the PiDP11 that uses
+        # the pidp11 server rather than directly accessing the GPIO
+        cd blinkenlight_getcsw/pidp11
+        echo ; echo "*** blinkenlight_getcsw/pidp11 for $MAKE_TARGET_NAME"
+        make $MAKEOPTIONS $MAKETARGETS
+    )
 fi
 
 echo
@@ -71,13 +85,6 @@ exit 0
     # Simulation and syntax test modes work also on desktop Linuxes
     cd blinkenlight_server
     echo ; echo "*** blinkenlight_server for $MAKE_TARGET_NAME"
-    make $MAKEOPTIONS $MAKETARGETS
-)
-
-(
-    # The Blinkenligt API test client for all platforms
-    cd blinkenlight_test
-    echo ; echo "*** blinkenlight_test for $MAKE_TARGET_NAME"
     make $MAKEOPTIONS $MAKETARGETS
 )
 

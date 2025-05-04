@@ -107,12 +107,12 @@ blink(volatile int *terminate)
         goto out;
     }
 
-    // configure the columns as inputs with no pull (inert)
+    // configure the columns as inputs with pull up
     if (gpiod_chip_get_lines(chip, cols, _countof(cols), &bulk_cols) < 0) {
-        perror("gpiod_chip_get_lines(ledrows)");
+        perror("gpiod_chip_get_lines(bulk_cols)");
         goto out;
     }
-    if (gpiod_line_request_bulk_input_flags(&bulk_cols, argv0, tristate_flags) < 0) {
+    if (gpiod_line_request_bulk_input_flags(&bulk_cols, argv0, pullup_flags) < 0) {
         perror("gpiod_line_request_bulk_input_flags(bulk_cols)");
         goto out;
     }
