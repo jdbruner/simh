@@ -1,0 +1,17 @@
+[Unit]
+Description=PiDP11/70 simulation
+Wants=rpcbind.service pidp11panel.service
+After=rpcbind.service pidp11panel.service
+
+[Install]
+WantedBy=pidp11.service
+WantedBy=multi-user.target
+
+[Service]
+Type=simple
+ExecStartPre=+-mkdir /run/pidp11
+ExecStartPre=+-chown pi:pi /run/pidp11
+ExecStart=screen -D -m -S pidp11 /opt/pidp11/bin/pidp11.sh
+WorkingDirectory=/opt/pidp11/bin
+User=pi
+Group=pi
