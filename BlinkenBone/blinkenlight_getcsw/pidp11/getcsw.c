@@ -41,11 +41,12 @@ main(int argc, const char *const *argv)
     char radix = 'u';
     int width = 0;
     int zerofill = 0;
+    unsigned long bitmask = ~0uL;
     char format[16];
 
     while (1) {
         /* parse arguments */
-        int c = getopt(argc, (char **)argv, "0d::o::x::?");
+        int c = getopt(argc, (char **)argv, "0d::o::x::n:?");
         if (c == -1)
             break;
 
@@ -66,12 +67,23 @@ main(int argc, const char *const *argv)
                 width = MAX(0, MIN(width,24));
             }
             break;
+        
+        case 'n':
+            /* number of significant bits, starting from the low end */
+            if (optarg != NULL) {
+                int nbits = atoi(optarg);
+                if (nbits <= 0 || nbits >= 8 * sizeof(unsigned long))
+                    bitmask = ~0uL;
+                else
+                    bitmask = (1uL << nbits) - 1;
+            }
+            break;
 
         default:
             fprintf(stderr, "%s: unknown argument \"%c\"\n", c);
             // fall through
         case '?':
-            fprintf(stderr, "Usage: \"%s [-0] [-d[N]|-o[N]|-x[N]]\"\n", argv0);
+            fprintf(stderr, "Usage: \"%s [-0] [-d[N]|-o[N]|-x[N]] [-nN]\"\n", argv0);
             return -1;
         }
     }
@@ -117,7 +129,7 @@ main(int argc, const char *const *argv)
     }
 
     /* print the switch register according to the format determined above */
-    printf(format, (long)switch_register->value);
+    printf(format, (unsigned long)switch_register->value & bitmask);
     retval = 0;
 
 out:
