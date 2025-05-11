@@ -9,8 +9,6 @@ WantedBy=multi-user.target
 
 [Service]
 Type=simple
-ExecStartPre=+-mkdir /run/pidp11
-ExecStartPre=+-chown pi:pi /run/pidp11
 ExecStart=screen -D -m -S pidp11 /opt/pidp11/bin/pidp11.sh
 WorkingDirectory=/opt/pidp11/bin
 User=pi

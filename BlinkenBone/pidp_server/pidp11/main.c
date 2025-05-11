@@ -131,35 +131,50 @@ static void on_blinkenlight_api_panel_get_controlvalues(blinkenlight_panel_t *p)
         if (c->is_input) {
 
             if (c == switch_POWER)
-			{
+            {
                 c->value = ((gpio_switchstatus[1] & 1<<10)==0?0:1); // send "power switch" signal
-				//printf("%" PRIu64 " ",c->value);
-				if ((c->value)==0)
-				{
-					if (pwrDebounce==0)	// do it only once, when power button is triggered
-					{
-						char buffer[255];
-						pwrDebounce=1;	// do it only once, when power button is triggered
-						
-						if (switch_HALT->value==0)
-						{
-							sprintf(buffer,"/opt/pidp11/bin/rebootsimh.sh");
-							FILE *bootfil = popen(buffer, "r");
-							printf("\r\n--> Rebooting...\r\n");
-							pclose(bootfil);
-						}
-						else
-						{
-							sprintf(buffer,"/opt/pidp11/bin/down.sh");
-							FILE *bootfil = popen(buffer, "r");
-							printf("--> System shutdown - allow 15 seconds before power off\r\n");
-							pclose(bootfil);
-						}
-					}
-				}
-				else
-					pwrDebounce=0;	// power button released
-			}
+#if 0
+                /*
+                 * In Oscar's original implementation, the panel server invokes a command script:
+                 * If the HALT switch is up. then the simulator is rebooted - basically, by writing
+                 * an "exit" command into a temp file that simh (and the script that invokes it)
+                 * looks at. If the HALT switch is down, the entire machine is shutdown.
+                 *
+                 * To avoid the implicit requirement that this is running as root (or can sudo),
+                 * and because shutting everything down seems somewhat unexpected, the former
+                 * behavior is moved to simh and the latter is not implemented. If it is desired to
+                 * control the Raspberry Pi's state from the PiDP11 panel, a better way to do it is
+                 * to configure it to shutdown on a GPIO power button - and wire the console power
+                 * key switch to the Pi.
+                 */
+                //printf("%" PRIu64 " ",c->value);
+                if ((c->value)==0)
+                {
+                    if (pwrDebounce==0) // do it only once, when power button is triggered
+                    {
+                        char buffer[255];
+                        pwrDebounce=1;  // do it only once, when power button is triggered
+                        
+                        if (switch_HALT->value==0)
+                        {
+                            sprintf(buffer,"/opt/pidp11/bin/rebootsimh.sh");
+                            FILE *bootfil = popen(buffer, "r");
+                            printf("\r\n--> Rebooting...\r\n");
+                            pclose(bootfil);
+                        }
+                        else
+                        {
+                            sprintf(buffer,"/opt/pidp11/bin/down.sh");
+                            FILE *bootfil = popen(buffer, "r");
+                            printf("--> System shutdown - allow 15 seconds before power off\r\n");
+                            pclose(bootfil);
+                        }
+                    }
+                }
+                else
+                    pwrDebounce=0;  // power button released
+#endif
+            }
             else if (c == switch_PANEL_LOCK)
                 c->value = panel_lock; // send "panel lock" switch as defined by -L
 

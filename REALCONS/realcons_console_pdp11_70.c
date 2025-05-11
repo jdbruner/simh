@@ -765,6 +765,7 @@ t_stat realcons_console_pdp11_70_service(realcons_console_logic_pdp11_70_t *_thi
         if (_this->keyswitch_power->value_previous == 1) {
             SIGNAL_SET(cpusignal_console_halt, 1); // stop execution
 #ifdef USE_PIDP11
+#if 0
             // The PiDP11 alse generates this event when the rotary switch is pressed.
             // The PiDP11 has either placed an exit or quit command in the temporary file.
             // To avoid arbitrary code execution, treat anything other than "exit\n" as "quit"
@@ -779,6 +780,12 @@ t_stat realcons_console_pdp11_70_service(realcons_console_logic_pdp11_70_t *_thi
                 }
                 strcpy(_this->realcons->simh_cmd_buffer, cmd);
             }
+#endif
+            // Power switch (actually, address select knob) pressed:
+            // Exit with a status based upon whether the HALT switch is down. A normal (zero)
+            // exit status indicates that the simulator should be restarted. A nonzero exit status
+            // indicates that it should not.
+            sprintf(_this->realcons->simh_cmd_buffer, "exit %d\n", _this->switch_HALT->value != 0);
 #else
             // Power switch transition to POWER OFF: terminate SimH
             // This is drastic, but will teach users not to twiddle with the power switch.
