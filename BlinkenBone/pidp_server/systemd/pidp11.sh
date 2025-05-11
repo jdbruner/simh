@@ -1,5 +1,7 @@
 #! /bin/bash
 
+# pidp11 server script
+#
 # This script should be run as an ordinary user (not root)
 
 # Create temporary file for SIMH commands
