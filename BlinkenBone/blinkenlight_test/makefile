@@ -25,13 +25,15 @@ else ifeq ($(MAKE_TARGET_ARCH),BBB)
 	OBJDIR=bin-bbb
 else ifeq ($(MAKE_TARGET_ARCH),RPI)
 	# CC=arm-linux-gnueabihf-gcc -std=c99 -U__STRICT_ANSI__ $(CC_DBG_FLAGS) $(OS_CCDEFS) -I.
+	OS_CCDEFS=$(CC_DBG_FLAGS) -I/usr/include/tirpc
+	LDFLAGS += -ltirpc
 	OBJDIR=bin-rpi
 else ifeq ($(MAKE_TARGET_ARCH),X86)
-    OS_CCDEFS=-m32 $(CC_DBG_FLAGS) -I/usr/include/tirpc
+	OS_CCDEFS=-m32 $(CC_DBG_FLAGS) -I/usr/include/tirpc
 	OBJDIR=bin-ubuntu-x86
 	LDFLAGS += -ltirpc
 else ifeq ($(MAKE_TARGET_ARCH),X64)
-    OS_CCDEFS=-m64 $(CC_DBG_FLAGS) -I/usr/include/tirpc
+	OS_CCDEFS=-m64 $(CC_DBG_FLAGS) -I/usr/include/tirpc
 	OBJDIR=bin-ubuntu-x64
 	LDFLAGS += -ltirpc
 else

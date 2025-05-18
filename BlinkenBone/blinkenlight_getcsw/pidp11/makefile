@@ -17,6 +17,8 @@ OS_CCDEFS =
 
 ifeq ($(MAKE_TARGET_ARCH),RPI)
 	OBJDIR=../../../BIN
+	OS_CCDEFS += $(CC_DBG_FLAGS) -I/usr/include/tirpc
+	LDFLAGS += -ltirpc
 else
 	$error("only supported on Raspberry Pi")
 endif

@@ -17,7 +17,8 @@ The PiDP8 panel server has not been updated, and the PiDP11 panelserver has not 
 
 This does not replicate Oscar Vermeulen's PiDP11 installation and runtime scripts (see http://pidp.net/pidp11/pidp11.tar.gz), not does it include the [PDP-11 disk images](http://pidp.net/pidp11/systems.tar.gz). Those should be installed as per Oscar's instructions. Then, to build and install manually on a Raspberry Pi as replacements for the binaries that were installed by Oscar's distribution, change directory to the root of the GIT repository and do the following:
 ```bash
-sudo apt-get install apt default-jdk libgpiod-dev libtirpc-dev
+sudo apt install ant default-jdk libgpiod-dev libtirpc-dev 
+sudo apt install libsdl2-dev libpcap-dev libreadline-dev libpcre3-dev libedit-dev libpng-dev libvdeplug-dev
 USE_PIDP11=1 make pdp11
 (cd BlinkenBone; ./make.sh)
 cd BIN
