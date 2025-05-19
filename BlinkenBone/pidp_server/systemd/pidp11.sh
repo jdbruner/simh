@@ -15,8 +15,8 @@ done
 
 while
 	# select system using low 12 bits of SR switches
-	eval declare -A selections=($(< /opt/pidp11/systems/selections))
-	csw=$(/opt/pidp11/bin/getcsw -o4 -0 -n12)
+	eval declare -A selections=($(/opt/pidp11/systems/get_selections.sh))
+	csw=$(/opt/pidp11/getcsw -o4 -0 -n12)
 	sel=${selections[${csw:-"0000"}]:-"idled"}
 	echo "*** booting $sel ***"
 	# create a bootscript for simh in the /run ramdisk:
@@ -25,7 +25,7 @@ while
 		do boot.ini
 	EOF
 	echo "*** Start client ***"
-	/opt/pidp11/bin/client11 -q $bootscript
+	/opt/pidp11/client11 -q $bootscript
 do
 	:
 done

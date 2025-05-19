@@ -9,7 +9,7 @@ WantedBy=multi-user.target
 
 [Service]
 Type=simple
-ExecStart=screen -D -m -S pidp11 /opt/pidp11/bin/pidp11.sh
-WorkingDirectory=/opt/pidp11/bin
-User=pi
-Group=pi
+ExecStart=screen -D -m -S pidp11 /opt/pidp11/pidp11.sh
+WorkingDirectory=/opt/pidp11
+User=pidp11
+Group=pidp11
