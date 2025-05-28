@@ -765,22 +765,6 @@ t_stat realcons_console_pdp11_70_service(realcons_console_logic_pdp11_70_t *_thi
         if (_this->keyswitch_power->value_previous == 1) {
             SIGNAL_SET(cpusignal_console_halt, 1); // stop execution
 #ifdef USE_PIDP11
-#if 0
-            // The PiDP11 alse generates this event when the rotary switch is pressed.
-            // The PiDP11 has either placed an exit or quit command in the temporary file.
-            // To avoid arbitrary code execution, treat anything other than "exit\n" as "quit"
-            // strcpy/strcmp are safe here because we know the buffers are large enough
-            {
-                char buf[8], *cmd = "quit";
-                FILE *bootfil = fopen("/run/pidp11/tmpsimhcommand.txt", "r");
-                if (bootfil != NULL) {
-                    if (fgets(buf, sizeof buf, bootfil) != NULL && strcmp(buf, "exit\n") == 0)
-                        cmd = buf;
-                    fclose(bootfil);
-                }
-                strcpy(_this->realcons->simh_cmd_buffer, cmd);
-            }
-#endif
             // Power switch (actually, address select knob) pressed:
             // Exit with a status based upon whether the HALT switch is down. A normal (zero)
             // exit status indicates that the simulator should be restarted. A nonzero exit status
