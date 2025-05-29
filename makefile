@@ -1546,6 +1546,9 @@ ifneq (clean,${MAKECMDGOALS})
   ifneq (,$(VIDEO_FEATURES))
     $(info *** $(VIDEO_FEATURES).)
   endif
+  ifneq (,$(or $(USE_PIDP11),$(USE_REALCONS)))
+    $(info *** - REALCONS console support)
+  endif
   ifneq (,$(TESTING_FEATURES))
     $(info *** $(TESTING_FEATURES).)
   endif

@@ -42,8 +42,11 @@ panelsim_all.jar
 BIN/
 # We want to ignore generated files in the BlinkenBone folder, but not
 # those in the 3rdparty folder (because we don't rebuild many of them).
-!BlinkenBone/3rdparty/**
+BlinkenBone/**/rpcgen_*/*
+!BlinkenBone/**/rpcgen_linux/makefile
+!BlinkenBone/**/rpcgen_java/build.xml
 BlinkenBone/**/bin-*/
+!BlinkenBone/3rdparty/**
 ipch/
 # We only care about specific files in the Visual Studio Projects 
 # folder.  Things which are there on the fly to support debugging 

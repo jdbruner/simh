@@ -2,12 +2,14 @@
 #
 # This is a revision of the original make.sh script from the BlinkenBone project
 # which only builds on the local machine (no cross-compiling) and currently
-# only builds the Java panel simulation and the PiDP11 panel server and scansw
+# builds the PDP-11 emulator, Java panel simulation, the PiDP11 panel server,
+# and the utility to read the PiDP11 switch register.
 #
 
+export USE_REALCONS=1
 if [ -e /usr/bin/raspi-config ]; then
     MAKE_TARGET_NAME=RaspberryPi
-    export MAKE_TARGET_ARCH=RPI
+    export MAKE_TARGET_ARCH=RPI USE_PIDP11=1
  elif [ -e /usr/bin/bbb-config ]; then
     MAKE_TARGET_NAME=BeagleBoneBlack
     export MAKE_TARGET_ARCH=BBB
@@ -35,6 +37,8 @@ set -e
 # set -x
 
 # needed packages:
+# sudo apt install ant default-jdk libgpiod-dev libtirpc-dev 
+# sudo apt install libsdl2-dev libpcap-dev libreadline-dev libpcre3-dev libedit-dev libpng-dev libvdeplug-dev
 
 # compile all binaries for all platforms
 pwd
@@ -46,24 +50,32 @@ MAKETARGETS="clean all"
 export MAKE_CONFIGURATION=RELEASE
 
 (
+    # The Blinkenlight API test client for all platforms.
+    # This also builds the blinkenlight_api interface
+    cd blinkenlight_test
+    echo ; echo "*** blinkenlight_test for $MAKE_TARGET_NAME"
+    make $MAKEOPTIONS $MAKETARGETS
+)
+
+(
+    # PDP-11 simh
+    echo ; echo "*** pdp11 with REALCONS ${USE_PIDP11+and PIDP11} for $MAKE_TARGET_NAME"
+    cd ..
+    make pdp11
+)
+
+(
     # All classes and resources for all Java panels into one jar
-    # sudo apt-get install ant default-jdk
+    echo ; echo "*** Java panel server"
     cd javapanelsim
     ant -f build.xml compile jar
 )
 
 if [ $MAKE_TARGET_ARCH = RPI ]; then
     (
-        # the Blinkenligt API server for Oscar Vermeulen's PiDP11
+        # the Blinkenlight API server for Oscar Vermeulen's PiDP11
         cd pidp_server/pidp11
         echo ; echo "*** blinkenlight_server for PiDP11"
-        make $MAKEOPTIONS $MAKETARGETS
-    )
-    (
-        # The Blinkenligt API test client for all platforms
-        # (but currently only being built for Raspberry)
-        cd blinkenlight_test
-        echo ; echo "*** blinkenlight_test for $MAKE_TARGET_NAME"
         make $MAKEOPTIONS $MAKETARGETS
     )
     (

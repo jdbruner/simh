@@ -7,24 +7,22 @@ This repository is a fork of simh/simh that integrates the following:
 
 Please consult the individual README and LICENSE files in the tree.
 
-The BlinkenBone and PiDP11 sources have been reorganized a little and merged into the simh source tree (including changes to ``scp.c`` and the addition of ``REALCONS``). To build with REALCONS support, build simh with ``USE_REALCONS=1``; to build with PIDP11 support (on a Raspberry Pi only), build with ``USE_PIDP11=1``. The BlinkenBone and PiDP11 binaries can be built on Linux by running ``make.sh`` in the ``BlinkenBone`` subdirectory. Unlike Joerge Hoppe's original distribution, this builds only for the current machine (not cross-compilation).
+The BlinkenBone and PiDP11 sources have been reorganized and merged into the simh source tree (including changes to ``scp.c`` and the addition of ``REALCONS``). To build with REALCONS support, build simh with ``USE_REALCONS=1``; to build for PIDP11 (on a Raspberry Pi only), build with ``USE_PIDP11=1``. The BlinkenBone and PiDP11 binaries can be built on Linux by running ``make.sh`` in the ``BlinkenBone`` subdirectory. Unlike Joerge Hoppe's original distribution, this builds only for the current machine (not cross-compilation).
 
-The PiDP panelserver has been rewritten to use libgpiod (rather than directly manipulating device registers by mmap'ing ``/dev/mem``). This incurs more CPU overhead (because all GPIO actions are done with ioctls). On slower CPUs it may be desirable to use Oscar's panelserver (``/opt/pidp11/bin/server11``) instead.
+The PiDP panelserver has been rewritten to use libgpiod (rather than directly manipulating device registers by mmap'ing ``/dev/mem``). It works on both 32-bit and 64-bit systems. It has not been ported to libgpiod2.
 
-The PiDP8 panel server has not been updated, and the PiDP11 panelserver has not (yet) been tested for 64-bit ARM.
+The PiDP8 panel server has not been updated.
 
 ###### Build/update PiDP11 on Raspberry Pi
 
-This does not replicate Oscar Vermeulen's PiDP11 installation and runtime scripts (see http://pidp.net/pidp11/pidp11.tar.gz), not does it include the [PDP-11 disk images](http://pidp.net/pidp11/systems.tar.gz). Those should be installed as per Oscar's instructions. Then, to build and install manually on a Raspberry Pi as replacements for the binaries that were installed by Oscar's distribution, change directory to the root of the GIT repository and do the following:
+This has diverged from Oscar Vermeulen's PiDP11 installation and runtime scripts (see [](http://pidp.net/pidp11/pidp11.tar.gz)). It does not include the [PDP-11 disk images](http://pidp.net/pidp11/systems.tar.gz). An automated procedure to install this is in development.
+
+To build on a Raspberry Pi, change directory to the root of the GIT repository and do the following:
 ```bash
 sudo apt install ant default-jdk libgpiod-dev libtirpc-dev 
 sudo apt install libsdl2-dev libpcap-dev libreadline-dev libpcre3-dev libedit-dev libpng-dev libvdeplug-dev
-USE_PIDP11=1 make pdp11
-(cd BlinkenBone; ./make.sh)
-cd BIN
-cp pdp11 /opt/pidp11/bin/client11
-cp pidp1170_blinkenlightd /opt/pidp11/bin/server11
-cp scansw /opt/pidp11/bin
+cd BlinkenBone
+./make.sh
 ```
 
 ###### Build/install on Windows
