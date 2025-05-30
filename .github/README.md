@@ -15,7 +15,7 @@ The PiDP8 panel server has not been updated.
 
 ###### Build/update PiDP11 on Raspberry Pi
 
-This has diverged from Oscar Vermeulen's PiDP11 installation and runtime scripts (see [](http://pidp.net/pidp11/pidp11.tar.gz)). It does not include the [PDP-11 disk images](http://pidp.net/pidp11/systems.tar.gz). An automated procedure to install this is in development.
+This has diverged from [Oscar Vermeulen's PiDP11 installation and runtime scripts](http://pidp.net/pidp11/pidp11.tar.gz). It does not include the [PDP-11 disk images](http://pidp.net/pidp11/systems.tar.gz). An automated procedure to install this is in development.
 
 To build on a Raspberry Pi, change directory to the root of the GIT repository and do the following:
 ```bash
