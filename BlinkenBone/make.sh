@@ -37,8 +37,10 @@ set -e
 # set -x
 
 # needed packages:
-# sudo apt install ant default-jdk libgpiod-dev libtirpc-dev 
-# sudo apt install libsdl2-dev libpcap-dev libreadline-dev libpcre3-dev libedit-dev libpng-dev libvdeplug-dev
+PACKAGES="\
+  ant default-jdk rpcbind \
+  libgpiod-dev libtirpc-dev libsdl2-dev libpcap-dev libreadline-dev libpcre3-dev libedit-dev libpng-dev libvdeplug-dev"
+(set -x; sudo apt install $PACKAGES)
 
 # compile all binaries for all platforms
 pwd
