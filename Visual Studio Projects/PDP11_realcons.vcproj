@@ -40,7 +40,7 @@
 			<Tool
 				Name="VCCLCompilerTool"
 				Optimization="0"
-				AdditionalIncludeDirectories="../REALCONS;../BlinkenBone/common;../BlinkenBone/blinkenlight_api;../BlinkenBone/blinkenlight_api/rpcgen_linux;../BlinkenBone/3rdparty/oncrpc_win32/win32/include;../PDP11/;./;../;../slirp;../slirp_glue;../slirp_glue/qemu;../slirp_glue/qemu/win32/include;../../windows-build/include;;../../windows-build/include/SDL2"
+				AdditionalIncludeDirectories="../REALCONS;../BlinkenBone/common;../BlinkenBone/blinkenlight_api;../BlinkenBone/blinkenlight_api/rpcgen_win32;../BlinkenBone/3rdparty/oncrpc_win32/win32/include;../PDP11/;./;../;../slirp;../slirp_glue;../slirp_glue/qemu;../slirp_glue/qemu/win32/include;../../windows-build/include;;../../windows-build/include/SDL2"
 				PreprocessorDefinitions="WIN32;USE_REALCONS;BLINKENLIGHT_CLIENT;USE_SHARED;USE_DISPLAY;VM_PDP11;SIM_BUILD_TOOL=simh-Visual-Studio-Project;_CRT_NONSTDC_NO_WARNINGS;_CRT_SECURE_NO_WARNINGS;_WINSOCK_DEPRECATED_NO_WARNINGS;PTW32_STATIC_LIB;SIM_ASYNCH_IO;USE_READER_THREAD;SIM_NEED_GIT_COMMIT_ID;HAVE_PCRE_H;PCRE_STATIC;HAVE_SLIRP_NETWORK;USE_SIMH_SLIRP_DEBUG;USE_SIM_VIDEO;HAVE_LIBSDL;HAVE_LIBPNG;HAVE_LIBEDIT"
 				KeepComments="false"
 				BasicRuntimeChecks="0"
@@ -126,7 +126,7 @@
 				InlineFunctionExpansion="1"
 				OmitFramePointers="true"
 				WholeProgramOptimization="true"
-				AdditionalIncludeDirectories="../REALCONS;../BlinkenBone/common;../BlinkenBone/blinkenlight_api;../BlinkenBone/blinkenlight_api/rpcgen_linux;../BlinkenBone/3rdparty/oncrpc_win32/win32/include;../PDP11/;./;../;../slirp;../slirp_glue;../slirp_glue/qemu;../slirp_glue/qemu/win32/include;../../windows-build/include;;../../windows-build/include/SDL2"
+				AdditionalIncludeDirectories="../REALCONS;../BlinkenBone/common;../BlinkenBone/blinkenlight_api;../BlinkenBone/blinkenlight_api/rpcgen_win32;../BlinkenBone/3rdparty/oncrpc_win32/win32/include;../PDP11/;./;../;../slirp;../slirp_glue;../slirp_glue/qemu;../slirp_glue/qemu/win32/include;../../windows-build/include;;../../windows-build/include/SDL2"
 				PreprocessorDefinitions="WIN32;USE_REALCONS;BLINKENLIGHT_CLIENT;USE_SHARED;USE_DISPLAY;VM_PDP11;SIM_BUILD_TOOL=simh-Visual-Studio-Project;_CRT_NONSTDC_NO_WARNINGS;_CRT_SECURE_NO_WARNINGS;_WINSOCK_DEPRECATED_NO_WARNINGS;PTW32_STATIC_LIB;SIM_ASYNCH_IO;USE_READER_THREAD;SIM_NEED_GIT_COMMIT_ID;HAVE_PCRE_H;PCRE_STATIC;HAVE_SLIRP_NETWORK;USE_SIMH_SLIRP_DEBUG;USE_SIM_VIDEO;HAVE_LIBSDL;HAVE_LIBPNG;HAVE_LIBEDIT"
 				StringPooling="true"
 				RuntimeLibrary="0"
@@ -716,8 +716,8 @@
 			<Filter Name="BlinkenBone">
 				<File RelativePath="..\BlinkenBone\blinkenlight_api\blinkenlight_api_client.c" />
 				<File RelativePath="..\BlinkenBone\blinkenlight_api\blinkenlight_panels.c" />
-				<File RelativePath="..\BlinkenBone\blinkenlight_api\rpcgen_linux\rpc_blinkenlight_api_xdr.c" />
-				<File RelativePath="..\BlinkenBone\blinkenlight_api\rpcgen_linux\rpc_blinkenlight_api_clnt.c" />
+				<File RelativePath="..\BlinkenBone\blinkenlight_api\rpcgen_win32\rpc_blinkenlight_api_xdr.c" />
+				<File RelativePath="..\BlinkenBone\blinkenlight_api\rpcgen_win32\rpc_blinkenlight_api_clnt.c" />
 				<File RelativePath="..\BlinkenBone\common\bitcalc.c" />
 			</Filter>
 		</Filter>
@@ -856,7 +856,7 @@
 			>
 		</Filter>
 		<Filter Name="XDR Files" Filter="x">
-			<File RelativePath="..\BlinkenBone\blinkenlight_api\rpcgen_linux\blinkenlight_api.x" />
+			<File RelativePath="..\BlinkenBone\blinkenlight_api\rpcgen_win32\blinkenlight_api.x" />
 		</Filter>
 	</Files>
 	<Globals>
