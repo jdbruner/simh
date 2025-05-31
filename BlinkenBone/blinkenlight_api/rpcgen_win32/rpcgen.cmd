@@ -1,3 +1,6 @@
+@echo off
+echo Broken - see README
+exit 1
 
 rem generate client and server stubs for blinkenlight api
 
