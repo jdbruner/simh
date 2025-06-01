@@ -48,6 +48,7 @@
 				UsePrecompiledHeader="0"
 				WarningLevel="3"
 				WarnAsError="true"
+			        DisableSpecificWarnings="4101"
 				DebugInformationFormat="3"
 				CompileAs="1"
 				ShowIncludes="false"
@@ -134,6 +135,7 @@
 				UsePrecompiledHeader="0"
 				WarningLevel="3"
 				WarnAsError="true"
+			        DisableSpecificWarnings="4101"
 				DebugInformationFormat="3"
 				CompileAs="1"
 			/>
@@ -333,6 +335,10 @@
 			</File>
 			<File
 				RelativePath="..\PDP11\pdp11_rq.c"
+				>
+			</File>
+			<File
+				RelativePath="..\PDP11\pdp11_rr.c"
 				>
 			</File>
 			<File
