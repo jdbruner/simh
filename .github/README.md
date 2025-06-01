@@ -19,7 +19,7 @@ This has diverged from [Oscar Vermeulen's PiDP11 installation and runtime script
 
 To build on a Raspberry Pi, change directory to the root of the GIT repository and do the following:
 ```bash
-sudo apt install ant default-jdk libgpiod-dev libtirpc-dev 
+sudo apt install ant rpcbind default-jdk libgpiod-dev libtirpc-dev 
 sudo apt install libsdl2-dev libpcap-dev libreadline-dev libpcre3-dev libedit-dev libpng-dev libvdeplug-dev
 cd BlinkenBone
 ./make.sh
@@ -42,5 +42,6 @@ The ``Visual Studio Projects`` folder contains a project file to build a PDP11 w
 but this has only been used with Visual Studio 2022. It creates the executable ``BIN/pdp11_realcons.exe``
 If you need to rebuild it for an older IDE (particularly if you want to build for Windows XP
 using Visual Studio 2008), then you will probably also need to rebuild ``BlinkenBone/3rdparty/oncrpc_win32``.
+Warning: there be dragons here...
 
 There is no support (at least not yet) for building a REALCONS-enabled PDP11 simulator using mingw64.
