@@ -70,7 +70,7 @@ main(int argc, char **argv)
             return EXIT_FAILURE;
     } else {
         for (i = optind; i < argc; i++) {
-            if ((ofp = fopen(argv[i], "r")) == NULL) {
+            if ((ifp = fopen(argv[i], "r")) == NULL) {
                 perror(argv[i]);
                 return EXIT_FAILURE;
             }
@@ -113,7 +113,7 @@ wrapfile(FILE *ifp, FILE *ofp, int blocksize, bool verbose)
         if (n < bufsize)
             bzero(buf+n, bufsize-n);
         if (fwrite(header_buf, 1, sizeof header_buf, ofp) != sizeof header_buf ||
-            fwrite(buf, 1, n, ofp) != n ||
+            fwrite(buf, 1, bufsize, ofp) != bufsize ||
             fwrite(header_buf, 1, sizeof header_buf, ofp) != sizeof header_buf)
             break;
         if (verbose) {
