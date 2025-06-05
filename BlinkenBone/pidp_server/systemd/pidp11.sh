@@ -4,9 +4,6 @@
 #
 # This script should be run as an ordinary user (not root)
 
-# Create temporary file for SIMH commands
-bootscript=$(mktemp -p /tmp pidp11.XXXXXX)
-
 # make sure the panel server is ready
 until rpcinfo -T tcp localhost 99 1 > /dev/null 2>&1
 do
@@ -19,15 +16,8 @@ while
 	csw=$(/opt/pidp11/getcsw -o4 -0 -n12)
 	sel=${selections[${csw:-"0000"}]:-"idled"}
 	echo "*** booting $sel ***"
-	# create a bootscript for simh in the /run ramdisk:
-	eval cat > $bootscript <<-EOF
-		cd /opt/pidp11/systems/$sel
-		do boot.ini
-	EOF
-	echo "*** Start client ***"
-	/opt/pidp11/client11 -q $bootscript
+	# if this fails to launch, sleep for a minute to avoid thrashing
+	(cd /opt/pidp11/systems/$sel && exec /opt/pidp11/client11 -q boot.ini; sleep 60)
 do
 	:
 done
-
-rm $bootscript
