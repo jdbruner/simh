@@ -1283,6 +1283,8 @@ if (1) {
   if (sim_get_tool_path (tool)[0]) {
     if (NULL != (f = _popen(command, "r"))) {
       char line[128];
+      char *which, *c;
+      t_bool wireless = FALSE;
 
       memset(line, 0, sizeof(line));
       while (fgets(line, sizeof(line), f)) {
@@ -1290,8 +1292,7 @@ if (1) {
         if (line[0] == '\0')
           continue;
         if (sim_isspace(line[0])) {
-            char *c = strchr(line, ':');
-
+            c = strchr(line, ':');
             if (strstr(line, "IPv4 Address") || strstr(line, "IP Address")) {
               char *c = strchr(line, ':');
               strlcat(dev->info, "Host IPv4 Address", sizeof(dev->info));
@@ -1319,17 +1320,28 @@ if (1) {
             continue;
           }
         else {
-          if (NULL == strstr(line, "adapter"))
+          if ((NULL == (which = strstr(line, "Ethernet adapter "))) &&
+              (NULL == (which = strstr(line, "Wireless LAN adapter "))))
             continue;
+          if (0 == strncmp(which, "Ethernet adapter ", strlen("Ethernet adapter ")))
+            which += strlen ("Ethernet adapter ");
+          else
+            which += strlen ("Wireless LAN adapter ");
+          c = strchr (which, ':');
+          if (c != NULL)
+            *c = '\0';
+          if (dev != NULL) {
+            if (wireless && (strstr(dev->info, "LinkType") == NULL)) {
+              if (dev->info[0] != '\0')
+                strlcat(dev->info, "\n", sizeof(dev->info));
+              strlcat(dev->info, "LinkType: WiFi", sizeof(dev->info));
+              }
+            }
+          wireless = (0 == memcmp (line, "Wireless LAN adapter ", strlen ("Wireless LAN adapter ")));
           dev = NULL;
           for (i=0; i<used; i++) {
-            if (strstr(line, list[i].desc)) {
+            if (0 == strcmp(which, list[i].desc)) {
               dev = &list[i];
-              if ((strcmp(dev->desc, "Wi-Fi") == 0) && (strstr(dev->info, "LinkType") == NULL)) {
-                if (dev->info[0] != '\0')
-                  strlcat(dev->info, "\n", sizeof(dev->info));
-                strlcat(dev->info, "LinkType: WiFi", sizeof(dev->info));
-                }
               break;
               }
             }
@@ -2761,9 +2773,13 @@ return SCPE_OK;
 }
 
 #if defined(HAVE_VMNET_NETWORK)
-// Because vmnet operates via callbacks, set up a semaphore to block on
-static dispatch_semaphore_t _vmnet_cb_finished = NULL;
-static vmnet_return_t _vmnet_status;
+/* Because vmnet operates via callbacks, set up a semaphore to block on.  */
+/* These variables are referenced by the single command input thread      */
+/* which only is operating when other potential competing thread activity */
+/* has not yet been started or is otherwise suspended.                    */
+static dispatch_semaphore_t _open_port_vmnet_cb_finished = NULL;
+static vmnet_return_t _open_port_vmnet_status;
+static void *_open_port_opaque;
 #endif
 
 static t_stat _eth_open_port(char *savname, int *eth_api, void **handle, SOCKET *fd_handle, char *errbuf, size_t errbuf_size, char *bpf_filter, void *opaque, DEVICE *dptr, uint32 dbit)
@@ -2806,7 +2822,7 @@ if (0 == strncmp("udp:", savname, 4)) {
     }
   *fd_handle = sim_connect_sock_ex (localport, hostport, NULL, NULL, SIM_SOCK_OPT_DATAGRAM);
   if (INVALID_SOCKET == *fd_handle) {
-    snprintf (errbuf, errbuf_size, "Can not open socket %s to %s", localport, hostport);
+    snprintf (errbuf, errbuf_size, "Can not open socket %1.64s to %1.64s", localport, hostport);
     return SCPE_OPENERR;
     }
   *eth_api = ETH_API_UDP;
@@ -2943,27 +2959,34 @@ if (1) {
 
 vmn_queue = dispatch_get_global_queue(QOS_CLASS_UTILITY, 0);
 
-_vmnet_cb_finished = dispatch_semaphore_create(0);
+_open_port_vmnet_cb_finished = dispatch_semaphore_create(0);
+_open_port_opaque = opaque;
 
 vmn_interface = vmnet_start_interface(if_desc, vmn_queue, ^(vmnet_return_t status, xpc_object_t params)
   {
-  _vmnet_status = status;
-  dispatch_semaphore_signal(_vmnet_cb_finished);
+  _open_port_vmnet_status = status;
+  if (status == VMNET_SUCCESS) {
+      /* The logical device (bridge or otherwise) vmnet provides has its own MAC address which */
+      /* becomes the host system's address from the simulator's point of view */
+    if (SCPE_OK == eth_mac_scan (&((ETH_DEV*)_open_port_opaque)->host_nic_phy_hw_addr, xpc_dictionary_get_string(params, vmnet_mac_address_key)))
+      ((ETH_DEV*)_open_port_opaque)->have_host_nic_phy_addr = 1;
+    }
+  dispatch_semaphore_signal(_open_port_vmnet_cb_finished);
   });
 
-dispatch_semaphore_wait(_vmnet_cb_finished, DISPATCH_TIME_FOREVER);
-dispatch_release(_vmnet_cb_finished);
-_vmnet_cb_finished = NULL;
+dispatch_semaphore_wait(_open_port_vmnet_cb_finished, DISPATCH_TIME_FOREVER);
+dispatch_release(_open_port_vmnet_cb_finished);
+_open_port_vmnet_cb_finished = NULL;
 free(hostaddr);
 free(endaddr);
 free(netmask);
 xpc_release(if_desc);
 
-if (_vmnet_status != VMNET_SUCCESS) {
+if (_open_port_vmnet_status != VMNET_SUCCESS) {
   if (!_eth_running_as_root())
-    snprintf (errbuf, errbuf_size, "Failed to create vmnet connection for %s - %s.  You may need to run as root", savname, _vmnet_status_string(_vmnet_status));
+    snprintf (errbuf, errbuf_size, "Failed to create vmnet connection for %s - %s.  You may need to run as root", savname, _vmnet_status_string(_open_port_vmnet_status));
   else
-    snprintf (errbuf, errbuf_size, "Failed to create vmnet connection for %s - %s.", savname, _vmnet_status_string(_vmnet_status));
+    snprintf (errbuf, errbuf_size, "Failed to create vmnet connection for %s - %s.", savname, _vmnet_status_string(_open_port_vmnet_status));
   return SCPE_OPENERR;
   }
 
@@ -3018,8 +3041,7 @@ if (0 == strncmp("tap:", savname, 4)) {
   if (1) {
     char dev_name[64] = "";
 
-    snprintf(dev_name, sizeof(dev_name)-1, "/dev/%s", devname);
-    dev_name[sizeof(dev_name)-1] = '\0';
+    snprintf(dev_name, sizeof(dev_name), "/dev/%s", devname);
 
     if ((tun = open(dev_name, O_RDWR)) >= 0) {
       if (ioctl(tun, FIONBIO, &on)) {
@@ -3095,7 +3117,7 @@ if (0 == strncmp("vde:", savname, 4)) {
 
       voa.port = (int)get_uint (vdeport_s, 10, 255, &r);
       if (r != SCPE_OK) {
-        snprintf (errbuf, errbuf_size, "Invalid vde port number: %s in %s\n", vdeport_s, savname);
+        snprintf (errbuf, errbuf_size, "Invalid vde port number: %1.64s in %1.100s\n", vdeport_s, savname);
         return SCPE_OPENERR;
         }
       }
@@ -3144,7 +3166,7 @@ if (1) {
 if ((pcap_setmintocopy ((pcap_t*)(*handle), 0) == -1) ||
     (pcap_getevent ((pcap_t*)(*handle)) == NULL)) {
   pcap_close ((pcap_t*)(*handle));
-  snprintf (errbuf, errbuf_size, "pcap can't initialize API for interface: %s", savname);
+  snprintf (errbuf, errbuf_size, "pcap can't initialize API for interface: %1.100s", savname);
   return SCPE_OPENERR;
   }
 #endif
@@ -3286,8 +3308,9 @@ if (!strcmp (desc, "No description available"))
     strcpy (desc, "");
 sim_messagef (SCPE_OK, "Eth: opened OS device %s%s%s\n", savname, desc[0] ? " - " : "", desc);
 
-/* get the NIC's hardware MAC address */
-eth_get_nic_hw_addr(dev, savname, 1, NULL);
+/* If necessary, get the NIC's hardware MAC address */
+if (dev->have_host_nic_phy_addr == 0)
+  eth_get_nic_hw_addr(dev, savname, 1, NULL);
 if (dev->have_host_nic_phy_addr)
   dev->host_nic_is_wifi = (NULL != strstr(info, "LinkType: WiFi"));
 
@@ -5254,8 +5277,7 @@ for (eth_num=0; eth_num<eth_device_count; eth_num++) {
       (0 == memcmp (eth_list[eth_num].name, "vde:", 4)) ||
       (0 == memcmp (eth_list[eth_num].name, "udp:", 4)))
       continue;
-  eth_name[sizeof (eth_name)-1] = '\0';
-  snprintf (eth_name, sizeof (eth_name)-1, "eth%d", eth_num);
+  snprintf (eth_name, sizeof (eth_name), "eth%d", eth_num);
   r = eth_open(&dev, eth_name, &eth_tst, 1);
   if (r != SCPE_OK) {
     sim_printf ("%s: Eth: Error opening eth%d: %s\n", dptr->name, eth_num, sim_error_text (r));
