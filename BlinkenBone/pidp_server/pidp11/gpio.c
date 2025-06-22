@@ -127,8 +127,12 @@ blink(volatile int *terminate)
 		// display all phases circular
 		for (phase = 0; phase < GPIOPATTERN_LED_BRIGHTNESS_PHASES; phase++) {
 			// each phase must be exact same duration, so include switch scanning here
+
+			// safely grab the current page index
+			pthread_mutex_lock(&gpiopattern_swap_lock);
 			volatile uint32_t *gpio_ledstatus =
 				gpiopattern_ledstatus_phases[gpiopattern_ledstatus_phases_readidx][phase];
+			pthread_mutex_unlock(&gpiopattern_swap_lock);
 
 			// configure switch rows as inputs
 			if (gpiod_line_set_direction_input_bulk(&bulk_rows) < 0)
