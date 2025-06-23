@@ -343,7 +343,7 @@ static void value2gpio_ledstatus_value(blinkenlight_panel_t *p, blinkenlight_con
  * gpiopattern_blinkenlight_panel must be set before call!
  *
  * This here should run in a low-frequency thread.
- * recommended frequency: 50 Hz, much lower than SimH update rate
+ * recommended frequency: 20 Hz, much lower than SimH update rate
  *
  */
 void *gpiopattern_update_leds(void *terminate)

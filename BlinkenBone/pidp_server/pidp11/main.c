@@ -138,13 +138,10 @@ static void on_blinkenlight_api_panel_get_controlvalues(blinkenlight_panel_t *p)
                  * looks at. If the HALT switch is down, the entire machine is shutdown.
                  *
                  * To avoid the implicit requirement that this is running as root (or can sudo),
-                 * and because shutting everything down seems somewhat unexpected, the former
-                 * behavior is moved to simh and the latter is not implemented. If it is desired to
-                 * control the Raspberry Pi's state from the PiDP11 panel, a better way to do it is
-                 * to configure it to shutdown on a GPIO power button - and wire the console power
-                 * key switch to the Pi.
+                 * this behavior is moved to simh. It exits the simulator with a zero or nonzero
+                 * status (depending upon the halt switch). The PiDP11 shell script will restart
+                 * simh if the exit status is zero and exit (terminating the service) otherwise.
                  */
-                //printf("%" PRIu64 " ",c->value);
                 if ((c->value)==0)
                 {
                     if (pwrDebounce==0) // do it only once, when power button is triggered
