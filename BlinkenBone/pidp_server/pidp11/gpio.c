@@ -26,6 +26,7 @@
  15-Mar-2016  JH    display patterns for brightness levels
  16-Nov-2015  JH    acquired from Oscar
  01-Sep-2023  JB	rewritten for libgpiod
+ 22-Jun-2025  JB    use atomics to avoid races
 
 
  gpio.c from Oscar Vermeules PiDP8-sources.
@@ -33,9 +34,9 @@
  Updated to use libgpiod by John Bruner.
  See www.obsolescenceguaranteed.blogspot.com
 
- The only communication with the main program (simh):
- external variable ledstatus is read to determine which leds to light.
- external variable switchstatus is updated with current switch settings.
+ The only communication with the Blinkenlight interface:
+ external variable gpiopattern_ledstatus_phases is read to determine which leds to light.
+ external variable gpio_switchstatus is updated with current switch settings.
 
  */
 
@@ -66,7 +67,7 @@ static const int pullup_flags = GPIOD_LINE_REQUEST_FLAG_BIAS_PULL_UP;
 static const int tristate_flags = 0;
 
 void *
-blink(volatile int *terminate)
+blink(void *terminate)
 {
     char *argv0 = "pidp11";
     struct gpiod_chip *chip = NULL;
@@ -121,18 +122,14 @@ blink(volatile int *terminate)
     if (pthread_setschedparam(pthread_self(), SCHED_FIFO, &sp))
         fprintf(stderr, "warning: failed to set RT priority\n");
 
-	while (!*terminate) {
+	while (!*(_Atomic int *)terminate) {
 		unsigned phase;
 
 		// display all phases circular
 		for (phase = 0; phase < GPIOPATTERN_LED_BRIGHTNESS_PHASES; phase++) {
 			// each phase must be exact same duration, so include switch scanning here
-
-			// safely grab the current page index
-			pthread_mutex_lock(&gpiopattern_swap_lock);
-			volatile uint32_t *gpio_ledstatus =
+			_Atomic uint32_t *gpio_ledstatus =
 				gpiopattern_ledstatus_phases[gpiopattern_ledstatus_phases_readidx][phase];
-			pthread_mutex_unlock(&gpiopattern_swap_lock);
 
 			// configure switch rows as inputs
 			if (gpiod_line_set_direction_input_bulk(&bulk_rows) < 0)
@@ -146,7 +143,6 @@ blink(volatile int *terminate)
 			for (i = 0; i < _countof(ledrows); i++) {
 				// light up the next row with the matching column values
 				for (j = 0; j < _countof(cols); j++) {
-					// static uint32_t gpio_ledstatus[6] = { 7, 1, 1, 1, 1, 1 };
 					col_vals[j] = !(gpio_ledstatus[i] & (1 << j));
 				}
 				if (gpiod_line_set_direction_output_bulk(&bulk_cols, col_vals) < 0) {

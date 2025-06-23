@@ -20,44 +20,45 @@
    IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
    CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
-
+   22-Jun-2025  JB      use atomics to avoid races
    14-Mar-2016  JH      created
 */
 #ifndef GPIOPATTERN_H_
 #define GPIOPATTERN_H_
 
 #include <stdint.h>
-#include <pthread.h>
-
-// protect the readidx/writeidx swap
-extern pthread_mutex_t gpiopattern_swap_lock;
-
 #include "blinkenlight_panels.h"
 
-//#define GPIOPATTERN_UPDATE_PERIOD_US 20000  // 1/50 sec for screen update
-#define GPIOPATTERN_UPDATE_PERIOD_US 50000  // 1/20 sec for screen update
-// in one cycle more than GPIOPATTERN_LED_BRIGHTNESS_LEVELS events from server must be
-// sampled, else loss of resolution
-
-#define GPIOPATTERN_LED_BRIGHTNESS_LEVELS	32	// brightness levels. Not changeable without code rework
-//#define GPIOPATTERN_LED_BRIGHTNESS_PHASES	64
-#define GPIOPATTERN_LED_BRIGHTNESS_PHASES	31
-// 32 levels are made with 31 display phases
-
-
-#ifndef GPIOPATTERN_C_
-extern blinkenlight_panel_t *gpiopattern_blinkenlight_panel ;
-
-extern volatile uint32_t gpio_switchstatus[3] ; // bitfields: 3 rows of up to 12 switches
-// extern volatile uint32_t gpio_ledstatus[8] ; // bitfields: 8 ledrows of up to 12 LEDs
-
-extern int gpiopattern_ledstatus_phases_readidx ; // read page, used by GPIO mux
-extern int gpiopattern_ledstatus_phases_writeidx ; // writepage page, written from Blinkenlight API
-extern volatile uint32_t gpiopattern_ledstatus_phases[2][GPIOPATTERN_LED_BRIGHTNESS_PHASES][8] ;
-
+#if (__STDC_VERSION__ >= 201112L) && !defined(__STDC_NO_ATOMIC_)
+#include <stdatomic.h>
+#else
+#define _Atomic volatile
 #endif
 
-// void *gpiopattern_update_leds(int *terminate) ;
+// in one cycle more than GPIOPATTERN_LED_BRIGHTNESS_LEVELS events from server
+// must be sampled, else loss of resolution
+extern long gpiopattern_update_period_us;
+#define GPIOPATTERN_UPDATE_PERIOD_US 50000  // 1/20 sec for screen update
 
+// LED brightness levels (not changeable without code rework)
+// For N brightness levels there are N-1 display phases
+#define GPIOPATTERN_LED_BRIGHTNESS_LEVELS	32
+#define GPIOPATTERN_LED_BRIGHTNESS_PHASES	(GPIOPATTERN_LED_BRIGHTNESS_LEVELS-1)
 
+extern blinkenlight_panel_t *gpiopattern_blinkenlight_panel;
+
+// bitfields:
+//   3 rows of up to 12 switches
+//   8 ledrows of double-buffered patterns of up to 12 LEDs
+extern _Atomic uint32_t gpio_switchstatus[3]; 
+extern _Atomic uint32_t gpiopattern_ledstatus_phases[2][GPIOPATTERN_LED_BRIGHTNESS_PHASES][8];
+
+// phase indicies for double-buffering:
+//  read index: used by GPIO mux
+//  write index: data from Blinkenlight API (always opposite of the read index)
+extern _Atomic int gpiopattern_ledstatus_phases_readidx;
+#define gpiopattern_ledstatus_phases_writeidx (!gpiopattern_ledstatus_phases_readidx)
+
+// worker thread that updates the LED status patterns
+extern void *gpiopattern_update_leds(void *terminate);
 #endif

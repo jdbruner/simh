@@ -85,9 +85,6 @@ int opt_background = 0;
 int panel_lock = 0; // Default to panel unlocked
 int pwrDebounce=0;
 
-
-extern long gpiopattern_update_period_us;
-
 int knobValue[2] =
 { 1, 1 }; // default start value for knobs. 0=ADDR[1=CONS_PHY], 1=DATA[1=DATA_PATHS] match Panelsim
 
@@ -182,7 +179,6 @@ static void on_blinkenlight_api_panel_get_controlvalues(blinkenlight_panel_t *p)
                 // mount switch value from register bit fields
                 unsigned i_register_wiring;
                 blinkenlight_control_blinkenbus_register_wiring_t *bbrw;
-//                c->value = 0;
 				uint64_t temp_value = 0; // Do not use c->value because the gpiopattern thread does 20181227
 
                 for (i_register_wiring = 0; i_register_wiring < c->blinkenbus_register_wiring_count;
@@ -197,11 +193,9 @@ static void on_blinkenlight_api_panel_get_controlvalues(blinkenlight_panel_t *p)
                     regvalbits &= bbrw->blinkenbus_bitmask; // bits of value, unshiftet
                     regvalbits >>= bbrw->blinkenbus_lsb;
                     // OR in the bits of current register
-//                    c->value |= (uint64_t) regvalbits << bbrw->control_value_bit_offset;
 					temp_value |= (uint64_t) regvalbits << bbrw->control_value_bit_offset;	// 20181227
                 }
                 if (c->mirrored_bit_order)
-//                    c->value = mirror_bits(c->value, c->value_bitlen);
 					c->value = mirror_bits(temp_value, c->value_bitlen); // individual fixup/logic 20181227
 				else // 20181227
 					c->value = temp_value; //20181227
@@ -255,9 +249,6 @@ static void on_blinkenlight_api_panel_set_controlvalues(blinkenlight_panel_t *p,
     // NO PANEL SWITCH ALLOWED!
 
     gpiopattern_blinkenlight_panel = p;
-    // this also start the thread on first transmission, if gpiopattern_blinkenlight_panel gets != NULL
-
-    // gpiopattern_update_leds() ; // just forward to pattern generator
 }
 
 static int on_blinkenlight_api_panel_get_state(blinkenlight_panel_t *p)
@@ -301,24 +292,20 @@ static char *on_blinkenlight_api_get_info()
  * Start the parallel thread which operates the GPIO mux.
  */
 void *blink(void *ptr); // the real-time GPIO multiplexing process to start up
-void *gpiopattern_update_leds(void *ptr); // the averaging thread
 
 pthread_t blink_thread;
-int blink_thread_terminate = 0;
+_Atomic int blink_thread_terminate = 0;
 pthread_t gpiopattern_thread;
-int gpiopattern_thread_terminate = 0;
+_Atomic int gpiopattern_thread_terminate = 0;
 
 static void gpio_mux_thread_start()
 {
     int res;
-//	printf("\nPiDP FP driver 3\n");
     res = pthread_create(&blink_thread, NULL, blink, &blink_thread_terminate);
     if (res) {
         fprintf(stderr, "Error creating gpio_mux thread, return code %d\n", res);
         exit(EXIT_FAILURE);
     }
-//    printf("Created \"gpio_mux\" thread\n");
-
     sleep(2); // allow 2 sec for multiplex to start
 }
 
@@ -333,7 +320,6 @@ static void gpiopattern_start_thread()
         fprintf(stderr, "Error creating gpiopattern thread, return code %d\n", res);
         exit(EXIT_FAILURE);
     }
-    //printf("Created \"gpiopattern_update_leds\" thread\n");
 }
 
 /******************************************************
@@ -432,7 +418,6 @@ static void help(void)
     fprintf(stderr, "  pidp11_blinkenlightd [-h] [-b] [-v] [-t] [-L] [-a 0..7] [-d 0..3] [-s <n>]\n");
     fprintf(stderr, "\n");
     fprintf(stderr, "  -h          display this help and exit\n");
-//  fprintf(stderr, "  - <port>    TCP port for RCP access.\n");
     fprintf(stderr, "  -b          background operation: print to syslog (view with dmesg)\n");
     fprintf(stderr, "                default output is stderr\n");
     fprintf(stderr, "  -v          verbose: tell what I'm doing\n");
@@ -572,7 +557,6 @@ static blinkenlight_control_t *define_led_slice(blinkenlight_panel_t *p, char *n
         c->is_input = 0;
         c->type = output_lamp;
         c->encoding = binary;
-//        c->fmax = 4; // lamps are slow light bulbs, low-pass with 4 Hz
         c->fmax = 10; // Joerg's setting for pdp11 java panel
         c->radix = 8; // display octal
     }
@@ -686,15 +670,12 @@ int main(int argc, char *argv[])
 {
 
     print_level = LOG_NOTICE;
-    // print_level = LOG_DEBUG;
     if (!parse_commandline(argc, argv)) {
         help();
         return 1;
     }
     sprintf(program_info, "pidp11_blinkenlightd - Blinkenlight API server daemon for PiDP11 %s",
     VERSION);
-
-//    info();
 
     print(LOG_INFO, "Start\n");
 
