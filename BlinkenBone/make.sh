@@ -63,7 +63,7 @@ export MAKE_CONFIGURATION=RELEASE
     # PDP-11 simh
     echo ; echo "*** pdp11 with REALCONS ${USE_PIDP11+and PIDP11} for $MAKE_TARGET_NAME"
     cd ..
-    make pdp11
+    make pdp11 && mv BIN/pdp11 BIN/client11
 )
 
 (

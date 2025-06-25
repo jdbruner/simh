@@ -63,7 +63,7 @@ BLINKENLIGHT_API_SOURCES.h = \
 	$(BLINKENLIGHT_COMMON_DIR)/mcout.h	\
 	$(BLINKENLIGHT_COMMON_DIR)/errno2txt.h
 
-all:    $(OBJDIR)/pidp1170_blinkenlightd $(OBJDIR)/scansw
+all:    $(OBJDIR)/server11 $(OBJDIR)/scansw
 
 $(BLINKENLIGHT_API_SOURCES.c) $(BLINKENLIGHT_API_SOURCES.h):
 	# rpcgen
@@ -92,7 +92,7 @@ OBJECTS = $(SOURCES.c:%.c=%.o)
 #
 clean:
 	echo "CLEAN"
-	rm -f core $(OBJECTS) $(OBJDIR)/pidp1170_blinkenlightd $(OBJDIR)/scansw
+	rm -f core $(OBJECTS) $(OBJDIR)/server11 $(OBJDIR)/scansw
 	make --directory=$(BLINKENLIGHT_API_DIR)/rpcgen_linux clean
 
 install:
@@ -106,7 +106,7 @@ else
 endif
 
 
-$(OBJDIR)/pidp1170_blinkenlightd:	$(SOURCES.c) $(SOURCES.h)
+$(OBJDIR)/server11:	$(SOURCES.c) $(SOURCES.h)
 	${CC} -o $@ $(CCDEFS) $^ ${LDFLAGS}
 	file $@
 

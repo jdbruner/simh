@@ -50,9 +50,9 @@ fi
 #
 mkdir -p -m 755 ${PIDP11_OPT}
 cp -m 755 ${PIDP_SERVER_SRC}/pidp11.sh ${PIDP11_OPT}
-cp -m 755 ${SIMH_BIN}/pdp11 ${PIDP11_OPT}/client11
-cp -m 755 ${SIMH_BIN}/pidp1170_blinkenlightd ${PIDP11_OPT}/server11
-cp -m 755 ${SIMH_BIN}/getcsw ${PIDP11_OPT}/getcsw
+cp -m 755 ${SIMH_BIN}/client11 ${PIDP11_OPT}
+cp -m 755 ${SIMH_BIN}/server11 ${PIDP11_OPT}
+cp -m 755 ${SIMH_BIN}/getcsw ${PIDP11_OPT}
 
 # If /opt/pidp11/system already exists, leave it alone
 # Otherwise, create an initial version (with idled)
