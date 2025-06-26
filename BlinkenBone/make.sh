@@ -61,7 +61,7 @@ export MAKE_CONFIGURATION=RELEASE
 
 (
     # PDP-11 simh
-    echo ; echo "*** pdp11 with REALCONS ${USE_PIDP11+and PIDP11} for $MAKE_TARGET_NAME"
+    echo ; echo "*** client11 - pdp11 with REALCONS ${USE_PIDP11+and PIDP11} for $MAKE_TARGET_NAME"
     cd ..
     make pdp11 && mv BIN/pdp11 BIN/client11
 )
@@ -77,7 +77,7 @@ if [ $MAKE_TARGET_ARCH = RPI ]; then
     (
         # the Blinkenlight API server for Oscar Vermeulen's PiDP11
         cd pidp_server/pidp11
-        echo ; echo "*** blinkenlight_server for PiDP11"
+        echo ; echo "*** server11 - blinkenlight_server for PiDP11"
         make $MAKEOPTIONS $MAKETARGETS
     )
     (
