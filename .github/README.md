@@ -15,7 +15,7 @@ The PiDP8 panel server has not been updated.
 
 ###### Build/update PiDP11 on Raspberry Pi
 
-This has diverged from [Oscar Vermeulen's PiDP11 installation and runtime scripts](http://pidp.net/pidp11/pidp11.tar.gz). It does not include the [PDP-11 disk images](http://pidp.net/pidp11/systems.tar.gz). An automated procedure to install this is in development.
+This has diverged from [Oscar Vermeulen's PiDP11 installation and runtime scripts](http://pidp.net/pidp11/pidp11.tar.gz). It does not include the [PDP-11 disk images](http://pidp.net/pidp11/systems.tar.gz). 
 
 To build on a Raspberry Pi, change directory to the root of the GIT repository and do the following:
 ```bash
@@ -24,6 +24,7 @@ sudo apt install libsdl2-dev libpcap-dev libreadline-dev libpcre3-dev libedit-de
 cd BlinkenBone
 ./make.sh
 ```
+An automated procedure to install this (```install.sh``` in the ```BlinkenBone``` directory) is still in development.
 
 ###### Build/install on Windows
 
