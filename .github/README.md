@@ -24,6 +24,9 @@ sudo apt install libsdl2-dev libpcap-dev libreadline-dev libpcre3-dev libedit-de
 cd BlinkenBone
 ./make.sh
 ```
+On some systems you may need to configure the kernel variable ```dev.tty.legacy_tiocsti``` to 1
+to allow the console to inject characters into the simh console input.
+
 An automated procedure to install this (```install.sh``` in the ```BlinkenBone``` directory) is still in development.
 
 ##### Build/install on Windows
