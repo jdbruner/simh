@@ -1,4 +1,4 @@
-/* blscansw.c: Scan console switches using blinkenlight server
+/* getcsw.c: Scan console switches using blinkenlight server
  *
  * Copyright (c) 2025 John D. Bruner
  * All rights reserved.

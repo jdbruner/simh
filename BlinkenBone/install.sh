@@ -56,13 +56,14 @@ cp -m 755 ${SIMH_BIN}/getcsw ${PIDP11_OPT}
 
 # If you want direct Ethernet access from your virtual machine
 # then un-comment the following. (This is not needed for slirp.)
-setcap cap_net_raw,cap_net_admin=+ep ${PIDP11_OPT}/client11
+# setcap cap_net_raw,cap_net_admin=+ep ${PIDP11_OPT}/client11
 
 # If /opt/pidp11/system already exists, leave it alone
-# Otherwise, create an initial version (with idled)
+# Otherwise, create an initial version (with idled as default)
 #
 if [ ! -d ${PIDP_SYSTEMS_DIR} ]; then
     cp -r ${PIDP_SYSTEMS_DIR} ${PIDP11_OPT}
+    ln -s idled ${PIDP11_OPT}/systems/default
     chown -R ${PIDP11_USER}:${PIDP11_GROUP} ${PIDP11_OPT}
 fi
 

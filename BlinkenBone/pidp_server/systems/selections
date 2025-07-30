@@ -1,4 +1,4 @@
-0000	idled
+0000	default
 0001	rsx11mplus
 0002	rsts7
 0003	rt11
@@ -11,4 +11,5 @@
 0113	sysiii
 0115	sysv
 1000	myidle
+1001	idled
 1002	blinky
