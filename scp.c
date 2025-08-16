@@ -3329,6 +3329,28 @@ if (docmdp) {
         stat = SCPE_OPENERR;
     if (SCPE_BARE_STATUS(stat) == SCPE_OPENERR)
         stat = docmdp->action (-1, "simh.ini");             /* simh.ini proc cmd file */
+    if ((SCPE_BARE_STATUS(stat) == SCPE_OPENERR) &&
+        (*argv[0])) {                                       /* sim name arg? */
+        char *np;                                           /* "path.ini" */
+        nbuf[0] = '"';                                      /* starting " */
+        strlcpy (nbuf + 1, argv[0], PATH_MAX + 2);          /* copy sim path-name */
+        if (((np = strrchr (nbuf, '/')) != NULL) ||
+            ((np = strrchr (nbuf, '\\')) != NULL)) {
+            *(np + 1) = '\0';
+            strlcat (nbuf, "simh.ini\"", sizeof (nbuf));
+            stat = docmdp->action (-1, nbuf);               /* simh.ini proc cmd file */
+            }
+        else                /* No / or \, then we're looking at for simh.ini in the */
+            stat = stat;    /* current working directory which we've already checked */
+        }
+    if (SCPE_BARE_STATUS(stat) == SCPE_OPENERR) {
+        snprintf(nbuf, sizeof (nbuf), "\"%s%s%sLibrary%sPreferences%ssimh.ini\"", cptr2 ? cptr2 : "", cptr, strchr (cptr, '/') ? "/" : "\\", strchr (cptr, '/') ? "/" : "\\", strchr (cptr, '/') ? "/" : "\\");
+        stat = docmdp->action (-1, nbuf);                   /* simh.ini proc cmd file */
+        }
+    if (SCPE_BARE_STATUS(stat) == SCPE_OPENERR)
+        stat = docmdp->action (-1, "/Library/Preferences/simh.ini");/* simh.ini proc cmd file */
+    if (SCPE_BARE_STATUS(stat) == SCPE_OPENERR)
+        stat = docmdp->action (-1, "/etc/simh.ini");        /* simh.ini proc cmd file */
     if (*cbuf)                                              /* cmd file arg? */
         stat = docmdp->action (0, cbuf);                    /* proc cmd file */
     else {
@@ -7470,6 +7492,9 @@ if (1) {
             fprintf (st, "\n        curl tool: %s", curlversion);
             setenv ("SIM_CURL_CMD_AVAILABLE", "TRUE", 1);
             }
+#if !defined(_WIN32)
+        fprintf (st, "\n        %s as root", _sim_running_as_root () ? "Running" : "Not running");
+#endif
         }
 #endif
     if ((!strcmp (os_type, "Unknown")) && (getenv ("OSTYPE")))
@@ -17142,6 +17167,26 @@ sim_rand_seed = a * lo - r * hi;
 if (sim_rand_seed < 0)
     sim_rand_seed += RAND_MAX + 1;
 return (sim_rand_seed - 1);
+}
+
+t_bool _sim_running_as_root (void)
+{
+FILE *f = fopen("/dev/mem", "r");
+char response[64] = "";
+
+if (f != NULL) {
+  fclose(f);
+  return TRUE;
+  }
+#if !defined(_WIN32)
+f = popen("id -u", "r");
+if (f == NULL)
+  return FALSE;
+if (fgets(response, sizeof(response), f))
+ sim_trim_endspc (response);
+pclose(f);
+#endif
+return (0 == strcmp(response, "0"));
 }
 
 
