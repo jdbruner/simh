@@ -49,7 +49,6 @@
 
 #define MAIN_C_
 
-#define VERSION	"v1.4.1"
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -77,6 +76,8 @@
 #include "main.h"
 #include "gpiopattern.h"
 
+const char SERVERNAME[] = "pidp11panel";
+const char VERSION[] = "1.4.1";
 char program_info[1024];
 char program_name[1024]; // argv[0]
 char program_options[1024]; // argv[1.argc-1]
@@ -395,7 +396,7 @@ void blinkenlight_api_server(void)
 void info(void)
 {
     print(LOG_INFO, "\n");
-    print(LOG_NOTICE, "*** pidp11_blinkenlightd %s - server for PiDP11 ***\n", VERSION);
+    print(LOG_NOTICE, "*** %s %s - server for PiDP11 ***\n", SERVERNAME, VERSION);
     print(LOG_NOTICE, "    Compiled " __DATE__ " " __TIME__ "\n");
     print(LOG_NOTICE, "    Copyright (C) 2015-2016 Joerg Hoppe, Oscar Vermeulen.\n");
     print(LOG_NOTICE, "    www.retrocmp.com, obsolescence.wix.com/obsolescence\n");
@@ -408,11 +409,11 @@ void info(void)
 static void help(void)
 {
     fprintf(stderr, "\n");
-    fprintf(stderr, "pidp11_blinkenlightd %s - Blinkenlight RPC server for PiDP11 \n", VERSION);
+    fprintf(stderr, "%s %s - Blinkenlight RPC server for PiDP11 \n", SERVERNAME, VERSION);
     fprintf(stderr, "  (compiled " __DATE__ " " __TIME__ ")\n");
     fprintf(stderr, "\n");
     fprintf(stderr, "Usage:\n");
-    fprintf(stderr, "  pidp11_blinkenlightd [-h] [-b] [-v] [-t] [-L] [-a 0..7] [-d 0..3] [-s <n>]\n");
+    fprintf(stderr, "  %s [-h] [-b] [-v] [-t] [-L] [-a 0..7] [-d 0..3] [-s <n>]\n", program_name);
     fprintf(stderr, "\n");
     fprintf(stderr, "  -h          display this help and exit\n");
     fprintf(stderr, "  -b          background operation: print to syslog (view with dmesg)\n");
@@ -671,8 +672,8 @@ int main(int argc, char *argv[])
         help();
         return 1;
     }
-    sprintf(program_info, "pidp11_blinkenlightd - Blinkenlight API server daemon for PiDP11 %s",
-    VERSION);
+    sprintf(program_info, "%s - Blinkenlight API server daemon for PiDP11 %s",
+    	SERVERNAME, VERSION);
 
     print(LOG_INFO, "Start\n");
 

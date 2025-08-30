@@ -4,7 +4,6 @@ Wants=rpcbind.service pidp11panel.service
 After=rpcbind.service pidp11panel.service
 
 [Install]
-WantedBy=pidp11.service
 WantedBy=multi-user.target
 
 [Service]

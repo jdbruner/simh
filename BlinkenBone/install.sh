@@ -49,23 +49,23 @@ fi
 # Copy in the executables and script
 #
 mkdir -p -m 755 ${PIDP11_OPT}
-cp -m 755 ${PIDP_SERVER_SRC}/pidp11.sh ${PIDP11_OPT}
-cp -m 755 ${SIMH_BIN}/client11 ${PIDP11_OPT}
-cp -m 755 ${SIMH_BIN}/server11 ${PIDP11_OPT}
-cp -m 755 ${SIMH_BIN}/getcsw ${PIDP11_OPT}
+install -m 755 ${PIDP_SYSTEMD_DIR}/pidp11.sh ${PIDP11_OPT}
+install -m 755 ${SIMH_BIN}/client11 ${PIDP11_OPT}
+install -m 755 ${SIMH_BIN}/server11 ${PIDP11_OPT}
+install -m 755 ${SIMH_BIN}/getcsw ${PIDP11_OPT}
 
-# If you want direct Ethernet access from your virtual machine
-# then un-comment the following. (This is not needed for slirp.)
-# setcap cap_net_raw,cap_net_admin=+ep ${PIDP11_OPT}/client11
-
-# If /opt/pidp11/system already exists, leave it alone
+# If /opt/pidp11/systems already exists, leave it alone
 # Otherwise, create an initial version (with idled as default)
 #
-if [ ! -d ${PIDP_SYSTEMS_DIR} ]; then
+if [ ! -d ${PIDP11_OPT}/systems ]; then
     cp -r ${PIDP_SYSTEMS_DIR} ${PIDP11_OPT}
     ln -s idled ${PIDP11_OPT}/systems/default
     chown -R ${PIDP11_USER}:${PIDP11_GROUP} ${PIDP11_OPT}
 fi
+
+# If you want direct Ethernet access from your virtual machine
+# then un-comment the following. (This is not needed for slirp.)
+# setcap cap_net_raw,cap_net_admin=+ep ${PIDP11_OPT}/client11
 
 # Install the systemd service files and start the services
 #
