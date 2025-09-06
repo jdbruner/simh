@@ -221,6 +221,10 @@ endif
 ifneq (,$(findstring pdp7,${MAKECMDGOALS}))
   VIDEO_USEFUL = true
 endif
+# building the PDP-8 could use video support
+ifneq (,$(findstring pdp8,${MAKECMDGOALS}))
+  VIDEO_USEFUL = true
+endif
 # building the pdp11, any pdp10, any 3b2, or any vax simulator could use networking support
 ifneq (,$(findstring pdp11,${MAKECMDGOALS})$(findstring pdp10,${MAKECMDGOALS})$(findstring vax,${MAKECMDGOALS})$(findstring frontpaneltest,${MAKECMDGOALS})$(findstring infoserver,${MAKECMDGOALS})$(findstring 3b2,${MAKECMDGOALS})$(findstring all,${MAKECMDGOALS}))
   NETWORK_USEFUL = true
@@ -375,7 +379,7 @@ ifeq (${WIN32},)  #*nix Environments (&& cygwin)
     export TEST = test
   endif
   RUNNING_AS_ROOT:=$(if $(findstring Darwin,$(OSTYPE)),$(shell if [ `id -u` == '0' ]; then echo running_as_root; fi),$(shell if $(TEST) -r /dev/mem; then echo running_as_root; fi))
-  CAN_AUTO_INSTALL_PACKAGES:=$(findstring HOMEBREW,$(PKG_MGR)),$(RUNNING_AS_ROOT)
+  CAN_AUTO_INSTALL_PACKAGES:=$(findstring HOMEBREW,$(PKG_MGR))$(RUNNING_AS_ROOT)
   override AUTO_INSTALL_PACKAGES:=$(and $(AUTO_INSTALL_PACKAGES),$(or $(findstring HOMEBREW,$(PKG_MGR)),$(RUNNING_AS_ROOT)))
   ifeq (${GCC},)
     ifeq (,$(call find_exe,gcc))
@@ -2035,8 +2039,9 @@ PDP8 = ${PDP8D}/pdp8_cpu.c ${PDP8D}/pdp8_clk.c ${PDP8D}/pdp8_df.c \
 	${PDP8D}/pdp8_pt.c ${PDP8D}/pdp8_rf.c ${PDP8D}/pdp8_rk.c \
 	${PDP8D}/pdp8_rx.c ${PDP8D}/pdp8_sys.c ${PDP8D}/pdp8_tt.c \
 	${PDP8D}/pdp8_ttx.c ${PDP8D}/pdp8_rl.c ${PDP8D}/pdp8_tsc.c \
-	${PDP8D}/pdp8_td.c ${PDP8D}/pdp8_ct.c ${PDP8D}/pdp8_fpp.c
-PDP8_OPT = -I ${PDP8D} ${REALCONS_OPT}
+	${PDP8D}/pdp8_td.c ${PDP8D}/pdp8_ct.c ${PDP8D}/pdp8_fpp.c \
+	${PDP8D}/pdp8_dpy.c ${DISPLAYL}
+PDP8_OPT = -I ${PDP8D} ${DISPLAY_OPT} ${REALCONS_OPT}
 
 
 H316D = ${SIMHD}/H316
