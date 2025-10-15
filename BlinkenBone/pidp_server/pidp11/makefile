@@ -1,4 +1,4 @@
-# call with MAKE_TARGET_ARCH=X86 or =RPI
+# call with MAKE_TARGET_ARCH=RPI
 
 #
 # CC Command
@@ -9,20 +9,18 @@ OS_CCDEFS =
 CC_DBG_FLAGS = -ggdb3 -O0
 LDFLAGS = -pthread
 
-ifeq ($(MAKE_TARGET_ARCH),X86)
-	OBJDIR=bin-x86
-else ifeq ($(MAKE_TARGET_ARCH),BEAGLEBONE)
-	#### !!! when cross compiling !!!!
-	# fuer beaglebone und angstrom stand alone toolchain
-	CC=arm-angstrom-linux-gnueabi-gcc -mthumb -march=armv7-a -std=c99 -U__STRICT_ANSI__ $(CC_DBG_FLAGS) $(OS_CCDEFS) -I.
-	OBJDIR=bin-beaglebone
-	SSHTARGET=root@beaglebone
-	LDFLAGS += -lrt
-else
+ifeq ($(MAKE_TARGET_ARCH),RPI)
 	OS_CCDEFS=-I/usr/include/tirpc
 	OBJDIR=../../../BIN
-	SSHTARGET=pi@raspberrypi
 	LDFLAGS=-lrt -pthread -lgpiod -ltirpc
+else
+	$(error PiDP11 server only builds for MAKE_TARGET_ARCH=RPI)
+endif
+
+ifneq (,$(USE_LIBGPIOD_V1))
+	GPIOSRC=gpio_v1.c
+else
+	GPIOSRC=gpio.c
 endif
 
 # Reference also the standard blinkenbone server in BLINKENLIGHT_SERVER_DIR
@@ -80,13 +78,14 @@ SOURCES.h = \
 
 SOURCES.c = \
 	main.c	\
-	gpio.c	\
+	$(GPIOSRC) \
 	gpiopattern.c	\
 	$(BLINKENLIGHT_SERVER_DIR)/print.c	\
 	$(BLINKENLIGHT_API_SOURCES.c)
 
 
 OBJECTS = $(SOURCES.c:%.c=%.o)
+
 #
 # Build everything (target 'all' is above)
 #
@@ -96,14 +95,8 @@ clean:
 	make --directory=$(BLINKENLIGHT_API_DIR)/rpcgen_linux clean
 
 install:
-ifeq ($(MAKE_TARGET_ARCH),RPI)
 	# no-op for now
 	# eventually this should copy the binaries and set the capabilities for the panel server
-else
-	echo "copy server to beaglebone/rpi ... call only for ARM server!"
-	echo --- set remote time
-	ssh $(SSHTARGET) "date -u `date -u +%m%d%H%M%Y.%S`; echo `cat /etc/timezone` > /etc/timezone"
-endif
 
 
 $(OBJDIR)/server11:	$(SOURCES.c) $(SOURCES.h)
