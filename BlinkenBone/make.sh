@@ -39,13 +39,13 @@ set -e
 # needed packages:
 PACKAGES="\
   ant default-jdk rpcbind \
-  libgpiod-dev libtirpc-dev libsdl2-dev libpcap-dev libreadline-dev libpcre3-dev libedit-dev libpng-dev libvdeplug-dev"
+  libgpiod-dev libtirpc-dev libsdl2-dev libpcap-dev libreadline-dev libpcre2-dev libedit-dev libpng-dev libvdeplug-dev"
 (set -x; sudo apt install $PACKAGES)
 
 # libgpiod has a breaking change with v2
-if apt-cache show libgpiod-dev | grep -q '^Version: 1\."; then
+if apt-cache show libgpiod-dev | grep -q '^Version: 1\.'; then
     USE_LIBGPIOD_V1=1 export USE_LIBGPIOD_V1
-endif
+fi
 
 # compile all binaries for all platforms
 pwd
