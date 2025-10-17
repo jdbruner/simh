@@ -38,7 +38,7 @@ set -e
 
 # needed packages:
 PACKAGES="\
-  ant default-jdk rpcbind \
+  ant default-jdk rpcbind screen \
   libgpiod-dev libtirpc-dev libsdl2-dev libpcap-dev libreadline-dev libpcre2-dev libedit-dev libpng-dev libvdeplug-dev"
 (set -x; sudo apt install $PACKAGES)
 
@@ -86,10 +86,10 @@ if [ $MAKE_TARGET_ARCH = RPI ]; then
         make $MAKEOPTIONS $MAKETARGETS
     )
     (
-        # An alternative to scansw for the PiDP11 that uses
-        # the pidp11 server rather than directly accessing the GPIO
+        # utility for the PiDP11 that uses the pidp11 server
+        # (alternative to Oscar Vermeulen's scansw)
         cd blinkenlight_getcsw/pidp11
-        echo ; echo "*** blinkenlight_getcsw/pidp11 for $MAKE_TARGET_NAME"
+        echo ; echo "*** blinkenlight_getcsw for PiDP11"
         make $MAKEOPTIONS $MAKETARGETS
     )
 fi

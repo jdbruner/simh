@@ -23,6 +23,12 @@ if [ ! -e /usr/bin/raspi-config ]; then
     exit 1
 fi
 
+# Allow REALCONS to inject characters into the simh console
+if [ `sysctl dev.tty.legacy_tiocsti -n` = 0 ]; then
+    echo Setting dev.tty.legacy_tiocsti=1 to enable REALCONS injection to the simh console
+    sysctl dev.tty.legacy_tiocsti=1
+fi
+
 # Create user "pidp11" if it does not already exist
 # Create ~/bin and populate with the pdp.sh script
 # exec pdp.sh as the final action in .profile

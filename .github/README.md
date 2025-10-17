@@ -9,9 +9,11 @@ Please consult the individual README and LICENSE files in the tree.
 
 The BlinkenBone and PiDP11 sources have been reorganized and merged into the simh source tree (including changes to ``scp.c`` and the addition of ``REALCONS``). To build with REALCONS support, build simh with ``USE_REALCONS=1``; to build for PIDP11 (on a Raspberry Pi only), build with ``USE_PIDP11=1``. The BlinkenBone and PiDP11 binaries can be built on Linux by running ``make.sh`` in the ``BlinkenBone`` subdirectory. Unlike Joerge Hoppe's original distribution, this builds only for the current machine (not cross-compilation).
 
-The PiDP panelserver has been rewritten to use libgpiod (rather than directly manipulating device registers by mmap'ing ``/dev/mem``). It works on both 32-bit and 64-bit systems. It has not been ported to libgpiod2.
+The PiDP panelserver has been rewritten to use libgpiod (rather than directly manipulating device registers by mmap'ing ```/dev/mem```). It works on both 32-bit and 64-bit systems. There are different source files for
+v1 (which, oddly, is the package ```libgpiod2```)
+and v2 (package ```libgpiod3```).
 
-The PiDP8 panel server has not been updated.
+Panel servers for other machines (PDP-1, PDP-8, PDP-10) are yet to be written.
 
 ##### Build/update PiDP11 on Raspberry Pi
 
@@ -19,15 +21,12 @@ This has diverged from [Oscar Vermeulen's PiDP11 installation and runtime script
 
 To build on a Raspberry Pi, change directory to the root of the GIT repository and do the following:
 ```bash
-sudo apt install ant rpcbind default-jdk libgpiod-dev libtirpc-dev 
-sudo apt install libsdl2-dev libpcap-dev libreadline-dev libpcre3-dev libedit-dev libpng-dev libvdeplug-dev
 cd BlinkenBone
 ./make.sh
 ```
-On some systems you may need to configure the kernel variable ```dev.tty.legacy_tiocsti``` to 1
+On some systems you may need to configure the kernel variable
+```dev.tty.legacy_tiocsti``` to 1
 to allow the console to inject characters into the simh console input.
-
-An automated procedure to install this (```install.sh``` in the ```BlinkenBone``` directory) is still in development.
 
 ##### Build/install on Windows
 
@@ -48,7 +47,33 @@ If you need to rebuild it for an older IDE (particularly if you want to build fo
 using Visual Studio 2008), then you will probably also need to rebuild ``BlinkenBone/3rdparty/oncrpc_win32``.
 Warning: there be dragons here...
 
-There is no support (at least not yet) for building a REALCONS-enabled PDP11 simulator using mingw64.
+There is no support for building a REALCONS-enabled PDP11 simulator using mingw64.
+
+##### Installation
+
+Installation runs on the build machine only at this time.
+From the root of the simh repository, do the following:
+```bash
+cd BlinkenBone
+./install.sh
+```
+which does the following:
+1. ```sysctl dev.tty.legacy_tiocsti=1```
+2. Create the user ```pidp11```
+3. Populate the ```pidp11``` home directory with the script ```pdp.sh```
+   (which connects to the ```screen``` session) and add it to the
+   ```.profile```
+4. Create ```/opt/pidp11``` and populate it with ```client11```, ```server11```,
+   ```getcsw```, and ```pidp11.sh```
+5. Create an initial version of ```/opt/pidp11/systems``` containing ```idled```.
+6. Install the systemd service files and start the services
+
+
+If you want the simulated system to share the Ethernet on your device,
+un-comment the following line in ```install.sh```:
+```bash
+# setcap cap_net_raw,cap_net_admin=+ep ${PIDP11_OPT}/client11q
+```
 
 ##### Major Changes Relative to the Upstream
 
@@ -83,11 +108,11 @@ command-line options that control how the value is formatted.
 ##### systemd services
 
 There are two systemd services:
-- pidp11panel.service - runs the panel server (server11) under the non-privileged account
+- *pidp11panel.service* - runs the panel server (server11) under the non-privileged account
   ```pidp11``` with group ```gpio``` and with the ability to set a real-time thread priority.
   Unlike Oscar's version, the panel server runs continuously (even when the client is
   restarted).
-- pidp11.service - runs ```/opt/pidp11/pidp11.sh``` with a new ```screen```
+- *pidp11.service* - runs ```/opt/pidp11/pidp11.sh``` with a new ```screen```
 under the non-privileged account ```pidp11```.
 
 ##### /opt/pidp11/pidp11.sh
@@ -104,13 +129,3 @@ and behavior of ```pidp11.sh``` is:
 - 1 if the RUN/HALT switch is in the HALT position: the script exits
   (which causes the ```pidp11.service``` to terminate)
 
-##### Installation
-
-Installation runs on the build machine only at this time, and comprises the following:
-1. Create the user ```pidp11``
-2. Populate the ```pidp11``` home directory with the script ```pdp.sh```
-   (which connects to the ```screen``` session) and add it to the ```.profile```
-3. Create ```/opt/pidp11`` and populate it with ```client11```, ```server11```,
-   ```getcsw```, and ```pidp11.sh```
-4. Create an initial version of ```/opt/pidp11/systems``` containing ```idled```.
-5. Install the systemd service files and start the services

@@ -1,21 +1,13 @@
 # call with MAKE_TARGET_ARCH=RPI
+# if using libgpiod-dev v1, call with USE_LIBGPIOD_V1=1
 
 #
 # CC Command
 #
-
-# own settings
-OS_CCDEFS =
 CC_DBG_FLAGS = -ggdb3 -O0
-LDFLAGS = -pthread
-
-ifeq ($(MAKE_TARGET_ARCH),RPI)
-	OS_CCDEFS=-I/usr/include/tirpc
-	OBJDIR=../../../BIN
-	LDFLAGS=-lrt -pthread -lgpiod -ltirpc
-else
-	$(error PiDP11 server only builds for MAKE_TARGET_ARCH=RPI)
-endif
+OS_CCDEFS=-I/usr/include/tirpc
+OBJDIR=../../../BIN
+LDFLAGS=-lrt -pthread -lgpiod -ltirpc
 
 ifneq (,$(USE_LIBGPIOD_V1))
 	GPIOSRC=gpio_v1.c
@@ -61,7 +53,7 @@ BLINKENLIGHT_API_SOURCES.h = \
 	$(BLINKENLIGHT_COMMON_DIR)/mcout.h	\
 	$(BLINKENLIGHT_COMMON_DIR)/errno2txt.h
 
-all:    $(OBJDIR)/server11 $(OBJDIR)/scansw
+all:    $(OBJDIR)/server11
 
 $(BLINKENLIGHT_API_SOURCES.c) $(BLINKENLIGHT_API_SOURCES.h):
 	# rpcgen
@@ -100,9 +92,8 @@ install:
 
 
 $(OBJDIR)/server11:	$(SOURCES.c) $(SOURCES.h)
+ifneq ($(MAKE_TARGET_ARCH),RPI)
+	$(error PiDP11 server only builds for MAKE_TARGET_ARCH=RPI)
+endif
 	${CC} -o $@ $(CCDEFS) $^ ${LDFLAGS}
-	file $@
-
-$(OBJDIR)/scansw: scansw.c
-	$(CC) -o $@ $^ -lgpiod
 	file $@
