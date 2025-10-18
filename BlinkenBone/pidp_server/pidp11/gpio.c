@@ -100,10 +100,10 @@ blink(void *terminate)
     struct gpiod_line_request *ledrow_request = NULL;
     struct gpiod_line_request *row_request = NULL;
     struct gpiod_line_request *col_request = NULL;
-	enum gpiod_line_value col_vals[_countof(cols)];
-	struct sched_param rtschedparam = { .sched_priority = 98 };
-	int i, j, switchscan;
-	void *exitstatus = (void *)-1;
+    enum gpiod_line_value col_vals[_countof(cols)];
+    struct sched_param rtschedparam = { .sched_priority = 98 };
+    int i, j, switchscan;
+    void *exitstatus = (void *)-1;
 
     // open the chip
     INVOKE_PTR(chip, gpiod_chip_open(GPIO_CHIP));
@@ -152,31 +152,31 @@ blink(void *terminate)
     INVOKE_PTR(row_request, gpiod_chip_request_lines(chip, request_config, row_tristate_config));
     INVOKE_PTR(col_request, gpiod_chip_request_lines(chip, request_config, col_output_config));
 
-	// set thread to real time priority
-	if (pthread_setschedparam(pthread_self(), SCHED_FIFO, &rtschedparam))
-		fprintf(stderr, "warning: failed to set RT priority (%s)\n", strerror(errno));
+    // set thread to real time priority
+    if (pthread_setschedparam(pthread_self(), SCHED_FIFO, &rtschedparam))
+        fprintf(stderr, "warning: failed to set RT priority (%s)\n", strerror(errno));
 
     // main loop
-	while (!*(_Atomic int *)terminate) {
-		unsigned phase;
+    while (!*(_Atomic int *)terminate) {
+        unsigned phase;
 
-		// display all phases circular
-		for (phase = 0; phase < GPIOPATTERN_LED_BRIGHTNESS_PHASES; phase++) {
-			// each phase must be exact same duration, so include switch scanning here
-			_Atomic uint32_t *gpio_ledstatus =
-				gpiopattern_ledstatus_phases[gpiopattern_ledstatus_phases_readidx][phase];
+        // display all phases circular
+        for (phase = 0; phase < GPIOPATTERN_LED_BRIGHTNESS_PHASES; phase++) {
+            // each phase must be exact same duration, so include switch scanning here
+            _Atomic uint32_t *gpio_ledstatus =
+                gpiopattern_ledstatus_phases[gpiopattern_ledstatus_phases_readidx][phase];
 
             // configure switch rows as tristate, LED rows as outputs, columns as outputs
             INVOKE(gpiod_line_request_reconfigure_lines(ledrow_request, ledrow_output_config));
             INVOKE(gpiod_line_request_reconfigure_lines(row_request, row_tristate_config));
             INVOKE(gpiod_line_request_reconfigure_lines(col_request, col_output_config));
 
-			// light up each row of LEDs
-			// drive one LED row low for each set of columns
-			for (i = 0; i < _countof(ledrows); i++) {
-				// light up the next row with the matching column values (inverted)
-				for (j = 0; j < _countof(cols); j++)
-					col_vals[j] = (gpio_ledstatus[i] & (1 << j)) ? GPIOD_LINE_VALUE_INACTIVE : GPIOD_LINE_VALUE_ACTIVE;
+            // light up each row of LEDs
+            // drive one LED row low for each set of columns
+            for (i = 0; i < _countof(ledrows); i++) {
+                // light up the next row with the matching column values (inverted)
+                for (j = 0; j < _countof(cols); j++)
+                    col_vals[j] = (gpio_ledstatus[i] & (1 << j)) ? GPIOD_LINE_VALUE_INACTIVE : GPIOD_LINE_VALUE_ACTIVE;
 
                 INVOKE(gpiod_line_request_set_values(col_request, col_vals));
                 INVOKE(gpiod_line_request_set_value(ledrow_request, ledrows[i], GPIOD_LINE_VALUE_ACTIVE));
@@ -202,16 +202,16 @@ blink(void *terminate)
                     switchscan |= (col_vals[j] == GPIOD_LINE_VALUE_ACTIVE) << j;
                 INVOKE(gpiod_line_request_set_value(row_request, rows[i], GPIOD_LINE_VALUE_ACTIVE));
 
-				if (i == 2)
-					check_rotary_encoders(switchscan); // translate raw encoder data to switch position
-				gpio_switchstatus[i] = switchscan;
+                if (i == 2)
+                    check_rotary_encoders(switchscan); // translate raw encoder data to switch position
+                gpio_switchstatus[i] = switchscan;
             }
-		}
-	}
+        }
+    }
 
     // before exiting, reset the switch rows to tristate
     INVOKE(gpiod_line_request_reconfigure_lines(row_request, row_tristate_config));
-	exitstatus = NULL;  // success
+    exitstatus = NULL;  // success
 
 out:
     // clean up and exit
@@ -238,26 +238,26 @@ out:
     if (exitstatus != NULL)
         exit(1);
 
-	return exitstatus;
+    return exitstatus;
 }
 
 void
 check_rotary_encoders(int switchscan)
 {
-	// 2 rotary encoders. Each has two switch pins. Normally, both are 0 - no rotation.
-	// encoder 1: row1, bits 8,9. Encoder 2: row1, bits 10,11
-	// Gray encoding: rotate up sequence   = 11 -> 01 -> 00 -> 10 -> 11
-	// Gray encoding: rotate down sequence = 11 -> 10 -> 00 -> 01 -> 11
+    // 2 rotary encoders. Each has two switch pins. Normally, both are 0 - no rotation.
+    // encoder 1: row1, bits 8,9. Encoder 2: row1, bits 10,11
+    // Gray encoding: rotate up sequence   = 11 -> 01 -> 00 -> 10 -> 11
+    // Gray encoding: rotate down sequence = 11 -> 10 -> 00 -> 01 -> 11
 
-	static int lastCode[2] = { 3, 3 };
-	int code[2];
-	int i;
+    static int lastCode[2] = { 3, 3 };
+    int code[2];
+    int i;
 
-	code[0] = (switchscan & 0x300) >> 8;
-	code[1] = (switchscan & 0xC00) >> 10;
-	switchscan = switchscan & 0xff;	// set the 4 bits to zero
+    code[0] = (switchscan & 0x300) >> 8;
+    code[1] = (switchscan & 0xC00) >> 10;
+    switchscan = switchscan & 0xff;	// set the 4 bits to zero
 
-	// detect rotation
+    // detect rotation
     for (i = 0; i < 2; i++) {
         if ((code[i] == 1) && (lastCode[i] == 3))
             lastCode[i] = code[i];
@@ -280,8 +280,8 @@ check_rotary_encoders(int switchscan)
     }
 
     knobValue[0] = knobValue[0] & 7;
-	knobValue[1] = knobValue[1] & 3;
+    knobValue[1] = knobValue[1] & 3;
 
-	// end result: bits 8,9 are 00 normally, 01 if UP, 10 if DOWN. Same for bits 10,11 (knob 2)
-	// these bits are not used, actually. Status is communicated through global variable knobValue[i]
+    // end result: bits 8,9 are 00 normally, 01 if UP, 10 if DOWN. Same for bits 10,11 (knob 2)
+    // these bits are not used, actually. Status is communicated through global variable knobValue[i]
 }
