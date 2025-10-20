@@ -91,7 +91,6 @@ blink(void *terminate)
     struct gpiod_line_settings *tristate_settings = NULL;
     struct gpiod_line_settings *input_settings = NULL;
     struct gpiod_line_settings *output_settings = NULL;
-    struct gpiod_line_config *ledrow_tristate_config = NULL;
     struct gpiod_line_config *ledrow_output_config = NULL;
     struct gpiod_line_config *row_tristate_config = NULL;
     struct gpiod_line_config *row_output_config = NULL;
@@ -127,9 +126,7 @@ blink(void *terminate)
     INVOKE(gpiod_line_settings_set_direction(output_settings, GPIOD_LINE_DIRECTION_OUTPUT));
     INVOKE(gpiod_line_settings_set_bias(output_settings, GPIOD_LINE_BIAS_DISABLED));
 
-    // create configurations for LED rows (tristate, output with all lines inactive)
-    INVOKE_PTR(ledrow_tristate_config, gpiod_line_config_new());
-    INVOKE(gpiod_line_config_add_line_settings(ledrow_tristate_config, ledrows, _countof(ledrows), tristate_settings));
+    // create configurations for LED rows (output with all lines inactive)
     INVOKE_PTR(ledrow_output_config, gpiod_line_config_new());
     INVOKE(gpiod_line_settings_set_output_value(output_settings, GPIOD_LINE_VALUE_INACTIVE));
     INVOKE(gpiod_line_config_add_line_settings(ledrow_output_config, ledrows, _countof(ledrows), output_settings));
@@ -148,7 +145,7 @@ blink(void *terminate)
     INVOKE(gpiod_line_config_add_line_settings(col_input_config, cols, _countof(cols), input_settings));
 
     // request the GPIO lines for the ledrows, rows, and cols
-    INVOKE_PTR(ledrow_request, gpiod_chip_request_lines(chip, request_config, ledrow_tristate_config));
+    INVOKE_PTR(ledrow_request, gpiod_chip_request_lines(chip, request_config, ledrow_output_config));
     INVOKE_PTR(row_request, gpiod_chip_request_lines(chip, request_config, row_tristate_config));
     INVOKE_PTR(col_request, gpiod_chip_request_lines(chip, request_config, col_output_config));
 
@@ -166,8 +163,7 @@ blink(void *terminate)
             _Atomic uint32_t *gpio_ledstatus =
                 gpiopattern_ledstatus_phases[gpiopattern_ledstatus_phases_readidx][phase];
 
-            // configure switch rows as tristate, LED rows as outputs, columns as outputs
-            INVOKE(gpiod_line_request_reconfigure_lines(ledrow_request, ledrow_output_config));
+            // configure switch rows as tristate, columns as outputs
             INVOKE(gpiod_line_request_reconfigure_lines(row_request, row_tristate_config));
             INVOKE(gpiod_line_request_reconfigure_lines(col_request, col_output_config));
 
@@ -182,13 +178,13 @@ blink(void *terminate)
                 INVOKE(gpiod_line_request_set_value(ledrow_request, ledrows[i], GPIOD_LINE_VALUE_ACTIVE));
                 usleep(intervl);
 
-                // turn off the row
+                // turn off the row (allowing time to settle)
                 INVOKE(gpiod_line_request_set_value(ledrow_request, ledrows[i], GPIOD_LINE_VALUE_INACTIVE));
+                usleep(1);
             }
 
             // prepare to read switches
-            // configure LED rows as tristate, switch rows as outputs, columns as inputs
-            INVOKE(gpiod_line_request_reconfigure_lines(ledrow_request, ledrow_tristate_config));
+            // configure switch rows as outputs, columns as inputs
             INVOKE(gpiod_line_request_reconfigure_lines(row_request, row_output_config));
             INVOKE(gpiod_line_request_reconfigure_lines(col_request, col_input_config));
 
@@ -219,7 +215,6 @@ out:
     RELEASE(row_request, gpiod_line_request_release);
     RELEASE(col_request, gpiod_line_request_release);
 
-    RELEASE(ledrow_tristate_config, gpiod_line_config_free);
     RELEASE(ledrow_output_config, gpiod_line_config_free);
     RELEASE(row_tristate_config, gpiod_line_config_free);
     RELEASE(row_output_config, gpiod_line_config_free);
