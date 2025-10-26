@@ -2292,7 +2292,7 @@ ALTAIRZ80 = ${ALTAIRZ80D}/altairz80_cpu.c ${ALTAIRZ80D}/altairz80_cpu_nommu.c \
 	${ALTAIRZ80D}/m68k/m68kopac.c ${ALTAIRZ80D}/m68k/m68kopdm.c \
 	${ALTAIRZ80D}/m68k/softfloat/softfloat.c \
 	${ALTAIRZ80D}/m68k/m68kopnz.c ${ALTAIRZ80D}/m68k/m68kops.c ${ALTAIRZ80D}/m68ksim.c
-ALTAIRZ80_OPT = -I ${ALTAIRZ80D} -DUSE_SIM_VIDEO ${VIDEO_CCDEFS} $(VIDEO_LDFLAGS)
+ALTAIRZ80_OPT = -I ${ALTAIRZ80D} -DUSE_SIM_VIDEO ${VIDEO_CCDEFS}
 
 
 GRID = ${SIMHD}/GRI
@@ -2561,7 +2561,8 @@ SAGE = ${SAGED}/sage_cpu.c ${SAGED}/sage_sys.c ${SAGED}/sage_stddev.c \
     ${SAGED}/sage_cons.c ${SAGED}/sage_fd.c ${SAGED}/sage_lp.c \
     ${SAGED}/m68k_cpu.c ${SAGED}/m68k_mem.c ${SAGED}/m68k_scp.c \
     ${SAGED}/m68k_parse.tab.c ${SAGED}/m68k_sys.c \
-    ${SAGED}/i8251.c ${SAGED}/i8253.c ${SAGED}/i8255.c ${SAGED}/i8259.c ${SAGED}/i8272.c 
+    ${SAGED}/sage_i8251.c ${SAGED}/sage_i8253.c ${SAGED}/sage_i8255.c \
+    ${SAGED}/sage_i8259.c ${SAGED}/sage_i8272.c
 SAGE_OPT = -I ${SAGED} -DHAVE_INT64
 
 PDQ3D = ${SIMHD}/PDQ-3
