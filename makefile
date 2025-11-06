@@ -1716,8 +1716,8 @@ REALCONS= \
         $(REALCONS_DIR)realcons.c     \
         $(REALCONS_DIR)realcons_simh.c \
         $(BLINKENLIGHT_API_DIR)blinkenlight_api_client.c \
-        $(BLINKENLIGHT_API_DIR)/rpcgen_linux/rpc_blinkenlight_api_clnt.c \
-        $(BLINKENLIGHT_API_DIR)/rpcgen_linux/rpc_blinkenlight_api_xdr.c \
+        $(BLINKENLIGHT_API_DIR)rpcgen_linux/rpc_blinkenlight_api_clnt.c \
+        $(BLINKENLIGHT_API_DIR)rpcgen_linux/rpc_blinkenlight_api_xdr.c \
         $(BLINKENLIGHT_API_DIR)blinkenlight_panels.c \
         $(BLINKENLIGHT_COMMON_DIR)bitcalc.c
 # PDP11 part
@@ -3254,6 +3254,20 @@ $(BLDDIR)/%.o : slirp/%.c
 	$(CC) -c $< -o $@ ${OPTS}
 
 $(BLDDIR)/%.o : slirp_glue/%.c
+	-@$(MKDIR) $(call pathfix,$(dir $@))
+  ifeq (1,$(QUIET))
+	@echo Compiling $< into $@
+  endif
+	$(CC) -c $< -o $@ ${OPTS}
+
+$(BLDDIR)/%.o : BlinkenBone/*/%.c
+	-@$(MKDIR) $(call pathfix,$(dir $@))
+  ifeq (1,$(QUIET))
+	@echo Compiling $< into $@
+  endif
+	$(CC) -c $< -o $@ ${OPTS}
+
+$(BLDDIR)/%.o : BlinkenBone/*/*/%.c
 	-@$(MKDIR) $(call pathfix,$(dir $@))
   ifeq (1,$(QUIET))
 	@echo Compiling $< into $@
