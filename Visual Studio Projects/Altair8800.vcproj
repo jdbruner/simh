@@ -2,9 +2,9 @@
 <VisualStudioProject
 	ProjectType="Visual C++"
 	Version="9.00"
-	Name="PDP8"
-	ProjectGUID="{5EB65E13-1E6A-46A4-B7FE-EC87F8702067}"
-	RootNamespace="PDP8"
+	Name="Altair8800"
+	ProjectGUID="{473F61F7-FCE3-4157-B1A8-A8BC054C789F}"
+	RootNamespace="Altair8800"
 	Keyword="Win32Proj"
 	TargetFrameworkVersion="131072"
 	>
@@ -26,7 +26,7 @@
 			<Tool
 				Name="VCPreBuildEventTool"
 				Description="Check for required build dependencies &amp; git commit id..."
-				CommandLine="Pre-Build-Event.cmd &quot;$(TargetDir)$(TargetName).exe&quot; LIBPCRE"
+				CommandLine="Pre-Build-Event.cmd &quot;$(TargetDir)$(TargetName).exe&quot; LIBPCRE LIBSDL"
 			/>
 			<Tool
 				Name="VCCustomBuildTool"
@@ -40,8 +40,8 @@
 			<Tool
 				Name="VCCLCompilerTool"
 				Optimization="0"
-				AdditionalIncludeDirectories="../PDP8/;./;../;../slirp;../slirp_glue;../slirp_glue/qemu;../slirp_glue/qemu/win32/include;../../windows-build/include;;../../windows-build/include/SDL2"
-				PreprocessorDefinitions="USE_DISPLAY;USE_SIM_VIDEO;_CRT_NONSTDC_NO_WARNINGS;SIM_BUILD_TOOL=simh-Visual-Studio-Project;_CRT_SECURE_NO_WARNINGS;_WINSOCK_DEPRECATED_NO_WARNINGS;SIM_NEED_GIT_COMMIT_ID;HAVE_PCRE_H;PCRE_STATIC;HAVE_LIBSDL;HAVE_LIBPNG;HAVE_LIBEDIT"
+				AdditionalIncludeDirectories="../Altair8800/;../Altair8800/AltairZ80/;./;../;../slirp;../slirp_glue;../slirp_glue/qemu;../slirp_glue/qemu/win32/include;../../windows-build/include;;../../windows-build/include/SDL2"
+				PreprocessorDefinitions="inline=__inline;SIM_BUILD_TOOL=simh-Visual-Studio-Project;_CRT_NONSTDC_NO_WARNINGS;_CRT_SECURE_NO_WARNINGS;_WINSOCK_DEPRECATED_NO_WARNINGS;SIM_NEED_GIT_COMMIT_ID;HAVE_PCRE_H;PCRE_STATIC;HAVE_LIBEDIT;USE_SIM_VIDEO;HAVE_LIBSDL;HAVE_LIBPNG"
 				KeepComments="false"
 				BasicRuntimeChecks="0"
 				RuntimeLibrary="1"
@@ -96,7 +96,7 @@
 			<Tool
 				Name="VCPostBuildEventTool"
 				Description="Running Available Tests..."
-				CommandLine="Post-Build-Event.cmd PDP8 &quot;$(TargetDir)$(TargetName).exe&quot;"
+				CommandLine="Post-Build-Event.cmd Altair8800 &quot;$(TargetDir)$(TargetName).exe&quot;"
 			/>
 		</Configuration>
 		<Configuration
@@ -109,7 +109,7 @@
 			<Tool
 				Name="VCPreBuildEventTool"
 				Description="Check for required build dependencies &amp; git commit id..."
-				CommandLine="Pre-Build-Event.cmd &quot;$(TargetDir)$(TargetName).exe&quot; LIBPCRE"
+				CommandLine="Pre-Build-Event.cmd &quot;$(TargetDir)$(TargetName).exe&quot; LIBPCRE LIBSDL"
 			/>
 			<Tool
 				Name="VCCustomBuildTool"
@@ -126,8 +126,8 @@
 				InlineFunctionExpansion="1"
 				OmitFramePointers="true"
 				WholeProgramOptimization="true"
-				AdditionalIncludeDirectories="../PDP8/;./;../;../slirp;../slirp_glue;../slirp_glue/qemu;../slirp_glue/qemu/win32/include;../../windows-build/include;;../../windows-build/include/SDL2"
-				PreprocessorDefinitions="USE_DISPLAY;USE_SIM_VIDEO;_CRT_NONSTDC_NO_WARNINGS;SIM_BUILD_TOOL=simh-Visual-Studio-Project;_CRT_SECURE_NO_WARNINGS;_WINSOCK_DEPRECATED_NO_WARNINGS;SIM_NEED_GIT_COMMIT_ID;HAVE_PCRE_H;PCRE_STATIC;HAVE_LIBSDL;HAVE_LIBPNG;HAVE_LIBEDIT"
+				AdditionalIncludeDirectories="../Altair8800/;../Altair8800/AltairZ80/;./;../;../slirp;../slirp_glue;../slirp_glue/qemu;../slirp_glue/qemu/win32/include;../../windows-build/include;;../../windows-build/include/SDL2"
+				PreprocessorDefinitions="inline=__inline;SIM_BUILD_TOOL=simh-Visual-Studio-Project;_CRT_NONSTDC_NO_WARNINGS;_CRT_SECURE_NO_WARNINGS;_WINSOCK_DEPRECATED_NO_WARNINGS;SIM_NEED_GIT_COMMIT_ID;HAVE_PCRE_H;PCRE_STATIC;HAVE_LIBEDIT;USE_SIM_VIDEO;HAVE_LIBSDL;HAVE_LIBPNG"
 				StringPooling="true"
 				RuntimeLibrary="0"
 				EnableFunctionLevelLinking="true"
@@ -184,7 +184,7 @@
 			<Tool
 				Name="VCPostBuildEventTool"
 				Description="Running Available Tests..."
-				CommandLine="Post-Build-Event.cmd PDP8 &quot;$(TargetDir)$(TargetName).exe&quot;"
+				CommandLine="Post-Build-Event.cmd Altair8800 &quot;$(TargetDir)$(TargetName).exe&quot;"
 			/>
 		</Configuration>
 	</Configurations>
@@ -196,83 +196,75 @@
 			Filter="cpp;c;cxx;def;odl;idl;hpj;bat;asm"
 			>
 			<File
-				RelativePath="..\display\display.c"
+				RelativePath="..\Altair8800\altair8800_dsk.c"
 				>
 			</File>
 			<File
-				RelativePath="..\PDP8\pdp8_clk.c"
+				RelativePath="..\Altair8800\altair8800_sys.c"
 				>
 			</File>
 			<File
-				RelativePath="..\PDP8\pdp8_cpu.c"
+				RelativePath="..\Altair8800\mits_2sio.c"
 				>
 			</File>
 			<File
-				RelativePath="..\PDP8\pdp8_ct.c"
+				RelativePath="..\Altair8800\mits_dsk.c"
 				>
 			</File>
 			<File
-				RelativePath="..\PDP8\pdp8_df.c"
+				RelativePath="..\Altair8800\s100_bram.c"
 				>
 			</File>
 			<File
-				RelativePath="..\PDP8\pdp8_dpy.c"
+				RelativePath="..\Altair8800\s100_bus.c"
 				>
 			</File>
 			<File
-				RelativePath="..\PDP8\pdp8_dt.c"
+				RelativePath="..\Altair8800\s100_cpu.c"
 				>
 			</File>
 			<File
-				RelativePath="..\PDP8\pdp8_fpp.c"
+				RelativePath="..\Altair8800\s100_po.c"
 				>
 			</File>
 			<File
-				RelativePath="..\PDP8\pdp8_lp.c"
+				RelativePath="..\Altair8800\s100_ram.c"
 				>
 			</File>
 			<File
-				RelativePath="..\PDP8\pdp8_mt.c"
+				RelativePath="..\Altair8800\s100_rom.c"
 				>
 			</File>
 			<File
-				RelativePath="..\PDP8\pdp8_pt.c"
+				RelativePath="..\Altair8800\s100_simh.c"
 				>
 			</File>
 			<File
-				RelativePath="..\PDP8\pdp8_rf.c"
+				RelativePath="..\Altair8800\s100_sio.c"
 				>
 			</File>
 			<File
-				RelativePath="..\PDP8\pdp8_rk.c"
+				RelativePath="..\Altair8800\s100_ssw.c"
 				>
 			</File>
 			<File
-				RelativePath="..\PDP8\pdp8_rl.c"
+				RelativePath="..\Altair8800\s100_z80.c"
 				>
 			</File>
 			<File
-				RelativePath="..\PDP8\pdp8_rx.c"
+				RelativePath="..\Altair8800\sds_sbc200.c"
 				>
 			</File>
 			<File
-				RelativePath="..\PDP8\pdp8_sys.c"
+				RelativePath="..\Altair8800\sds_vfii.c"
 				>
 			</File>
 			<File
-				RelativePath="..\PDP8\pdp8_td.c"
+				RelativePath="..\Altair8800\tarbell_fdc.c"
 				>
 			</File>
 			<File
-				RelativePath="..\PDP8\pdp8_tsc.c"
-				>
-			</File>
-			<File
-				RelativePath="..\PDP8\pdp8_tt.c"
-				>
-			</File>
-			<File
-				RelativePath="..\PDP8\pdp8_ttx.c"
+				RelativePath="..\Altair8800\wd_17xx.c"
 				>
 			</File>
 			<File
@@ -293,6 +285,10 @@
 			</File>
 			<File
 				RelativePath="..\sim_fio.c"
+				>
+			</File>
+			<File
+				RelativePath="..\sim_imd.c"
 				>
 			</File>
 			<File
@@ -319,21 +315,85 @@
 				RelativePath="..\sim_video.c"
 				>
 			</File>
-			<File
-				RelativePath="..\display\sim_ws.c"
-				>
-			</File>
 		</Filter>
 		<Filter
 			Name="Header Files"
 			Filter="h;hpp;hxx;hm;inl;inc"
 			>
 			<File
-				RelativePath="..\display\display.h"
+				RelativePath="..\Altair8800\altair8800_defs.h"
 				>
 			</File>
 			<File
-				RelativePath="..\PDP8\pdp8_defs.h"
+				RelativePath="..\Altair8800\altair8800_dsk.h"
+				>
+			</File>
+			<File
+				RelativePath="..\Altair8800\altair8800_sys.h"
+				>
+			</File>
+			<File
+				RelativePath="..\Altair8800\mits_2sio.h"
+				>
+			</File>
+			<File
+				RelativePath="..\Altair8800\mits_dsk.h"
+				>
+			</File>
+			<File
+				RelativePath="..\Altair8800\s100_bram.h"
+				>
+			</File>
+			<File
+				RelativePath="..\Altair8800\s100_bus.h"
+				>
+			</File>
+			<File
+				RelativePath="..\Altair8800\s100_cpu.h"
+				>
+			</File>
+			<File
+				RelativePath="..\Altair8800\s100_po.h"
+				>
+			</File>
+			<File
+				RelativePath="..\Altair8800\s100_ram.h"
+				>
+			</File>
+			<File
+				RelativePath="..\Altair8800\s100_rom.h"
+				>
+			</File>
+			<File
+				RelativePath="..\Altair8800\s100_roms.h"
+				>
+			</File>
+			<File
+				RelativePath="..\Altair8800\s100_simh.h"
+				>
+			</File>
+			<File
+				RelativePath="..\Altair8800\s100_sio.h"
+				>
+			</File>
+			<File
+				RelativePath="..\Altair8800\s100_ssw.h"
+				>
+			</File>
+			<File
+				RelativePath="..\Altair8800\s100_z80.h"
+				>
+			</File>
+			<File
+				RelativePath="..\Altair8800\sds_vfii.h"
+				>
+			</File>
+			<File
+				RelativePath="..\Altair8800\tarbell_fdc.h"
+				>
+			</File>
+			<File
+				RelativePath="..\Altair8800\wd_17xx.h"
 				>
 			</File>
 			<File
@@ -358,6 +418,10 @@
 			</File>
 			<File
 				RelativePath="..\sim_fio.h"
+				>
+			</File>
+			<File
+				RelativePath="..\sim_imd.h"
 				>
 			</File>
 			<File
@@ -386,10 +450,6 @@
 			</File>
 			<File
 				RelativePath="..\sim_video.h"
-				>
-			</File>
-			<File
-				RelativePath="..\display\ws.h"
 				>
 			</File>
 		</Filter>
