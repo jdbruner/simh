@@ -26,6 +26,7 @@ Thumbs.db
 *.log
 [Bb]in
 [Dd]ebug*/
+!debug.h
 *.lib
 *.sbr
 *.bak
