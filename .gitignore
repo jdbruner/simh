@@ -60,3 +60,4 @@ Visual Studio Projects/*-*.sln
 **/*.code-workspace
 **/.vscode/
 **/.vs/
+.dockerignore
