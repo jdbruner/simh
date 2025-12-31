@@ -1,0 +1,3 @@
+[submodule "BlinkenBone"]
+	path = BlinkenBone
+	url = https://github.com/jdbruner/BlinkenBone
