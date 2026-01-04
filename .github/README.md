@@ -104,6 +104,14 @@ un-comment the following line in ```install.sh```:
 # setcap cap_net_raw,cap_net_admin=+ep ${PIDP11_OPT}/client11q
 ```
 
+If the address select and data select LEDs rotate in the opposite
+direction of the corresponding knobs,
+then ``server11`` should be invoked with the ``-r`` flag.
+Change the ``ExecStart`` line in ``/usr/local/lib/systemd/system/pidp11panel.server`` to:
+```bash
+ExecStart=/opt/pidp11/server11 -r
+```
+
 ##### Major Changes Relative to the Upstream
 
 ###### client11 (simh)
