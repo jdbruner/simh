@@ -14,10 +14,11 @@ with changes to simh itself in the simh source tree
 To build with REALCONS support, build simh with ``USE_REALCONS=1``;
 to build for PIDP11 (on a Raspberry Pi only),
 build with ``USE_PIDP11=1``.
-The BlinkenBone and PiDP11 binaries can be built on Linux by
+The Java panel server and PiDP11 binaries can be built on Linux by
 running ``make.sh`` in the ``BlinkenBone`` subdirectory.
 Unlike Joerge Hoppe's original distribution,
 this builds only for the current machine (not cross-compilation).
+The PiDP11 binaries are only built on a Raspberry Pi.
 
 The PiDP panelserver has been rewritten to use libgpiod
 (rather than directly manipulating device registers by mmap'ing ```/dev/mem```).
@@ -25,13 +26,21 @@ It works on both 32-bit and 64-bit systems.
 There are different source files for v1 (which, oddly, is the
 package ```libgpiod2```) and v2 (package ```libgpiod3```).
 
-Panel servers for other machines (PDP-1, PDP-8, PDP-10) are yet to be written.
+There is a PiDP8 panelserver, but it is untested and therefore
+unlikely to work correctly.
+
+Panel servers for other machines (PDP-1, PDP-10) are yet to be written.
 
 ##### Clone repository
 
 To include the ```BlinkenBone``` submodule, clone this repository with
 ```bash
 git clone https://github.com/jdbruner/simh --recursive
+```
+
+You may wish to enable submodule recursion when doing pulls with
+```bash
+git config set submodule.recurse true
 ```
 
 ##### Build/update PiDP11 on Raspberry Pi
