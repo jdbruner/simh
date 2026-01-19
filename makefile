@@ -1680,9 +1680,6 @@ ifneq (clean,${MAKECMDGOALS})
   ifneq (,$(VIDEO_FEATURES))
     $(info *** $(VIDEO_FEATURES).)
   endif
-  ifneq (,$(or $(USE_PIDP11),$(USE_REALCONS)))
-    $(info *** - REALCONS console support)
-  endif
   ifneq (,$(TESTING_FEATURES))
     $(info *** $(TESTING_FEATURES).)
   endif
@@ -1717,7 +1714,6 @@ else
 endif
 
 # PIDP11 and REALCONS support (PIDP11 implies REALCONS)
-ifneq (,$(or $(USE_PIDP11),$(USE_REALCONS)))
 BLINKENLIGHT_COMMON_DIR=BlinkenBone/common/
 BLINKENLIGHT_API_DIR=BlinkenBone/blinkenlight_api/
 REALCONS_DIR=REALCONS/
@@ -1759,15 +1755,6 @@ REALCONS_OPT=-DUSE_REALCONS \
 
 ifneq ($(USE_PIDP11),)
 REALCONS_OPT += -DUSE_PIDP11
-endif
-
-else
-REALCONS_OPT=
-REALCONS=
-REALCONS_PDP11=
-REALCONS_PDP10=
-REALCONS_PDP8=
-REALCONS_PDP15=
 endif
 
 #
@@ -1880,7 +1867,7 @@ PDP11 = ${PDP11D}/pdp11_fp.c ${PDP11D}/pdp11_cpu.c ${PDP11D}/pdp11_dz.c \
 	${PDP11D}/pdp11_dh.c ${PDP11D}/pdp11_ng.c ${PDP11D}/pdp11_daz.c \
 	${PDP11D}/pdp11_tv.c ${PDP11D}/pdp11_mb.c ${PDP11D}/pdp11_rr.c \
 	${DISPLAYL} ${DISPLAYNG} ${DISPLAYVT} $(NETWORK_DEPS)
-PDP11_OPT = -DVM_PDP11 -I ${PDP11D} ${NETWORK_OPT} ${DISPLAY_OPT} ${REALCONS_OPT}
+PDP11_OPT = -DVM_PDP11 -I ${PDP11D} ${NETWORK_OPT} ${DISPLAY_OPT}
 
 
 UC15D = ${SIMHD}/PDP11
@@ -2094,7 +2081,7 @@ PDP10 = ${PDP10D}/pdp10_fe.c ${PDP11D}/pdp11_dz.c ${PDP10D}/pdp10_cpu.c \
 	${PDP11D}/pdp11_dup.c ${PDP11D}/pdp11_dmc.c ${PDP11D}/pdp11_kmc.c \
 	${PDP11D}/pdp11_xu.c ${PDP11D}/pdp11_ch.c \
 	$(NETWORK_DEPS)
-PDP10_OPT = -DVM_PDP10 -DUSE_INT64 -I ${PDP10D} -I ${PDP11D} ${NETWORK_OPT} ${REALCONS_OPT}
+PDP10_OPT = -DVM_PDP10 -DUSE_INT64 -I ${PDP10D} -I ${PDP11D} ${NETWORK_OPT}
 
 
 IMLACD = ${SIMHD}/imlac
@@ -2129,7 +2116,7 @@ PDP8 = ${PDP8D}/pdp8_cpu.c ${PDP8D}/pdp8_clk.c ${PDP8D}/pdp8_df.c \
 	${PDP8D}/pdp8_ttx.c ${PDP8D}/pdp8_rl.c ${PDP8D}/pdp8_tsc.c \
 	${PDP8D}/pdp8_td.c ${PDP8D}/pdp8_ct.c ${PDP8D}/pdp8_fpp.c \
 	${PDP8D}/pdp8_dpy.c ${DISPLAYL}
-PDP8_OPT = -I ${PDP8D} ${DISPLAY_OPT} ${REALCONS_OPT}
+PDP8_OPT = -I ${PDP8D} ${DISPLAY_OPT}
 
 
 H316D = ${SIMHD}/H316
@@ -2644,6 +2631,8 @@ EXPERIMENTAL = alpha pdq3 sage
 
 experimental : ${EXPERIMENTAL}
 
+realcons : pdp8_realcons pdp15_realcons pdp10_realcons pdp11_realcons
+
 clean :
 ifeq (${WIN32},)
 	-${RM} -rf ${BIN}
@@ -2686,8 +2675,13 @@ $(BIN)pdp7$(EXE) : $(PDP18B) ${PDP18BD}/pdp18b_dpy.c ${DISPLAYL} ${DISPLAY340} $
 
 pdp8 : $(BIN)pdp8$(EXE)
 
-$(BIN)pdp8$(EXE) : ${PDP8} ${SIM} ${REALCONS} ${REALCONS_PDP8}
+$(BIN)pdp8$(EXE) : ${PDP8} ${SIM}
 	$(MAKEIT) OPTS="$(PDP8_OPT)"
+
+pdp8_realcons : $(BIN)pdp8_realcons$(EXE)
+
+$(BIN)pdp8_realcons$(EXE) : ${PDP8} ${SIM} ${REALCONS} ${REALCONS_PDP8}
+	$(MAKEIT) OPTS="$(PDP8_OPT) $(REALCONS_OPT)"
 
 
 pdp9 : $(BIN)pdp9$(EXE)
@@ -2698,13 +2692,23 @@ $(BIN)pdp9$(EXE) : ${PDP18B} ${SIM}
 
 pdp15 : $(BIN)pdp15$(EXE)
 
-$(BIN)pdp15$(EXE) : ${PDP18B} ${SIM} ${REALCONS} ${REALCONS_PDP15}
+$(BIN)pdp15$(EXE) : ${PDP18B} ${SIM}
 	$(MAKEIT) OPTS="$(PDP15_OPT)"
+
+pdp15_realcons : $(BIN)pdp15_realcons$(EXE)
+
+$(BIN)pdp15_realcons$(EXE) : ${PDP18B} ${SIM} ${REALCONS} ${REALCONS_PDP15}
+	$(MAKEIT) OPTS="$(PDP15_OPT) $(REALCONS_OPT)"
 
 
 pdp10 : $(BIN)pdp10$(EXE)
 
-$(BIN)pdp10$(EXE) : ${PDP10} ${SIM} ${REALCONS} ${REALCONS_PDP10}
+$(BIN)pdp10$(EXE) : ${PDP10} ${SIM}
+	$(MAKEIT) OPTS="$(PDP10_OPT)"
+
+pdp10_realcons : $(BIN)pdp10_realcons$(EXE)
+
+$(BIN)pdp10_realcons$(EXE) : ${PDP10} ${SIM} ${REALCONS} ${REALCONS_PDP10}
 	$(MAKEIT) OPTS="$(PDP10_OPT)"
 
 
@@ -2728,8 +2732,13 @@ $(BIN)tt2500$(EXE) : ${TT2500} ${SIM}
 
 pdp11 : $(BIN)pdp11$(EXE)
 
-$(BIN)pdp11$(EXE) : ${PDP11} ${SIM} ${BUILD_ROMS} ${REALCONS} ${REALCONS_PDP11}
+$(BIN)pdp11$(EXE) : ${PDP11} ${SIM} ${BUILD_ROMS}
 	$(MAKEIT) OPTS="$(PDP11_OPT)"
+
+pdp11_realcons : $(BIN)pdp11_realcons$(EXE)
+
+$(BIN)pdp11_realcons$(EXE) : ${PDP11} ${SIM} ${BUILD_ROMS} ${REALCONS} ${REALCONS_PDP11}
+	$(MAKEIT) OPTS="$(PDP11_OPT) $(REALCONS_OPT)"
 
 
 uc15 : $(BIN)uc15$(EXE)
