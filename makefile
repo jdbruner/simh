@@ -1713,7 +1713,7 @@ else
   export LDFLAGS := ${OS_LDFLAGS} ${NETWORK_LDFLAGS} ${VIDEO_LDFLAGS} ${VIDEO_TTF_LDFLAGS} ${LDFLAGS_O}
 endif
 
-# PIDP11 and REALCONS support (PIDP11 implies REALCONS)
+# REALCONS support
 BLINKENLIGHT_COMMON_DIR=BlinkenBone/common/
 BLINKENLIGHT_API_DIR=BlinkenBone/blinkenlight_api/
 REALCONS_DIR=REALCONS/
@@ -1752,10 +1752,6 @@ REALCONS_OPT=-DUSE_REALCONS \
 	-I$(BLINKENLIGHT_API_DIR) \
 	-I/usr/include/tirpc \
 	-ltirpc
-
-ifneq ($(USE_PIDP11),)
-REALCONS_OPT += -DUSE_PIDP11
-endif
 
 #
 # Common Libraries

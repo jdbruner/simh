@@ -20,7 +20,7 @@
  IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
  CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
-   21-Mar-2018	JH	Reset (HALT+START) load PC, merged with current SimH
+   21-Mar-2018  JH  Reset (HALT+START) load PC, merged with current SimH
    23-Apr-2016  JH  cloned from 11/70
 
 
@@ -51,16 +51,16 @@
 #include "realcons_console_pdp11_20.h"
 
 // indexes of used general timers
-#define TIMER_TEST	0
-#define TIMER_DATA_FLASH	1
+#define TIMER_TEST  0
+#define TIMER_DATA_FLASH    1
 
-#define TIME_TEST_MS		3000	// self test terminates after 3 seconds
-#define TIME_DATA_FLASH_MS	0		// do DAT l3ds flash on 11/20?
+#define TIME_TEST_MS        3000    // self test terminates after 3 seconds
+#define TIME_DATA_FLASH_MS  0       // do DAT l3ds flash on 11/20?
 // the LEDs behaves a bit difficult, so distinguish these states:
-#define RUN_STATE_HALT	0
-#define RUN_STATE_RESET	1
-#define RUN_STATE_WAIT	2
-#define RUN_STATE_RUN		3
+#define RUN_STATE_HALT  0
+#define RUN_STATE_RESET 1
+#define RUN_STATE_WAIT  2
+#define RUN_STATE_RUN       3
 
 
 /*
@@ -218,7 +218,7 @@ void realcons_console_pdp11_20__event_opcode_halt(realcons_console_logic_pdp11_2
 {
     if (_this->realcons->debug)
         printf("realcons_console_pdp11_20__event_opcode_halt\n");
-//	SIGNAL_SET(cpusignal_console_halt, 1);
+//  SIGNAL_SET(cpusignal_console_halt, 1);
     SIGNAL_SET(cpusignal_memory_address_phys_register, SIGNAL_GET(cpusignal_PC)-2);
     // what is in the unibus interface on HALT? IR == HALT Opcode?
     // SIGNAL_SET(cpusignal_busregister, ...)
@@ -230,7 +230,7 @@ void realcons_console_pdp11_20__event_opcode_reset(realcons_console_logic_pdp11_
 {
     if (_this->realcons->debug)
         printf("realcons_console_pdp11_20__event_opcode_reset\n");
-//	SIGNAL_SET(cpusignal_console_halt, 0);
+//  SIGNAL_SET(cpusignal_console_halt, 0);
     SIGNAL_SET(cpusignal_memory_address_phys_register, SIGNAL_GET(cpusignal_PC));
     // what is in the unibus interface on RESET? IR == RESET Opcode ?
     // SIGNAL_SET(cpusignal_busregister, ...)
@@ -247,7 +247,7 @@ void realcons_console_pdp11_20__event_opcode_wait(realcons_console_logic_pdp11_2
 {
     if (_this->realcons->debug)
         printf("realcons_console_pdp11_20__event_opcode_wait\n");
-//	SIGNAL_SET(cpusignal_console_halt, 0);
+//  SIGNAL_SET(cpusignal_console_halt, 0);
     SIGNAL_SET(cpusignal_memory_address_phys_register, SIGNAL_GET(cpusignal_PC));
     SIGNAL_SET(cpusignal_memory_data_register, SIGNAL_GET(cpusignal_instruction_register));
     //SIGNAL_SET(cpusignal_bus_register, SIGNAL_GET(cpusignal_instruction_register));
@@ -261,7 +261,7 @@ void realcons_console_pdp11_20__event_run_start(realcons_console_logic_pdp11_20_
     if (_this->switch_HALT->value)
         return; // do not accept RUN command
     // set property RUNMODE, so SimH can read it back
-//	SIGNAL_SET(cpusignal_console_halt, 0); // running
+//  SIGNAL_SET(cpusignal_console_halt, 0); // running
     _this->run_state = RUN_STATE_RUN;
 }
 
@@ -269,7 +269,7 @@ void realcons_console_pdp11_20__event_step_start(realcons_console_logic_pdp11_20
 {
     if (_this->realcons->debug)
         printf("realcons_console_pdp11_20__event_step_start\n");
-//	SIGNAL_SET(cpusignal_console_halt, 0); // running
+//  SIGNAL_SET(cpusignal_console_halt, 0); // running
 }
 
 void realcons_console_pdp11_20__event_operator_halt(realcons_console_logic_pdp11_20_t *_this)
@@ -278,7 +278,7 @@ void realcons_console_pdp11_20__event_operator_halt(realcons_console_logic_pdp11
         printf("realcons_console_pdp11_20__event_operator_halt\n");
     SIGNAL_SET(cpusignal_memory_address_phys_register, SIGNAL_GET(cpusignal_PC) - 2);
 
-//	SIGNAL_SET(cpusignal_console_halt, 1);
+//  SIGNAL_SET(cpusignal_console_halt, 1);
 //    SIGNAL_SET(cpusignal_memory_address_register, SIGNAL_GET(cpusignal_PC));
     // SIGNAL_SET(cpusignal_DATAPATH_shifter, SIGNAL_GET(cpusignal_PSW));
     _this->run_state = RUN_STATE_HALT;
@@ -288,7 +288,7 @@ void realcons_console_pdp11_20__event_step_halt(realcons_console_logic_pdp11_20_
 {
     if (_this->realcons->debug)
         printf("realcons_console_pdp11_20__event_step_halt\n");
-//	SIGNAL_SET(cpusignal_console_halt, 1);
+//  SIGNAL_SET(cpusignal_console_halt, 1);
     SIGNAL_SET(cpusignal_memory_address_phys_register, SIGNAL_GET(cpusignal_PC)-2);
     // SIGNAL_SET(cpusignal_DATAPATH_shifter, SIGNAL_GET(cpusignal_PSW));
     _this->run_state = RUN_STATE_HALT;
@@ -429,7 +429,7 @@ void realcons_console_pdp11_20_interface_connect(realcons_console_logic_pdp11_20
         extern console_controller_event_func_t realcons_event_operator_deposit;
         extern console_controller_event_func_t realcons_event_operator_reg_exam;
         extern console_controller_event_func_t realcons_event_operator_reg_deposit;
-		extern console_controller_event_func_t realcons_event_cpu_reset;
+        extern console_controller_event_func_t realcons_event_cpu_reset;
         // pdp11_cpu.c
         extern console_controller_event_func_t realcons_event_opcode_any; // triggered after any opcode execution
         extern console_controller_event_func_t realcons_event_opcode_halt;
@@ -450,8 +450,8 @@ void realcons_console_pdp11_20_interface_connect(realcons_console_logic_pdp11_20
         realcons_event_operator_reg_exam =
                 realcons_event_operator_reg_deposit =
                         (console_controller_event_func_t) realcons_console_pdp11_20__event_operator_reg_exam_deposit;
-		realcons_event_cpu_reset =
-			   (console_controller_event_func_t) realcons_console_pdp11_20__event_cpu_reset ;
+        realcons_event_cpu_reset =
+               (console_controller_event_func_t) realcons_console_pdp11_20__event_cpu_reset ;
         realcons_event_opcode_any =
                 (console_controller_event_func_t) realcons_console_pdp11_20__event_opcode_any;
         realcons_event_opcode_halt =
@@ -539,11 +539,20 @@ t_stat realcons_console_pdp11_20_service(realcons_console_logic_pdp11_20_t *_thi
     if (_this->keyswitch_POWER->value == 0 ) {
         SIGNAL_SET(cpusignal_console_halt, 1); // stop execution
         if (_this->keyswitch_POWER->value_previous == 1) {
-            // Power switch transition to POWER OFF: terminate SimH
-            // This is drastic, but will teach users not to twiddle with the power switch.
-            // when panel is disconnected, panel mode goes to POWERLESS and power switch goes OFF.
-            // But shutdown sequence is not initiated, because we're disconnected then.
-            sprintf(_this->realcons->simh_cmd_buffer, "quit"); // do not confirm the quit with ENTER
+	    /*
+             * Power switch transition to POWER OFF (or PiDP11 address select
+             * knob pressed): exit with a status based upon whether the HALT
+             * switch is down. For a PiDP11 simulator, a normal (zero) exit
+             * status indicates that the simulator should be restarted.
+	     * A nonzero exit status indicates that it should not.
+	     * Otherwise, terminating SimH is drastic, but it will teach
+	     * users not to twiddle with the power switch. For Blinkenlight
+	     * panels, when the panel is disconnected the panel mode goes
+	     * to POWERLESS and the power switch goes off, but the shutdown
+	     * sequence is not initiated, because we're disconnected then.
+	     */
+            sprintf(_this->realcons->simh_cmd_buffer, "exit %d\n",
+		_this->switch_HALT->value != 0);
         }
         // do nothing, if power is off. else cpusignal_console_halt may be deactivate by HALT switch
         return SCPE_OK;
@@ -667,10 +676,10 @@ t_stat realcons_console_pdp11_20_service(realcons_console_logic_pdp11_20_t *_thi
         /* function of CONT, START mixed with HALT:
          *  Switch  HALT    SimH          Function
          *  ------  ----    ----          ---------
-         *  START   ON	    reset         INITIALIZE
-         *  START   OFF	    run <r_adrsc> INITIALIZE, and start processor operation at R_ADRSC
-         *  CONT    ON	    step 1        execute next single step
-         *  CONT    OFF	    cont          continue execution at PC
+         *  START   ON      reset         INITIALIZE
+         *  START   OFF     run <r_adrsc> INITIALIZE, and start processor operation at R_ADRSC
+         *  CONT    ON      step 1        execute next single step
+         *  CONT    OFF     cont          continue execution at PC
          *
          *  The 11/20 has no BOOT switch.
          */
@@ -724,9 +733,9 @@ t_stat realcons_console_pdp11_20_service(realcons_console_logic_pdp11_20_t *_thi
     if (_this->realcons->lamp_test)
         return SCPE_OK; // no lights need to be set
 
-    //	if (_this->realcons->debug)
-    //		printf("led_ADDRESS=%o, ledDATA=%o\n", (unsigned) _this->led_ADDRESS->value,
-    //				(unsigned) _this->led_DATA->value);
+    //  if (_this->realcons->debug)
+    //      printf("led_ADDRESS=%o, ledDATA=%o\n", (unsigned) _this->led_ADDRESS->value,
+    //              (unsigned) _this->led_DATA->value);
 
     /*"ADDRESS REGISTER:
      Displays the address in the bus address register (BAR) of the processor. This is the address last used by the

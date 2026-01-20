@@ -54,7 +54,7 @@
 #include "realcons_pdp10_control.h"
 #include "bitcalc.h"
 
-#define REALCONS_PDP10_CONTROL_MAX_COUNT	1000
+#define REALCONS_PDP10_CONTROL_MAX_COUNT    1000
 
 /** global list, terminated with NULL ***/
 realcons_pdp10_control_t *realcons_pdp10_controls[REALCONS_PDP10_CONTROL_MAX_COUNT + 1];
@@ -65,34 +65,34 @@ unsigned realcons_pdp10_controls_count = 0;
  * Get both blinkenlight controls and reset the state
  */
 t_stat realcons_pdp10_control_init(realcons_pdp10_control_t *_this, realcons_t *realcons,
-		char *buttoncontrolname, char *lampcontrolname, unsigned mode)
+        char *buttoncontrolname, char *lampcontrolname, unsigned mode)
 {
-	_this->realcons = realcons;
-	_this->mode = mode;
-	_this->enabled = 1; // default
-	_this->buttons = NULL;
-	_this->lamps = NULL;
-	if (buttoncontrolname) {
-		if (!(_this->buttons = realcons_console_get_input_control(realcons, buttoncontrolname)))
-			return SCPE_NOATT;
-		_this->buttons->value = 0;
-		_this->buttons->value_previous = 0;
-		_this->pendingbuttons = 0 ;
-	}
+    _this->realcons = realcons;
+    _this->mode = mode;
+    _this->enabled = 1; // default
+    _this->buttons = NULL;
+    _this->lamps = NULL;
+    if (buttoncontrolname) {
+        if (!(_this->buttons = realcons_console_get_input_control(realcons, buttoncontrolname)))
+            return SCPE_NOATT;
+        _this->buttons->value = 0;
+        _this->buttons->value_previous = 0;
+        _this->pendingbuttons = 0 ;
+    }
 
-	if (lampcontrolname) {
-		if (!(_this->lamps = realcons_console_get_output_control(realcons, lampcontrolname)))
-			return SCPE_NOATT;
-		_this->lamps->value = 0;
-	}
+    if (lampcontrolname) {
+        if (!(_this->lamps = realcons_console_get_output_control(realcons, lampcontrolname)))
+            return SCPE_NOATT;
+        _this->lamps->value = 0;
+    }
 
-	// add control to list
-	ASSURE(realcons_pdp10_controls_count < REALCONS_PDP10_CONTROL_MAX_COUNT);
-	_this->listindex = realcons_pdp10_controls_count++; // count ...
-	realcons_pdp10_controls[_this->listindex] = _this;
-	realcons_pdp10_controls[_this->listindex + 1] = NULL; // ... terminate also with NULL
+    // add control to list
+    ASSURE(realcons_pdp10_controls_count < REALCONS_PDP10_CONTROL_MAX_COUNT);
+    _this->listindex = realcons_pdp10_controls_count++; // count ...
+    realcons_pdp10_controls[_this->listindex] = _this;
+    realcons_pdp10_controls[_this->listindex + 1] = NULL; // ... terminate also with NULL
 
-	return SCPE_OK;
+    return SCPE_OK;
 }
 
 
@@ -100,29 +100,29 @@ t_stat realcons_pdp10_control_init(realcons_pdp10_control_t *_this, realcons_t *
 uint64_t realcons_pdp10_control_get(realcons_pdp10_control_t *_this)
 {
 
-	if (_this->lamps)
-		// return lamp status: "enable" logic already evaluated
-		return _this->lamps->value;
-	if (!_this->buttons)
-		return 0; // no lamps, no buttons?
-	if (_this->enabled)
-		// no lamps, but buttons: 0 if disabled
-		return _this->buttons->value;
-	else
-		return 0;
+    if (_this->lamps)
+        // return lamp status: "enable" logic already evaluated
+        return _this->lamps->value;
+    if (!_this->buttons)
+        return 0; // no lamps, no buttons?
+    if (_this->enabled)
+        // no lamps, but buttons: 0 if disabled
+        return _this->buttons->value;
+    else
+        return 0;
 }
 
 void realcons_pdp10_control_set(realcons_pdp10_control_t *_this, uint64_t value)
 // trunc value to bit mask
 // does NOT produce a change-event in service()!
 {
-	if (_this->buttons) {
-		_this->buttons->value = _this->buttons->value_previous =
-				(value &  BitmaskFromLen64[_this->buttons->value_bitlen]) ;
-	}
-	if (_this->lamps)
-		_this->lamps->value =
-				(value &  BitmaskFromLen64[_this->lamps->value_bitlen]) ;
+    if (_this->buttons) {
+        _this->buttons->value = _this->buttons->value_previous =
+                (value &  BitmaskFromLen64[_this->buttons->value_bitlen]) ;
+    }
+    if (_this->lamps)
+        _this->lamps->value =
+                (value &  BitmaskFromLen64[_this->lamps->value_bitlen]) ;
 }
 
 /*
@@ -133,64 +133,64 @@ void realcons_pdp10_control_set(realcons_pdp10_control_t *_this, uint64_t value)
  */
 unsigned realcons_pdp10_control_service(realcons_pdp10_control_t *_this)
 {
-	uint64_t now_pressed, now_changed, now_released;
+    uint64_t now_pressed, now_changed, now_released;
 
-	// scan buttons for change
-	if (!_this->buttons)
-		return 0; // no buttons
+    // scan buttons for change
+    if (!_this->buttons)
+        return 0; // no buttons
 
-	// enable logic:
-	// if a button gets enabled=0 while it is pressed,
-	// the feedback lamp remains ON until it is released
+    // enable logic:
+    // if a button gets enabled=0 while it is pressed,
+    // the feedback lamp remains ON until it is released
 
-	now_changed = (_this->buttons->value ^ _this->buttons->value_previous);
-	now_pressed = now_changed & _this->buttons->value; // changed and now pressed
-	now_released = now_changed & ~_this->buttons->value;
+    now_changed = (_this->buttons->value ^ _this->buttons->value_previous);
+    now_pressed = now_changed & _this->buttons->value; // changed and now pressed
+    now_released = now_changed & ~_this->buttons->value;
 
-	// no initialisation call!
-	if (now_changed && _this->lamps) {
-		switch (_this->mode) {
-		case REALCONS_PDP10_CONTROL_MODE_NONE:
-			break;
-		case REALCONS_PDP10_CONTROL_MODE_KEY:
-			// direct: set the lamps as long button pressed
-			if (_this->enabled && now_pressed) {
-				_this->lamps->value = _this->buttons->value;
-				_this->pendingbuttons |= now_pressed;
-			}
-			_this->lamps->value &= ~now_released; // lamps OFF even if not enabled
-			if (_this->realcons->debug)
-				printf(
-						"'Direct' button changed: %s, value= 0x%" PRIx64 ", now pressed = 0x%" PRIx64 ". pending = 0x%" PRIx64 "\n",
-						_this->buttons->name, _this->lamps->value, now_pressed,
-						_this->pendingbuttons);
+    // no initialisation call!
+    if (now_changed && _this->lamps) {
+        switch (_this->mode) {
+        case REALCONS_PDP10_CONTROL_MODE_NONE:
+            break;
+        case REALCONS_PDP10_CONTROL_MODE_KEY:
+            // direct: set the lamps as long button pressed
+            if (_this->enabled && now_pressed) {
+                _this->lamps->value = _this->buttons->value;
+                _this->pendingbuttons |= now_pressed;
+            }
+            _this->lamps->value &= ~now_released; // lamps OFF even if not enabled
+            if (_this->realcons->debug)
+                printf(
+                        "'Direct' button changed: %s, value= 0x%" PRIx64 ", now pressed = 0x%" PRIx64 ". pending = 0x%" PRIx64 "\n",
+                        _this->buttons->name, _this->lamps->value, now_pressed,
+                        _this->pendingbuttons);
 
-			break;
-		case REALCONS_PDP10_CONTROL_MODE_SWITCH: // switched:
-			// react only on PRESS event. toggle the lamps, when a button gets pressed
-			// if not enabled, lamp stays ON
-			if (_this->enabled && now_pressed) {
-				_this->lamps->value ^= now_pressed;
-				_this->pendingbuttons |= now_pressed;
-			}
-			if (_this->realcons->debug)
-				printf(
-						"'Toggle' button changed: %s, value= 0x%" PRIx64  ", now pressed = 0x%" PRIx64 ". pending = 0x%" PRIx64 "\n",
-						_this->buttons->name, _this->lamps->value, now_pressed,
-						_this->pendingbuttons);
+            break;
+        case REALCONS_PDP10_CONTROL_MODE_SWITCH: // switched:
+            // react only on PRESS event. toggle the lamps, when a button gets pressed
+            // if not enabled, lamp stays ON
+            if (_this->enabled && now_pressed) {
+                _this->lamps->value ^= now_pressed;
+                _this->pendingbuttons |= now_pressed;
+            }
+            if (_this->realcons->debug)
+                printf(
+                        "'Toggle' button changed: %s, value= 0x%" PRIx64  ", now pressed = 0x%" PRIx64 ". pending = 0x%" PRIx64 "\n",
+                        _this->buttons->name, _this->lamps->value, now_pressed,
+                        _this->pendingbuttons);
 
-			break;
-		}
-	}
-	return 1;
+            break;
+        }
+    }
+    return 1;
 }
 
 // button changed
 unsigned realcons_pdp10_button_changed(realcons_pdp10_control_t *_this)
 {
-	if (!_this->buttons)
-		return 0;
-	else
-		return (_this->buttons->value != _this->buttons->value_previous);
+    if (!_this->buttons)
+        return 0;
+    else
+        return (_this->buttons->value != _this->buttons->value_previous);
 }
 

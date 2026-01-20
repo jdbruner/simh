@@ -11,9 +11,8 @@ Please consult the individual README and LICENSE files in the tree.
 The BlinkenBone and PiDP11 sources have been reorganized into a submodule,
 with changes to simh itself in the simh source tree
 (including changes to ``scp.c`` and the addition of ``REALCONS``).
-To build with REALCONS support, build simh with ``USE_REALCONS=1``;
-to build for PIDP11 (on a Raspberry Pi only),
-build with ``USE_PIDP11=1``.
+There are additional build targets for ``pdp11_realcons``,
+``pdp8_realcons``, ``pdp10_realcons``, and ``pdp15_realcons``.
 The Java panel server and PiDP11 binaries can be built on Linux by
 running ``make.sh`` in the ``BlinkenBone`` subdirectory.
 Unlike Joerge Hoppe's original distribution,
@@ -127,21 +126,14 @@ ExecStart=/opt/pidp11/server11 -r
 
 Relative to [simh](https://github.com/simh/simh),
 the ```makefile``` and sources have been
-updated with two additional environment variable options:
-- ```USE_REALCONS=1```: Include the ```REALCONS``` client support from Joerg Hoppe
-- ```USE_PIDP11=1```: Include ```REALCONS``` and an additional change for PiDP-11/70 support (see below).
+updated with additional build targets for
+REALCONS-enabled variants of the PDP8, PDP10, PDP11, and PDP15.
 
-If these are not set, the ```makefile``` will build all of the simulators
+The ```makefile``` will also build all of the simulators
 the same as the upstream.
 On a Raspberry Pi, ```make.sh``` command in the ```BlinkenBone``` directory
-will build the PiDP11 variant of the pdp11 and rename it to ```client11```.
+will build ``pdp11_realcons`` and rename it to ```client11```.
 
-The only difference for the PiDP-11/70 (```USE_PIDP11=1```)
-is the handling of a power switch event.
-The address select knob on the PiDP-11 generates this event,
-which indicates that the simulator should be restarted.
-For other ```REALCONS``` builds, this event causes simh to break
-to the command line with the ```quit``` command pre-populated.
 ##### server11
 
 The PiDP-11 panel server has been rewritten to use the ```lipgpiod```

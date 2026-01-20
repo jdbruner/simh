@@ -30,17 +30,17 @@
 
 #include "realcons.h"
 
-#define REALCONS_PDP10_CONTROL_MODE_NONE	0
+#define REALCONS_PDP10_CONTROL_MODE_NONE    0
 
 // just a lamp without button
-#define REALCONS_PDP10_CONTROL_MODE_OUTPUT	1
+#define REALCONS_PDP10_CONTROL_MODE_OUTPUT  1
 // a input control without lamps
-#define REALCONS_PDP10_CONTROL_MODE_INPUT	2
+#define REALCONS_PDP10_CONTROL_MODE_INPUT   2
 
 // lamp only ON if button pressed: "momentary action"
-#define REALCONS_PDP10_CONTROL_MODE_KEY	3
+#define REALCONS_PDP10_CONTROL_MODE_KEY 3
 // lamp toggles if button pressed:
-#define REALCONS_PDP10_CONTROL_MODE_SWITCH	4
+#define REALCONS_PDP10_CONTROL_MODE_SWITCH  4
 
 /*
  * Describes a button combined with a lamp
@@ -48,25 +48,25 @@
  */
 typedef struct
 {
-	blinkenlight_control_t *buttons;
-	blinkenlight_control_t *lamps;
+    blinkenlight_control_t *buttons;
+    blinkenlight_control_t *lamps;
 
-	unsigned mode; // one of REALCONS_CONSOLE_LAMPBUTTON_MODE_*
+    unsigned mode; // one of REALCONS_CONSOLE_LAMPBUTTON_MODE_*
 
-	unsigned enabled; // reacts button on keypress?
-	// (console_lock, data_lock)
-	struct realcons_struct *realcons; // link to parent
+    unsigned enabled; // reacts button on keypress?
+    // (console_lock, data_lock)
+    struct realcons_struct *realcons; // link to parent
 
-	// TODO: further ideas
-	uint64_t pendingbuttons; // latched buttons, which not have been processed
+    // TODO: further ideas
+    uint64_t pendingbuttons; // latched buttons, which not have been processed
 
-	unsigned listindex; // index in list of controls
+    unsigned listindex; // index in list of controls
 
 } realcons_pdp10_control_t;
 
 t_stat realcons_pdp10_control_init(realcons_pdp10_control_t *_this,
-		struct realcons_struct *realcons, char *buttoncontrolname, char *lampcontrolname,
-		unsigned mode);
+        struct realcons_struct *realcons, char *buttoncontrolname, char *lampcontrolname,
+        unsigned mode);
 
 #ifndef REALCONS_PDP10_CONTROL_C_
 extern unsigned realcons_pdp10_controls_count;
