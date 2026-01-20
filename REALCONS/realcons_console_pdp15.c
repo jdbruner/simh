@@ -60,10 +60,10 @@
 #define SIGNAL_GET(signal) REALCONS_SIGNAL_GET(_this,signal)
 
 // indexes of used general timers
-#define TIMER_TEST	0
-#define TIMER_DATA_FLASH	1
+#define TIMER_TEST  0
+#define TIMER_DATA_FLASH    1
 
-#define TIME_TEST_MS		3000	// self test terminates after 3 seconds
+#define TIME_TEST_MS        3000    // self test terminates after 3 seconds
 
 #define DATA18BITMASK 0777777
 
@@ -102,7 +102,7 @@ void realcons_console_pdp15_destructor(realcons_console_logic_pdp15_t *_this)
 
 void realcons_console_pdp15__event_connect(realcons_console_logic_pdp15_t *_this)
 {
-//	realcons_console_clear_output_controls(_this->realcons) ; // every LED to state 0
+//  realcons_console_clear_output_controls(_this->realcons) ; // every LED to state 0
     // set panel mode to normal
     // On Java panels the powerbutton flips to the ON position.
     realcons_power_mode(_this->realcons, 1);
@@ -110,7 +110,7 @@ void realcons_console_pdp15__event_connect(realcons_console_logic_pdp15_t *_this
 
 void realcons_console_pdp15__event_disconnect(realcons_console_logic_pdp15_t *_this)
 {
-//	realcons_console_clear_output_controls(_this->realcons); // every LED to state 0
+//  realcons_console_clear_output_controls(_this->realcons); // every LED to state 0
     // set panel mode to "powerless". all lights go off,
     // On Java panels the powerbutton flips to the OFF position
     realcons_power_mode(_this->realcons, 0);
@@ -314,7 +314,7 @@ void realcons_console_pdp15_interface_connect(realcons_console_logic_pdp15_t *_t
         extern console_controller_event_func_t realcons_event_operator_deposit;
         extern console_controller_event_func_t realcons_event_operator_reg_exam;
         extern console_controller_event_func_t realcons_event_operator_reg_deposit;
-		extern console_controller_event_func_t realcons_event_cpu_reset;
+        extern console_controller_event_func_t realcons_event_cpu_reset;
 
         realcons_event_run_start =
                 (console_controller_event_func_t) realcons_console_pdp15__event_run_start;
@@ -326,15 +326,15 @@ void realcons_console_pdp15_interface_connect(realcons_console_logic_pdp15_t *_t
         realcons_event_operator_exam =
                 realcons_event_operator_deposit =
                         (console_controller_event_func_t) realcons_console_pdp15__event_operator_exam_deposit;
-		realcons_event_cpu_reset = NULL ;
+        realcons_event_cpu_reset = NULL ;
         realcons_event_operator_reg_exam = realcons_event_operator_reg_deposit = NULL;
     }
 #ifdef TODO
     {
         // set event ptrs in pdp8_cpu.c
         extern console_controller_event_func_t realcons_event_opcode_halt;
-        //			_this->realcons->events_cpu_generic.opcode_any =
-        //				(console_controller_event_func_t)realcons_console_pdp15__event_opcode_any;
+        //          _this->realcons->events_cpu_generic.opcode_any =
+        //              (console_controller_event_func_t)realcons_console_pdp15__event_opcode_any;
         realcons_event_opcode_halt = (console_controller_event_func_t)realcons_console_pdp15__event_opcode_halt;
     }
 #endif
@@ -545,13 +545,21 @@ t_stat realcons_console_pdp15_service(realcons_console_logic_pdp15_t *_this)
     // fetch switch register
     //SIGNAL_SET(cpusignal_switch_register, _this->switch_switch_register->value);
     if (_this->switch_power->value == 0 && _this->switch_power->value_previous == 1) {
-        // Power switch transition to POWER OFF: terminate SimH
-        // This is drastic, but will teach users not to twiddle with the power switch.
-        // when panel is disconnected, panel mode goes to POWERLESS and power switch goes OFF.
-        // But shutdown sequence is not initiated, because we're disconnected then.
-
         SIGNAL_SET(cpusignal_console_halt, 1); // stop execution
-        realcons_simh_add_cmd(_this->realcons, "quit"); // do not confirm the quit with ENTER
+        /*
+         * Power switch transition to POWER OFF (or PiDP11 address select
+         * knob pressed): exit with a status based upon whether the HALT
+         * switch is down. For a PiDP11 simulator, a normal (zero) exit
+         * status indicates that the simulator should be restarted.
+         * A nonzero exit status indicates that it should not.
+         * Otherwise, terminating SimH is drastic, but it will teach
+         * users not to twiddle with the power switch. For Blinkenlight
+         * panels, when the panel is disconnected the panel mode goes
+         * to POWERLESS and the power switch goes off, but the shutdown
+         * sequence is not initiated, because we're disconnected then.
+         */
+        sprintf(_this->realcons->simh_cmd_buffer, "exit %d\n",
+            _this->switch_HALT->value != 0);
         return SCPE_OK;
     }
 

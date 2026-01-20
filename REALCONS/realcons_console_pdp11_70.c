@@ -20,7 +20,7 @@
  IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
  CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
- 21-Mar-2018    JH	    merged with current SimH
+ 21-Mar-2018    JH      merged with current SimH
  10-Mar-2018    JH      lot of fixes to match the tests at LCM "Miss Piggy"
  03-Feb-2018    JH      fixed SUPER-USER-KERNEL encoding
  04-Jul-2017    MH      fixed 16-BIT mode and console register access
@@ -61,14 +61,14 @@
 #include "realcons_console_pdp11_70.h"
 
 // indexes of used general timers
-#define TIMER_TEST	0
+#define TIMER_TEST  0
 
-#define TIME_TEST_MS		3000	// self test terminates after 3 seconds
+#define TIME_TEST_MS        3000    // self test terminates after 3 seconds
 // the RUN LED behaves a bit difficult, so distinguish these states:
-#define RUN_STATE_HALT	0
-#define RUN_STATE_RESET	1
-#define RUN_STATE_WAIT	2
-#define RUN_STATE_RUN	3
+#define RUN_STATE_HALT  0
+#define RUN_STATE_RESET 1
+#define RUN_STATE_WAIT  2
+#define RUN_STATE_RUN   3
 
 // encoding of addr select knob positions
 #define ADDR_SELECT_VALUE_USER_I    0
@@ -539,7 +539,7 @@ void realcons_console_pdp11_70_interface_connect(realcons_console_logic_pdp11_70
         _this->cpusignal_memory_address_virt_register = &realcons_memory_address_virt_register;
         _this->cpusignal_register_name = &realcons_register_name; // pseudo: name of last accessed register
         _this->cpusignal_memory_data_register = &realcons_memory_data_register;
-		_this->cpusignal_memory_write_access = &realcons_memory_write_access ;
+        _this->cpusignal_memory_write_access = &realcons_memory_write_access ;
         _this->cpusignal_memory_status = &realcons_memory_status;
         _this->cpusignal_console_halt = &realcons_console_halt;
 
@@ -592,7 +592,7 @@ void realcons_console_pdp11_70_interface_connect(realcons_console_logic_pdp11_70
                         (console_controller_event_func_t) realcons_console_pdp11_70__event_operator_exam_deposit;
         realcons_event_operator_reg_exam =
         realcons_event_cpu_reset =
-			(console_controller_event_func_t) realcons_console_pdp11_70__event_cpu_reset;
+            (console_controller_event_func_t) realcons_console_pdp11_70__event_cpu_reset;
 
         realcons_event_operator_reg_exam =
                 realcons_event_operator_reg_deposit =
@@ -764,19 +764,20 @@ t_stat realcons_console_pdp11_70_service(realcons_console_logic_pdp11_70_t *_thi
     if (_this->keyswitch_power->value == 0) {
         if (_this->keyswitch_power->value_previous == 1) {
             SIGNAL_SET(cpusignal_console_halt, 1); // stop execution
-#ifdef USE_PIDP11
-            // Power switch (actually, address select knob) pressed:
-            // Exit with a status based upon whether the HALT switch is down. A normal (zero)
-            // exit status indicates that the simulator should be restarted. A nonzero exit status
-            // indicates that it should not.
-            sprintf(_this->realcons->simh_cmd_buffer, "exit %d\n", _this->switch_HALT->value != 0);
-#else
-            // Power switch transition to POWER OFF: terminate SimH
-            // This is drastic, but will teach users not to twiddle with the power switch.
-            // when panel is disconnected, panel mode goes to POWERLESS and power switch goes OFF.
-            // But shutdown sequence is not initiated, because we're disconnected then.
-            sprintf(_this->realcons->simh_cmd_buffer, "quit"); // do not confirm the quit with ENTER
-#endif
+            /*
+             * Power switch transition to POWER OFF (or PiDP11 address select
+             * knob pressed): exit with a status based upon whether the HALT
+             * switch is down. For a PiDP11 simulator, a normal (zero) exit
+             * status indicates that the simulator should be restarted.
+             * A nonzero exit status indicates that it should not.
+             * Otherwise, terminating SimH is drastic, but it will teach
+             * users not to twiddle with the power switch. For Blinkenlight
+             * panels, when the panel is disconnected the panel mode goes
+             * to POWERLESS and the power switch goes off, but the shutdown
+             * sequence is not initiated, because we're disconnected then.
+             */
+            sprintf(_this->realcons->simh_cmd_buffer, "exit %d\n",
+                _this->switch_HALT->value != 0);
         }
         // do nothing, if power is off. else cpusignal_console_halt may be deactivate by HALT switch
         return SCPE_OK;
@@ -943,10 +944,10 @@ t_stat realcons_console_pdp11_70_service(realcons_console_logic_pdp11_70_t *_thi
         /* function of CONT, START mixed with HALT:
          *  Switch  HALT    SimH          Function
          *  ------  ----    ----          ---------
-         *  START   ON	    reset         INITIALIZE
-         *  START   OFF	    run <cons phy> INITIALIZE, and start processor operation at cons phy addr
-         *  CONT    ON	    step 1        execute next single step
-         *  CONT    OFF	    cont          continue execution at PC
+         *  START   ON      reset         INITIALIZE
+         *  START   OFF     run <cons phy> INITIALIZE, and start processor operation at cons phy addr
+         *  CONT    ON      step 1        execute next single step
+         *  CONT    OFF     cont          continue execution at PC
          *
          *  The 11/70 has no BOOT switch.
          */
@@ -1012,7 +1013,7 @@ t_stat realcons_console_pdp11_70_service(realcons_console_logic_pdp11_70_t *_thi
 
 
     {
-        /*	ADDRESS SELECT: "VIRTUAL - Six positions: KERNEL, SUPER and USER I space and KERNEL, SUPER and
+        /*  ADDRESS SELECT: "VIRTUAL - Six positions: KERNEL, SUPER and USER I space and KERNEL, SUPER and
          * USER D space. The address displayed is a 16-bit virtual address; bits
          * 21 -16 are always off. During Console DEP or EXAM operations, bits
          * 15:00 of the Switch Register are considered to be a Virtual Address.
@@ -1049,9 +1050,9 @@ t_stat realcons_console_pdp11_70_service(realcons_console_logic_pdp11_70_t *_thi
             _this->leds_ADDRESS->value = SIGNAL_GET(cpusignal_memory_address_virt_register) & 0xffff;
         }
     }
-    //	if (_this->realcons->debug)
-    //		printf("led_ADDRESS=%o, ledDATA=%o\n", (unsigned) _this->led_ADDRESS->value,
-    //				(unsigned) _this->led_DATA->value);
+    //  if (_this->realcons->debug)
+    //      printf("led_ADDRESS=%o, ledDATA=%o\n", (unsigned) _this->led_ADDRESS->value,
+    //              (unsigned) _this->led_DATA->value);
 
     // DATA - CPU intern mux output ... a lot of different things.
     // see realcons_console_pdp11_70_set_machine_state()

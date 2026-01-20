@@ -72,7 +72,7 @@ typedef struct
                                    //   int32 api_req = 0;                                      /* API requests */
     int32   *cpusignal_pi_enable; // Program interrupt ENABLE/DISABLE by opcodes IOF/ION
 
-    int32 	*cpusignal_multiplier_quotient ;
+    int32   *cpusignal_multiplier_quotient ;
     int32   *cpusignal_operand_address_register; // effektive address, console helper
 
     // see  ...\07.3_blinkenlight_server_pdp15
@@ -135,7 +135,7 @@ typedef struct
     // intern state registers of console panel
     unsigned run_state; // cpu can be: reset, halt, running.
 
-    unsigned 	console_operand_address; // like address buffer on PDP-11's
+    unsigned    console_operand_address; // like address buffer on PDP-11's
 
     t_uint64 last_repeat_rate_event_msec; // future timestamp for next trigger of REPATEed actions
 
