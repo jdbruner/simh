@@ -118,12 +118,10 @@ void realcons_destructor(realcons_t *_this)
  */
 void realcons_printf(realcons_t *_this, FILE *stream, const char *fmt, ...)
 {
-    char buff[2048]; // fixed size: very bad idea .....
     va_list args;
     va_start(args, fmt);
 
-    vsnprintf(buff, sizeof(buff), fmt, args);
-    fputs(buff, stream);
+    vfprintf(stream, fmt, args);
 }
 
 /*

@@ -2707,7 +2707,7 @@ $(BIN)pdp10$(EXE) : ${PDP10} ${SIM}
 pdp10_realcons : $(BIN)pdp10_realcons$(EXE)
 
 $(BIN)pdp10_realcons$(EXE) : ${PDP10} ${SIM} ${REALCONS} ${REALCONS_PDP10}
-	$(MAKEIT) OPTS="$(PDP10_OPT)"
+	$(MAKEIT) OPTS="$(PDP10_OPT) $(REALCONS_OPT)"
 
 
 imlac : $(BIN)imlac$(EXE)
