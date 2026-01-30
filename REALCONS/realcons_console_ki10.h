@@ -28,6 +28,8 @@
 #ifndef REALCONS_CONSOLE_KI10_H_
 #define REALCONS_CONSOLE_KI10_H_
 
+typedef t_uint64 uint64;        // for consistency with kx10_cpu
+
 #include "realcons_ki10_control.h"
 
 // Logic of the panel ... which is different electronic than the CPU.
@@ -59,9 +61,13 @@ typedef struct
 
          int32      *cpusignal_pi_on ; // PI system enable
          int32_t    *cpusignal_pi_enb ; // PI levels enabled. simh pdp10 cpu reg "PIENB"
-             int32_t    *cpusignal_pi_act ; // PI levels active. simh  pdp10 cpu reg "PIACT"
-             int32_t    *cpusignal_pi_prq ; // PI levels with program requests . simh  pdp10 cpu reg "PIPRQ"
-             int32_t    *cpusignal_pi_ioq ; // PI levels with IO requests. simh  pdp10 cpu reg "PIIOQ"
+         int32_t    *cpusignal_pi_act ; // PI levels active. simh  pdp10 cpu reg "PIACT"
+         int32_t    *cpusignal_pi_prq ; // PI levels with program requests . simh  pdp10 cpu reg "PIPRQ"
+         int32_t    *cpusignal_pi_ioq ; // PI levels with IO requests. simh  pdp10 cpu reg "PIIOQ"
+        // KI10 console registers in SimH
+    	uint64_t  *cpusignal_console_data_switches ;
+	uint64_t  *cpusignal_console_memory_indicator ;
+        uint64_t  *cpusignal_console_address_addrcond ;
 #else
         /* Signals for SimH's KX10 cpus */
         t_addr *cpusignal_PC;           /* program counter */
@@ -74,14 +80,11 @@ typedef struct
         uint8 *cpusignal_pi_prq;        /* PI levels with program requests (PIR) */
         uint16 *cpusignal_pi_ioq;       /* PI levels with IOB requests (IOB_PI) */
         uint32 *cpusignal_console_readin_device; /* READ IN device */
-	uint8 *cpusignal_xct;		/* XCT in progress */
-#endif
+        uint8 *cpusignal_xct;           /* XCT in progress */
 
-    // KI10 console registers in SimH
-    uint64_t  *cpusignal_console_data_switches ;
-    uint64_t  *cpusignal_console_memory_indicator ;
-#ifdef CAACS
-    uint64_t  *cpusignal_console_address_addrcond ;
+        /* KI10 console registers in SimH */
+        uint64 *cpusignal_console_data_switches;
+        uint64 *cpusignal_console_memory_indicator;
 #endif
 
 

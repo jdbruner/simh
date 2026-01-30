@@ -296,10 +296,9 @@ void realcons_console_ki10_interface_connect(realcons_console_logic_ki10_t *_thi
         extern uint8  PIH;        /* Currently held interrupts */
         extern uint8  PIE;        /* Currently enabled interrupts */
         extern int    pi_enable;  /* Interrupt system enabled */
-        extern uint64_t SW;       /* Switch register */
+        extern uint64 SW;         /* Switch register */
         extern t_addr AS;         /* Address switches */
-        extern uint64_t MB;       /* Memory Bus register */
-        extern uint64_t MI;       /* Memory indicator register */
+        extern uint64 MI;         /* Memory indicator register */
         extern uint32 rdrin_dev;  /* READ IN device */
         extern t_addr PC_Global;  /* Program counter register */
         extern uint64_t realcons_instruction; /* current instruction */

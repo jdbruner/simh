@@ -4889,7 +4889,7 @@ in_loop:
 
 #if REALCONS_KX10
     // reflects any indirection or indexing that was done, so not identical to the instruction word
-    realcons_instruction = (IR << 27) | (AC << 23) | (IND << 22) | (IX << 18) | AB;
+    realcons_instruction = ((uint64_t)IR << 27) | (AC << 23) | (IND << 22) | (IX << 18) | AB;
 #endif
 
     /* If there is a interrupt handle it. */
