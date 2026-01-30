@@ -159,7 +159,7 @@ void realcons_init(realcons_t *_this)
 #ifdef VM_PDP11
     // is set in pdp11_cpumod.c, depending on CPU model
 #endif
-#ifdef VM_PDP10
+#if defined(VM_PDP10) | defined(KA) | defined(KI) | defined(KL) | defined(KS)
     // there's a separate panel for every PDP11 model,
     // but only one is hardwired to the PDP10.
     // Check the service configuration file "/etc/blinkenlightd.conf" on panel host
@@ -257,14 +257,14 @@ t_stat realcons_connect(realcons_t *_this, char *consolelogic_name, char *server
             _this->console_controller = console_logic;
         }
 #endif
-#ifdef VM_PDP10
+#if defined(VM_PDP10) | defined(KA) | defined(KI) | defined(KL) | defined(KS)
         // no selection, always "PDP10-KI10"
         {
-            realcons_console_logic_pdp10_t *console_logic;
+            realcons_console_logic_ki10_t *console_logic;
             // 1. create
-            console_logic = realcons_console_pdp10_constructor(_this);
+            console_logic = realcons_console_ki10_constructor(_this);
             // 2. connect
-            realcons_console_pdp10_interface_connect(console_logic,
+            realcons_console_ki10_interface_connect(console_logic,
                 &(_this->console_controller_interface), consolelogic_name);
             _this->console_controller = console_logic;
         }
@@ -701,10 +701,10 @@ void realcons_simh_event_deposit(realcons_t *_this, struct REG *reg)
 {
     if (!_this->connected)
         return;
-#ifdef VM_PDP10
+#if defined(VM_PDP10) | defined(KA) | defined(KI) | defined(KL) | defined(KS)
     // route to PDP10 panel
-    realcons_console_pdp10_event_simh_deposit(
-        (realcons_console_logic_pdp10_t *)(_this->console_controller), reg);
+    realcons_console_ki10_event_simh_deposit(
+        (realcons_console_logic_ki10_t *)(_this->console_controller), reg);
 #endif
 }
 

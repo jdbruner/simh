@@ -25,22 +25,22 @@
 */
 
 
-#ifndef REALCONS_PDP10_CONTROL_H_
-#define REALCONS_PDP10_CONTROL_H_
+#ifndef REALCONS_KI10_CONTROL_H_
+#define REALCONS_KI10_CONTROL_H_
 
 #include "realcons.h"
 
-#define REALCONS_PDP10_CONTROL_MODE_NONE    0
+#define REALCONS_KI10_CONTROL_MODE_NONE    0
 
 // just a lamp without button
-#define REALCONS_PDP10_CONTROL_MODE_OUTPUT  1
+#define REALCONS_KI10_CONTROL_MODE_OUTPUT  1
 // a input control without lamps
-#define REALCONS_PDP10_CONTROL_MODE_INPUT   2
+#define REALCONS_KI10_CONTROL_MODE_INPUT   2
 
 // lamp only ON if button pressed: "momentary action"
-#define REALCONS_PDP10_CONTROL_MODE_KEY 3
+#define REALCONS_KI10_CONTROL_MODE_KEY 3
 // lamp toggles if button pressed:
-#define REALCONS_PDP10_CONTROL_MODE_SWITCH  4
+#define REALCONS_KI10_CONTROL_MODE_SWITCH  4
 
 /*
  * Describes a button combined with a lamp
@@ -62,24 +62,24 @@ typedef struct
 
     unsigned listindex; // index in list of controls
 
-} realcons_pdp10_control_t;
+} realcons_ki10_control_t;
 
-t_stat realcons_pdp10_control_init(realcons_pdp10_control_t *_this,
+t_stat realcons_ki10_control_init(realcons_ki10_control_t *_this,
         struct realcons_struct *realcons, char *buttoncontrolname, char *lampcontrolname,
         unsigned mode);
 
-#ifndef REALCONS_PDP10_CONTROL_C_
-extern unsigned realcons_pdp10_controls_count;
-extern realcons_pdp10_control_t *realcons_pdp10_controls[];
+#ifndef REALCONS_KI10_CONTROL_C_
+extern unsigned realcons_ki10_controls_count;
+extern realcons_ki10_control_t *realcons_ki10_controls[];
 #endif
 
-uint64_t realcons_pdp10_control_get(realcons_pdp10_control_t *_this);
-void realcons_pdp10_control_set(realcons_pdp10_control_t *_this, uint64_t value);
+uint64_t realcons_ki10_control_get(realcons_ki10_control_t *_this);
+void realcons_ki10_control_set(realcons_ki10_control_t *_this, uint64_t value);
 
-// void realcons_console_lampbutton_connect_signal(realcons_pdp10_control_t *_this);
+// void realcons_console_lampbutton_connect_signal(realcons_ki10_control_t *_this);
 
-unsigned realcons_pdp10_control_service(realcons_pdp10_control_t *_this);
+unsigned realcons_ki10_control_service(realcons_ki10_control_t *_this);
 
-unsigned realcons_pdp10_button_changed(realcons_pdp10_control_t *_this);
+unsigned realcons_ki10_button_changed(realcons_ki10_control_t *_this);
 
-#endif /* REALCONS_CONSOLE_PDP10_CONTROL_H_ */
+#endif /* REALCONS_KI10_CONTROL_H_ */

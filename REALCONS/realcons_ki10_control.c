@@ -47,24 +47,24 @@
  */
 
 
-#define REALCONS_PDP10_CONTROL_C_
+#define REALCONS_KI10_CONTROL_C_
 
 #include <inttypes.h>
 #include "realcons.h"
-#include "realcons_pdp10_control.h"
+#include "realcons_ki10_control.h"
 #include "bitcalc.h"
 
-#define REALCONS_PDP10_CONTROL_MAX_COUNT    1000
+#define REALCONS_KI10_CONTROL_MAX_COUNT    1000
 
 /** global list, terminated with NULL ***/
-realcons_pdp10_control_t *realcons_pdp10_controls[REALCONS_PDP10_CONTROL_MAX_COUNT + 1];
+realcons_ki10_control_t *realcons_ki10_controls[REALCONS_KI10_CONTROL_MAX_COUNT + 1];
 
-unsigned realcons_pdp10_controls_count = 0;
+unsigned realcons_ki10_controls_count = 0;
 
 /*
  * Get both blinkenlight controls and reset the state
  */
-t_stat realcons_pdp10_control_init(realcons_pdp10_control_t *_this, realcons_t *realcons,
+t_stat realcons_ki10_control_init(realcons_ki10_control_t *_this, realcons_t *realcons,
         char *buttoncontrolname, char *lampcontrolname, unsigned mode)
 {
     _this->realcons = realcons;
@@ -87,17 +87,17 @@ t_stat realcons_pdp10_control_init(realcons_pdp10_control_t *_this, realcons_t *
     }
 
     // add control to list
-    ASSURE(realcons_pdp10_controls_count < REALCONS_PDP10_CONTROL_MAX_COUNT);
-    _this->listindex = realcons_pdp10_controls_count++; // count ...
-    realcons_pdp10_controls[_this->listindex] = _this;
-    realcons_pdp10_controls[_this->listindex + 1] = NULL; // ... terminate also with NULL
+    ASSURE(realcons_ki10_controls_count < REALCONS_KI10_CONTROL_MAX_COUNT);
+    _this->listindex = realcons_ki10_controls_count++; // count ...
+    realcons_ki10_controls[_this->listindex] = _this;
+    realcons_ki10_controls[_this->listindex + 1] = NULL; // ... terminate also with NULL
 
     return SCPE_OK;
 }
 
 
 // get state of buttons with account of enable logic
-uint64_t realcons_pdp10_control_get(realcons_pdp10_control_t *_this)
+uint64_t realcons_ki10_control_get(realcons_ki10_control_t *_this)
 {
 
     if (_this->lamps)
@@ -112,7 +112,7 @@ uint64_t realcons_pdp10_control_get(realcons_pdp10_control_t *_this)
         return 0;
 }
 
-void realcons_pdp10_control_set(realcons_pdp10_control_t *_this, uint64_t value)
+void realcons_ki10_control_set(realcons_ki10_control_t *_this, uint64_t value)
 // trunc value to bit mask
 // does NOT produce a change-event in service()!
 {
@@ -131,7 +131,7 @@ void realcons_pdp10_control_set(realcons_pdp10_control_t *_this, uint64_t value)
  * BEFORE: query input controls (buttons)
  * AFTER: set output controls (lamps)
  */
-unsigned realcons_pdp10_control_service(realcons_pdp10_control_t *_this)
+unsigned realcons_ki10_control_service(realcons_ki10_control_t *_this)
 {
     uint64_t now_pressed, now_changed, now_released;
 
@@ -150,9 +150,9 @@ unsigned realcons_pdp10_control_service(realcons_pdp10_control_t *_this)
     // no initialisation call!
     if (now_changed && _this->lamps) {
         switch (_this->mode) {
-        case REALCONS_PDP10_CONTROL_MODE_NONE:
+        case REALCONS_KI10_CONTROL_MODE_NONE:
             break;
-        case REALCONS_PDP10_CONTROL_MODE_KEY:
+        case REALCONS_KI10_CONTROL_MODE_KEY:
             // direct: set the lamps as long button pressed
             if (_this->enabled && now_pressed) {
                 _this->lamps->value = _this->buttons->value;
@@ -166,7 +166,7 @@ unsigned realcons_pdp10_control_service(realcons_pdp10_control_t *_this)
                         _this->pendingbuttons);
 
             break;
-        case REALCONS_PDP10_CONTROL_MODE_SWITCH: // switched:
+        case REALCONS_KI10_CONTROL_MODE_SWITCH: // switched:
             // react only on PRESS event. toggle the lamps, when a button gets pressed
             // if not enabled, lamp stays ON
             if (_this->enabled && now_pressed) {
@@ -186,7 +186,7 @@ unsigned realcons_pdp10_control_service(realcons_pdp10_control_t *_this)
 }
 
 // button changed
-unsigned realcons_pdp10_button_changed(realcons_pdp10_control_t *_this)
+unsigned realcons_ki10_button_changed(realcons_ki10_control_t *_this)
 {
     if (!_this->buttons)
         return 0;

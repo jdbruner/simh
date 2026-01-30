@@ -127,8 +127,8 @@ typedef struct realcons_console_controller_interface_struct
 #include "realcons_console_pdp11_40.h"
 #include "realcons_console_pdp11_70.h"
 #endif
-#ifdef VM_PDP10
-#include "realcons_pdp10.h"
+#if defined(VM_PDP10) | defined(KA) | defined(KI) | defined(KL) | defined(KS)
+#include "realcons_console_ki10.h"
 #endif
 #ifdef VM_PDP8
 #include "realcons_console_pdp8i.h"

@@ -464,19 +464,14 @@ t_stat realcons_console_pdp8i_service(realcons_console_logic_pdp8i_t *_this)
     if (_this->keyswitch_power->value == 0 && _this->keyswitch_power->value_previous == 1) {
         SIGNAL_SET(cpusignal_console_halt, 1); // stop execution
         /*
-         * Power switch transition to POWER OFF (or PiDP11 address select
-         * knob pressed): exit with a status based upon whether the HALT
-         * switch is down. For a PiDP11 simulator, a normal (zero) exit
-         * status indicates that the simulator should be restarted.
-         * A nonzero exit status indicates that it should not.
-         * Otherwise, terminating SimH is drastic, but it will teach
-         * users not to twiddle with the power switch. For Blinkenlight
-         * panels, when the panel is disconnected the panel mode goes
-         * to POWERLESS and the power switch goes off, but the shutdown
+         * Power switch transition to POWER OFF: terminate SimH
+         * This is drastic, but it will teach users not to twiddle
+         * with the power switch. For Blinkenlight panels, when the
+         * panel is disconnected the panel mode goes to POWERLESS
+         * and the power switch goes off, but the shutdown
          * sequence is not initiated, because we're disconnected then.
          */
-        sprintf(_this->realcons->simh_cmd_buffer, "exit %d\n",
-            _this->switch_HALT->value != 0);
+        sprintf(_this->realcons->simh_cmd_buffer, "quit"); // do not confirm the quit
         return SCPE_OK;
     }
 

@@ -237,6 +237,13 @@ endif
 ifneq (,$(findstring pdp8,${MAKECMDGOALS}))
   VIDEO_USEFUL = true
 endif
+# REALCONS builds could use video and network support
+ifneq (,$(findstring realcons,${MAKECMDGOALS}))
+  BUILD_MULTIPLE = s
+  BUILD_MULTIPLE_VERB = are
+  VIDEO_USEFUL = true
+  NETWORK_USEFUL = true
+endif
 # building the pdp11, any pdp10, any 3b2, or any vax simulator could use networking support
 ifneq (,$(findstring pdp11,${MAKECMDGOALS})$(findstring pdp10,${MAKECMDGOALS})$(findstring vax,${MAKECMDGOALS})$(findstring frontpaneltest,${MAKECMDGOALS})$(findstring infoserver,${MAKECMDGOALS})$(findstring 3b2,${MAKECMDGOALS})$(findstring all,${MAKECMDGOALS}))
   NETWORK_USEFUL = true
@@ -1733,10 +1740,10 @@ REALCONS_PDP11= \
 	    $(REALCONS_DIR)realcons_console_pdp11_70.c
 
 REALCONS_PDP10= \
-        $(REALCONS_DIR)realcons_pdp10_control.c \
-        $(REALCONS_DIR)realcons_pdp10.c \
-        $(REALCONS_DIR)realcons_pdp10_operpanel.c \
-        $(REALCONS_DIR)realcons_pdp10_maintpanel.c
+        $(REALCONS_DIR)realcons_ki10_control.c \
+        $(REALCONS_DIR)realcons_console_ki10.c \
+        $(REALCONS_DIR)realcons_ki10_operpanel.c \
+        $(REALCONS_DIR)realcons_ki10_maintpanel.c
 
 REALCONS_PDP8= \
         $(REALCONS_DIR)realcons_console_pdp8i.c
@@ -2627,9 +2634,16 @@ all : ${ALL}
 
 EXPERIMENTAL = alpha pdq3 sage
 
+REALCONS_TARGETS = pdp8_realcons pdp15_realcons pdp10_realcons pdp11_realcons
+
+ifeq (,$(or ${PANDA_LIGHTS},${PIDP10}))
+	REALCONS_TARGETS += pdp10-ka_realcons pdp10-ki_realcons \
+	    pdp10-kl_realcons pdp10-ks_realcons
+endif
+
 experimental : ${EXPERIMENTAL}
 
-realcons : pdp8_realcons pdp15_realcons pdp10_realcons pdp11_realcons
+realcons : ${REALCONS_TARGETS}
 
 clean :
 ifeq (${WIN32},)
@@ -3182,6 +3196,28 @@ pdp10-ks : $(BIN)pdp10-ks$(EXE)
 $(BIN)pdp10-ks$(EXE) : ${KS10} ${SIM}
 	$(MAKEIT) OPTS="$(KS10_OPT)"
 
+ifeq (,$(or ${PANDA_LIGHTS},${PIDP10}))
+# REALCONS is incompatible with PANDA_LIGHTS and PIDP10
+pdp10-ka_realcons : $(BIN)pdp10-ka_realcons$(EXE)
+
+$(BIN)pdp10-ka_realcons$(EXE) : ${KA10} ${SIM} ${REALCONS} ${REALCONS_PDP10}
+	$(MAKEIT) OPTS="$(KA10_OPT) $(REALCONS_OPT)"
+
+pdp10-ki_realcons : $(BIN)pdp10-ki_realcons$(EXE)
+
+$(BIN)pdp10-ki_realcons$(EXE) : ${KI10} ${SIM} ${REALCONS} ${REALCONS_PDP10}
+	$(MAKEIT) OPTS="$(KI10_OPT) $(REALCONS_OPT)"
+
+pdp10-kl_realcons : $(BIN)pdp10-kl_realcons$(EXE)
+
+$(BIN)pdp10-kl_realcons$(EXE) : ${KL10} ${SIM} ${REALCONS} ${REALCONS_PDP10}
+	$(MAKEIT) OPTS="$(KL10_OPT) $(REALCONS_OPT)"
+
+pdp10-ks_realcons : $(BIN)pdp10-ks_realcons$(EXE)
+
+$(BIN)pdp10-ks_realcons$(EXE) : ${KS10} ${SIM} ${REALCONS} ${REALCONS_PDP10}
+	$(MAKEIT) OPTS="$(KS10_OPT) $(REALCONS_OPT)"
+endif
 
 
 # Front Panel API Demo/Test program

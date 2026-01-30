@@ -11,8 +11,17 @@ Please consult the individual README and LICENSE files in the tree.
 The BlinkenBone and PiDP11 sources have been reorganized into a submodule,
 with changes to simh itself in the simh source tree
 (including changes to ``scp.c`` and the addition of ``REALCONS``).
-There are additional build targets for ``pdp11_realcons``,
-``pdp8_realcons``, ``pdp10_realcons``, and ``pdp15_realcons``.
+There are additional build targets for
+``pdp11_realcons`` (for the PiDP11, aka ``client11``),
+``pdp8_realcons`` (for the PiDP8, untested),
+``pdp10-ka_realcons`` (PDP-10 model KA10),
+``pdp10-ki_realcons`` (PDP-10 model KI10),
+``pdp10-kl_realcons`` (PDP-10 model KL10),
+``pdp10-ks_realcons`` (PDP-10 model KS10),
+and ``pdp15_realcons`` (PDP-15, incomplete).
+There are Java panel servers for the PDP-11/20, PDP-11/40, PDP-11/70,
+PDP-8i, PDP-15, and the KI10 panel for the PDP-10.
+
 The Java panel server and PiDP11 binaries can be built on Linux by
 running ``make.sh`` in the ``BlinkenBone`` subdirectory.
 Unlike Joerge Hoppe's original distribution,

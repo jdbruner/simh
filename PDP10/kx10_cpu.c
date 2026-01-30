@@ -94,6 +94,13 @@
 
 */
 
+#ifdef USE_REALCONS
+#define REALCONS_KX10 1
+#include "realcons.h"   /* must be included before kx10_defs.h */
+#else
+#define REALCONS_KX10 0
+#endif
+
 #include "kx10_defs.h"
 #include "sim_timer.h"
 
@@ -136,9 +143,11 @@ uint8   examine_sw;                           /* Examine memory */
 uint8   deposit_sw;                           /* Deposit memory */
 uint8   xct_sw;                               /* Execute SW */
 uint8   stop_sw;                              /* Stop simulation */
-uint32  rdrin_dev;                            /* Read in device */
+#endif
+#if PIDP10 | REALCONS_KX10
 uint8   IX;                                   /* Index register */
 uint8   IND;                                  /* Indirect flag */
+uint32  rdrin_dev;                            /* Read in device */
 #endif
 t_addr  AS;                                   /* Address switches */
 int     BYF5;                                 /* Flag for second half of LDB/DPB instruction */
@@ -380,6 +389,31 @@ int32 hst_p = 0;                         /* history pointer */
 int32 hst_lnt = 0;                       /* history length */
 InstHistory *hst = NULL;                 /* instruction history */
 
+#ifdef USE_REALCONS
+// extended cpu state for panel logic
+// 1. state for all cpu's in scp.c
+extern int realcons_console_halt; // 1: CPU halted by realcons console
+
+// 2. state extension for KX10, initialize in cpu_reset()
+uint64_t realcons_instruction; // current instruction
+uint8 realcons_xct; // processing an XCT from the front panel
+
+// Pointers to event handlers
+// Events are called in SimH-code as pointers to functions in panel logic
+extern console_controller_event_func_t realcons_event_operator_halt; // scp.c, needed here
+console_controller_event_func_t realcons_event_opcode_any; // triggered after any opcode execution
+console_controller_event_func_t realcons_event_opcode_halt; // triggered after execution of HALT
+
+console_controller_event_func_t realcons_event_program_write_memory_indicator;
+console_controller_event_func_t realcons_event_program_write_address_addrcond;
+
+#define REALCONS_CHECK_STOP(reason) \
+    if (reason == SCPE_STOP) \
+        REALCONS_EVENT(cpu_realcons, realcons_event_operator_halt); \
+    else if (reason == STOP_HALT) \
+        REALCONS_EVENT(cpu_realcons, realcons_event_opcode_halt);
+#endif
+
 /* Forward and external declarations */
 
 #if KL | KS
@@ -609,7 +643,7 @@ REG cpu_reg[] = {
     { BRDATA (ETLB, e_tlb, 8, 32, 512), REG_HRO},
     { BRDATA (UTLB, u_tlb, 8, 32, 546), REG_HRO},
 #endif
-#if PIDP10
+#if PIDP10 | REALCONS_KX10
     { ORDATAD (READIN, rdrin_dev, 9, "Readin device")},
 #endif
     { NULL }
@@ -778,7 +812,7 @@ DEVICE cpu_dev = {
 #else
 #define QSLAVE          0
 #endif
-#if PIDP10
+#if PIDP10 | REALCONS_KX10
                         /* Update MI register if address matches */
 #define UPDATE_MI(a)    if (!MI_flag && a == AS) { \
                              MI = MB; \
@@ -1132,6 +1166,9 @@ t_stat dev_pi(uint32 dev, uint64 *data) {
 #ifdef PANDA_LIGHTS
         /* Set lights */
         ka10_lights_main (*data);
+#endif
+#if REALCONS_KX10
+        REALCONS_EVENT(cpu_realcons,realcons_event_program_write_memory_indicator);
 #endif
 #endif
         break;
@@ -4506,9 +4543,15 @@ if ((reason = build_dev_tab ()) != SCPE_OK)            /* build, chk dib_tab */
        one_p_arm = 0;
 #endif
    watch_stop = 0;
-
    while ( reason == 0) {                                /* loop until ABORT */
-      AIO_CHECK_EVENT;                                   /* queue async events */
+#if REALCONS_KX10
+    realcons_service(cpu_realcons,1); // high speed call
+    if (cpu_realcons->connected && realcons_console_halt) {
+        REALCONS_EVENT(cpu_realcons, realcons_event_operator_halt);
+        return SCPE_STOP;
+    }
+#endif
+    AIO_CHECK_EVENT;                                   /* queue async events */
       if (sim_interval <= 0) {                           /* check clock queue */
          if ((reason = sim_process_event()) != SCPE_OK) {/* error?  stop sim */
 #if ITS
@@ -4516,6 +4559,9 @@ if ((reason = build_dev_tab ()) != SCPE_OK)            /* build, chk dib_tab */
                  load_quantum();
 #endif
              RUN = 0;
+#if REALCONS_KX10
+            REALCONS_CHECK_STOP(reason);
+#endif
              return reason;
          }
     }
@@ -4560,6 +4606,17 @@ if ((reason = build_dev_tab ()) != SCPE_OK)            /* build, chk dib_tab */
     }
     if (sing_inst_sw) {  /* Handle Front panel single instruction */
         instr_count = 1;
+    }
+#endif
+#if REALCONS_KX10
+    if (realcons_xct) {    /* Handle console XCT switch */
+        modify = 0;
+        xct_flag = 0;
+        uuo_cycle = 1;
+        f_pc_inh = 1;
+        f_load_pc = 0;
+        MB = SW;
+        goto no_fetch;
     }
 #endif
 
@@ -4680,13 +4737,18 @@ no_fetch:
     }
 #endif
 
+    /* this is the instruction before indirection, but the panel
+       displays the result after indirection has been resolved
+    realcons_instruction = MB;
+    */
+
     /* Handle indirection repeat until no longer indirect */
     do {
         ind = TST_IND(MB) != 0;
         AR = MB;
         AB = MB & RMASK;
         ix = GET_XR(MB);
-#if PIDP10
+#if PIDP10 | REALCONS_KX10
         IX = ix;   /* Save these in variable so display can show them */
         IND = ind;
 #endif
@@ -4809,6 +4871,9 @@ in_loop:
          AIO_CHECK_EVENT;                                   /* queue async events */
          if (--sim_interval <= 0) {
               if ((reason = sim_process_event()) != SCPE_OK) {
+#if REALCONS_KX10
+                  REALCONS_CHECK_STOP(reason);
+#endif
                   return reason;
               }
          }
@@ -4821,6 +4886,11 @@ in_loop:
             pi_rq = check_irq_level();
          }
     } while (ind & !pi_rq);
+
+#if REALCONS_KX10
+    // reflects any indirection or indexing that was done, so not identical to the instruction word
+    realcons_instruction = (IR << 27) | (AC << 23) | (IND << 22) | (IX << 18) | AB;
+#endif
 
     /* If there is a interrupt handle it. */
     if (pi_rq) {
@@ -4949,7 +5019,6 @@ st_pi:
             hst[hst_p].ac = get_reg(AC);
     }
 
-
     /* Set up to execute instruction */
     f_inst_fetch = 1;
     f_load_pc = 1;
@@ -4959,6 +5028,11 @@ st_pi:
 #if PIDP10
     if (xct_sw) {    /* Handle Front panel xct switch */
         xct_sw = 0;
+    } else
+#endif
+#if REALCONS_KX10
+    if (realcons_xct) {    /* XCT is a one-shot operation */
+        realcons_xct = 0;
     } else
 #endif
     f_pc_inh = 0;
@@ -12307,6 +12381,11 @@ last:
         restore_pi_hold();
         pi_restore = 0;
     }
+
+#if REALCONS_KX10
+    REALCONS_EVENT(cpu_realcons, realcons_event_opcode_any);
+#endif
+
     sim_interval--;
     if (f_load_pc && !pi_cycle && instr_count != 0 && --instr_count == 0) {
 #if ITS
@@ -12324,6 +12403,9 @@ if (QITS)
     load_quantum();
 #endif
 
+#if REALCONS_KX10
+REALCONS_CHECK_STOP(reason);
+#endif
 return reason;
 }
 
@@ -13641,6 +13723,10 @@ t_stat cpu_reset (DEVICE *dptr)
          if (r != SCPE_OK) {
              return r;
          }
+#endif
+#if REALCONS_KX10
+    realcons_instruction = 0;
+    realcons_xct = 0;
 #endif
     }
     sim_debug(DEBUG_CONO, dptr, "CPU reset\n");
