@@ -4067,7 +4067,7 @@ int page_lookup_waits(t_addr addr, int flag, t_addr *loc, int wr, int cur_contex
 }
 
 int Mem_read_waits(int flag, int cur_context, int fetch, int mod) {
-    t_addr addr;
+    t_addr addr = AB;
 
     if (AB < 020 && ((xct_flag == 0 || fetch || cur_context || (FLAGS & USER) != 0))) {
         MB = get_reg(AB);

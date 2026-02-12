@@ -2,9 +2,9 @@
 <VisualStudioProject
 	ProjectType="Visual C++"
 	Version="9.00"
-	Name="PDP11_realcons"
-	ProjectGUID="{84573B08-9B8B-4A27-BE16-A481793FA2FD}"
-	RootNamespace="PDP11_realcons"
+	Name="PDP10-KA_realcons"
+	ProjectGUID="{1455655D-9878-4437-B44E-4383E18293A1}"
+	RootNamespace="PDP10-KA_realcons"
 	Keyword="Win32Proj"
 	TargetFrameworkVersion="131072"
 	>
@@ -26,7 +26,7 @@
 			<Tool
 				Name="VCPreBuildEventTool"
 				Description="Check for required build dependencies &amp; git commit id..."
-				CommandLine="Pre-Build-Event.cmd &quot;$(TargetDir)$(TargetName).exe&quot; LIBPCRE ROM BUILD LIBSDL"
+				CommandLine="Pre-Build-Event.cmd &quot;$(TargetDir)$(TargetName).exe&quot; LIBPCRE BUILD LIBSDL"
 			/>
 			<Tool
 				Name="VCCustomBuildTool"
@@ -40,8 +40,8 @@
 			<Tool
 				Name="VCCLCompilerTool"
 				Optimization="0"
-				AdditionalIncludeDirectories="../REALCONS;../BlinkenBone/common;../BlinkenBone/blinkenlight_api;../BlinkenBone/blinkenlight_api/rpcgen_win32;../BlinkenBone/3rdparty/oncrpc_win32/win32/include;../PDP11/;./;../;../slirp;../slirp_glue;../slirp_glue/qemu;../slirp_glue/qemu/win32/include;../../windows-build/include;;../../windows-build/include/SDL2"
-				PreprocessorDefinitions="WIN32;USE_REALCONS;BLINKENLIGHT_CLIENT;USE_SHARED;USE_DISPLAY;VM_PDP11;SIM_BUILD_TOOL=simh-Visual-Studio-Project;_CRT_NONSTDC_NO_WARNINGS;_CRT_SECURE_NO_WARNINGS;_WINSOCK_DEPRECATED_NO_WARNINGS;PTW32_STATIC_LIB;SIM_ASYNCH_IO;USE_READER_THREAD;SIM_NEED_GIT_COMMIT_ID;HAVE_PCRE_H;PCRE_STATIC;HAVE_SLIRP_NETWORK;USE_SIMH_SLIRP_DEBUG;USE_SIM_VIDEO;HAVE_LIBSDL;HAVE_LIBPNG;HAVE_LIBEDIT"
+				AdditionalIncludeDirectories="../REALCONS;../BlinkenBone/common;../BlinkenBone/blinkenlight_api;../BlinkenBone/blinkenlight_api/rpcgen_win32;../BlinkenBone/3rdparty/oncrpc_win32/win32/include;../PDP10/;../PDP11/;../VAX/;./;../;../slirp;../slirp_glue;../slirp_glue/qemu;../slirp_glue/qemu/win32/include;../../windows-build/include;;../../windows-build/include/SDL2"
+				PreprocessorDefinitions="WIN32;USE_REALCONS;BLINKENLIGHT_CLIENT;USE_INT64;USE_SIM_CARD;KA=1;USE_DISPLAY;USE_SIM_VIDEO;HAVE_LIBSDL;HAVE_LIBPNG;HAVE_ZLIB;USE_SHARED;HAVE_SLIRP_NETWORK;USE_SIMH_SLIRP_DEBUG;SIM_BUILD_TOOL=simh-Visual-Studio-Project;_CRT_NONSTDC_NO_WARNINGS;_CRT_SECURE_NO_WARNINGS;_WINSOCK_DEPRECATED_NO_WARNINGS;SIM_NEED_GIT_COMMIT_ID;HAVE_PCRE_H;PCRE_STATIC;PTW32_STATIC_LIB;USE_READER_THREAD;SIM_ASYNCH_IO;HAVE_LIBEDIT"
 				KeepComments="false"
 				BasicRuntimeChecks="0"
 				RuntimeLibrary="1"
@@ -64,7 +64,8 @@
 			/>
 			<Tool
 				Name="VCLinkerTool"
-				AdditionalDependencies="..\BlinkenBone\3rdparty\oncrpc_win32\win32\bin\Debug\oncrpc.lib libcmtd.lib wsock32.lib winmm.lib Iphlpapi.lib pcrestaticd.lib SDL2-StaticD.lib SDL2_ttf-StaticD.lib freetype2412MT_D.lib libpng16.lib zlib.lib dxguid.lib Imm32.lib Version.lib Setupapi.lib"
+				AdditionalOptions="/fixed:no"
+				AdditionalDependencies="..\BlinkenBone\3rdparty\oncrpc_win32\win32\bin\Debug\oncrpc.lib libcmtd.lib wsock32.lib winmm.lib Iphlpapi.lib pcrestaticd.lib SDL2-StaticD.lib SDL2_ttf-StaticD.lib freetype2412MT_D.lib libpng16.lib zlib.lib dxguid.lib Imm32.lib Version.lib Setupapi.lib wineditlined.lib"
 				LinkIncremental="1"
 				AdditionalLibraryDirectories="../../windows-build/lib/Debug/;../BlinkenBone/3rdparty/oncrpc_win32/win32/bin/Debug/"
 				GenerateDebugInformation="true"
@@ -97,7 +98,7 @@
 			<Tool
 				Name="VCPostBuildEventTool"
 				Description="Running Available Tests..."
-				CommandLine="Post-Build-Event.cmd PDP11 &quot;$(TargetDir)$(TargetName).exe&quot;"
+				CommandLine="Post-Build-Event.cmd PDP10-KA &quot;$(TargetDir)$(TargetName).exe&quot;"
 			/>
 		</Configuration>
 		<Configuration
@@ -110,7 +111,7 @@
 			<Tool
 				Name="VCPreBuildEventTool"
 				Description="Check for required build dependencies &amp; git commit id..."
-				CommandLine="Pre-Build-Event.cmd &quot;$(TargetDir)$(TargetName).exe&quot; LIBPCRE ROM BUILD LIBSDL"
+				CommandLine="Pre-Build-Event.cmd &quot;$(TargetDir)$(TargetName).exe&quot; LIBPCRE BUILD LIBSDL"
 			/>
 			<Tool
 				Name="VCCustomBuildTool"
@@ -127,8 +128,8 @@
 				InlineFunctionExpansion="1"
 				OmitFramePointers="true"
 				WholeProgramOptimization="true"
-				AdditionalIncludeDirectories="../REALCONS;../BlinkenBone/common;../BlinkenBone/blinkenlight_api;../BlinkenBone/blinkenlight_api/rpcgen_win32;../BlinkenBone/3rdparty/oncrpc_win32/win32/include;../PDP11/;./;../;../slirp;../slirp_glue;../slirp_glue/qemu;../slirp_glue/qemu/win32/include;../../windows-build/include;;../../windows-build/include/SDL2"
-				PreprocessorDefinitions="WIN32;USE_REALCONS;BLINKENLIGHT_CLIENT;USE_SHARED;USE_DISPLAY;VM_PDP11;SIM_BUILD_TOOL=simh-Visual-Studio-Project;_CRT_NONSTDC_NO_WARNINGS;_CRT_SECURE_NO_WARNINGS;_WINSOCK_DEPRECATED_NO_WARNINGS;PTW32_STATIC_LIB;SIM_ASYNCH_IO;USE_READER_THREAD;SIM_NEED_GIT_COMMIT_ID;HAVE_PCRE_H;PCRE_STATIC;HAVE_SLIRP_NETWORK;USE_SIMH_SLIRP_DEBUG;USE_SIM_VIDEO;HAVE_LIBSDL;HAVE_LIBPNG;HAVE_LIBEDIT"
+				AdditionalIncludeDirectories="../REALCONS;../BlinkenBone/common;../BlinkenBone/blinkenlight_api;../BlinkenBone/blinkenlight_api/rpcgen_win32;../BlinkenBone/3rdparty/oncrpc_win32/win32/include;../PDP10/;../PDP11/;../VAX/;./;../;../slirp;../slirp_glue;../slirp_glue/qemu;../slirp_glue/qemu/win32/include;../../windows-build/include;;../../windows-build/include/SDL2"
+				PreprocessorDefinitions="WIN32;USE_REALCONS;BLINKENLIGHT_CLIENT;USE_INT64;USE_SIM_CARD;KA=1;USE_DISPLAY;USE_SIM_VIDEO;HAVE_LIBSDL;HAVE_LIBPNG;HAVE_ZLIB;USE_SHARED;HAVE_SLIRP_NETWORK;USE_SIMH_SLIRP_DEBUG;SIM_BUILD_TOOL=simh-Visual-Studio-Project;_CRT_NONSTDC_NO_WARNINGS;_CRT_SECURE_NO_WARNINGS;_WINSOCK_DEPRECATED_NO_WARNINGS;SIM_NEED_GIT_COMMIT_ID;HAVE_PCRE_H;PCRE_STATIC;PTW32_STATIC_LIB;USE_READER_THREAD;SIM_ASYNCH_IO;HAVE_LIBEDIT"
 				StringPooling="true"
 				RuntimeLibrary="0"
 				EnableFunctionLevelLinking="true"
@@ -150,7 +151,8 @@
 			/>
 			<Tool
 				Name="VCLinkerTool"
-				AdditionalDependencies="..\BlinkenBone\3rdparty\oncrpc_win32\win32\bin\Release\oncrpc.lib libcmt.lib wsock32.lib winmm.lib Iphlpapi.lib pcrestatic.lib SDL2-Static.lib SDL2_ttf-Static.lib freetype2412MT.lib libpng16.lib zlib.lib dxguid.lib Imm32.lib Version.lib Setupapi.lib"
+				AdditionalOptions="/fixed:no"
+				AdditionalDependencies="..\BlinkenBone\3rdparty\oncrpc_win32\win32\bin\Release\oncrpc.lib libcmt.lib wsock32.lib winmm.lib Iphlpapi.lib pcrestatic.lib SDL2-Static.lib SDL2_ttf-Static.lib freetype2412MT.lib libpng16.lib zlib.lib dxguid.lib Imm32.lib Version.lib Setupapi.lib wineditline.lib"
 				LinkIncremental="1"
 				AdditionalLibraryDirectories="../../windows-build/lib/Release/;../BlinkenBone/3rdparty/oncrpc_win32/win32/bin/Release/"
 				GenerateDebugInformation="false"
@@ -186,7 +188,7 @@
 			<Tool
 				Name="VCPostBuildEventTool"
 				Description="Running Available Tests..."
-				CommandLine="Post-Build-Event.cmd PDP11 &quot;$(TargetDir)$(TargetName).exe&quot;"
+				CommandLine="Post-Build-Event.cmd PDP10-KA &quot;$(TargetDir)$(TargetName).exe&quot;"
 			/>
 		</Configuration>
 	</Configurations>
@@ -198,215 +200,175 @@
 			Filter="cpp;c;cxx;def;odl;idl;hpj;bat;asm"
 			>
 			<File
-				RelativePath="..\display\display.c"
+				RelativePath="..\PDP10\ka10_ai.c"
 				>
 			</File>
 			<File
-				RelativePath="..\display\ng.c"
+				RelativePath="..\PDP10\ka10_auxcpu.c"
 				>
 			</File>
 			<File
-				RelativePath="..\PDP11\pdp11_ch.c"
+				RelativePath="..\PDP10\ka10_ch10.c"
 				>
 			</File>
 			<File
-				RelativePath="..\PDP11\pdp11_cis.c"
+				RelativePath="..\PDP10\ka10_dd.c"
 				>
 			</File>
 			<File
-				RelativePath="..\PDP11\pdp11_cpu.c"
+				RelativePath="..\PDP10\ka10_dkb.c"
 				>
 			</File>
 			<File
-				RelativePath="..\PDP11\pdp11_cpumod.c"
+				RelativePath="..\PDP10\ka10_dpk.c"
 				>
 			</File>
 			<File
-				RelativePath="..\PDP11\pdp11_cr.c"
+				RelativePath="..\PDP10\ka10_iii.c"
 				>
 			</File>
 			<File
-				RelativePath="..\PDP11\pdp11_daz.c"
+				RelativePath="..\PDP10\ka10_imx.c"
 				>
 			</File>
 			<File
-				RelativePath="..\PDP11\pdp11_dc.c"
+				RelativePath="..\PDP10\ka10_mty.c"
 				>
 			</File>
 			<File
-				RelativePath="..\PDP11\pdp11_dh.c"
+				RelativePath="..\PDP10\ka10_pclk.c"
 				>
 			</File>
 			<File
-				RelativePath="..\PDP11\pdp11_dl.c"
+				RelativePath="..\PDP10\ka10_pd.c"
 				>
 			</File>
 			<File
-				RelativePath="..\PDP11\pdp11_dmc.c"
+				RelativePath="..\PDP10\ka10_pmp.c"
 				>
 			</File>
 			<File
-				RelativePath="..\PDP11\pdp11_dup.c"
+				RelativePath="..\PDP10\ka10_stk.c"
 				>
 			</File>
 			<File
-				RelativePath="..\PDP11\pdp11_dz.c"
+				RelativePath="..\PDP10\ka10_ten11.c"
 				>
 			</File>
 			<File
-				RelativePath="..\PDP11\pdp11_fp.c"
+				RelativePath="..\PDP10\ka10_tk10.c"
 				>
 			</File>
 			<File
-				RelativePath="..\PDP11\pdp11_hk.c"
+				RelativePath="..\PDP10\ka10_tv.c"
 				>
 			</File>
 			<File
-				RelativePath="..\PDP11\pdp11_io.c"
+				RelativePath="..\PDP10\kx10_cp.c"
 				>
 			</File>
 			<File
-				RelativePath="..\PDP11\pdp11_io_lib.c"
+				RelativePath="..\PDP10\kx10_cpu.c"
 				>
 			</File>
 			<File
-				RelativePath="..\PDP11\pdp11_ke.c"
+				RelativePath="..\PDP10\kx10_cr.c"
 				>
 			</File>
 			<File
-				RelativePath="..\PDP11\pdp11_kg.c"
+				RelativePath="..\PDP10\kx10_cty.c"
 				>
 			</File>
 			<File
-				RelativePath="..\PDP11\pdp11_kmc.c"
+				RelativePath="..\PDP10\kx10_dc.c"
 				>
 			</File>
 			<File
-				RelativePath="..\PDP11\pdp11_lp.c"
+				RelativePath="..\PDP10\kx10_ddc.c"
 				>
 			</File>
 			<File
-				RelativePath="..\PDP11\pdp11_mb.c"
+				RelativePath="..\PDP10\kx10_df.c"
 				>
 			</File>
 			<File
-				RelativePath="..\PDP11\pdp11_ng.c"
+				RelativePath="..\PDP10\kx10_disk.c"
 				>
 			</File>
 			<File
-				RelativePath="..\PDP11\pdp11_pclk.c"
+				RelativePath="..\PDP10\kx10_dk.c"
 				>
 			</File>
 			<File
-				RelativePath="..\PDP11\pdp11_pt.c"
+				RelativePath="..\PDP10\kx10_dp.c"
 				>
 			</File>
 			<File
-				RelativePath="..\PDP11\pdp11_rc.c"
+				RelativePath="..\PDP10\kx10_dpy.c"
 				>
 			</File>
 			<File
-				RelativePath="..\PDP11\pdp11_rf.c"
+				RelativePath="..\PDP10\kx10_dt.c"
 				>
 			</File>
 			<File
-				RelativePath="..\PDP11\pdp11_rh.c"
+				RelativePath="..\PDP10\kx10_imp.c"
 				>
 			</File>
 			<File
-				RelativePath="..\PDP11\pdp11_rk.c"
+				RelativePath="..\PDP10\kx10_lp.c"
 				>
 			</File>
 			<File
-				RelativePath="..\PDP11\pdp11_rl.c"
+				RelativePath="..\PDP10\kx10_mt.c"
 				>
 			</File>
 			<File
-				RelativePath="..\PDP11\pdp11_rom.c"
+				RelativePath="..\PDP10\kx10_pt.c"
 				>
 			</File>
 			<File
-				RelativePath="..\PDP11\pdp11_rp.c"
+				RelativePath="..\PDP10\kx10_rc.c"
 				>
 			</File>
 			<File
-				RelativePath="..\PDP11\pdp11_rpb.c"
+				RelativePath="..\PDP10\kx10_rh.c"
 				>
 			</File>
 			<File
-				RelativePath="..\PDP11\pdp11_rq.c"
+				RelativePath="..\PDP10\kx10_rp.c"
 				>
 			</File>
 			<File
-				RelativePath="..\PDP11\pdp11_rr.c"
+				RelativePath="..\PDP10\kx10_rs.c"
 				>
 			</File>
 			<File
-				RelativePath="..\PDP11\pdp11_rs.c"
+				RelativePath="..\PDP10\kx10_sys.c"
 				>
 			</File>
 			<File
-				RelativePath="..\PDP11\pdp11_rx.c"
+				RelativePath="..\PDP10\kx10_tu.c"
 				>
 			</File>
 			<File
-				RelativePath="..\PDP11\pdp11_ry.c"
+				RelativePath="..\PDP10\pdp6_dcs.c"
 				>
 			</File>
 			<File
-				RelativePath="..\PDP11\pdp11_stddev.c"
+				RelativePath="..\PDP10\pdp6_dct.c"
 				>
 			</File>
 			<File
-				RelativePath="..\PDP11\pdp11_sys.c"
+				RelativePath="..\PDP10\pdp6_dsk.c"
 				>
 			</File>
 			<File
-				RelativePath="..\PDP11\pdp11_ta.c"
+				RelativePath="..\PDP10\pdp6_dtc.c"
 				>
 			</File>
 			<File
-				RelativePath="..\PDP11\pdp11_tc.c"
-				>
-			</File>
-			<File
-				RelativePath="..\PDP11\pdp11_td.c"
-				>
-			</File>
-			<File
-				RelativePath="..\PDP11\pdp11_tm.c"
-				>
-			</File>
-			<File
-				RelativePath="..\PDP11\pdp11_tq.c"
-				>
-			</File>
-			<File
-				RelativePath="..\PDP11\pdp11_ts.c"
-				>
-			</File>
-			<File
-				RelativePath="..\PDP11\pdp11_tu.c"
-				>
-			</File>
-			<File
-				RelativePath="..\PDP11\pdp11_tv.c"
-				>
-			</File>
-			<File
-				RelativePath="..\PDP11\pdp11_vh.c"
-				>
-			</File>
-			<File
-				RelativePath="..\PDP11\pdp11_vt.c"
-				>
-			</File>
-			<File
-				RelativePath="..\PDP11\pdp11_xq.c"
-				>
-			</File>
-			<File
-				RelativePath="..\PDP11\pdp11_xu.c"
+				RelativePath="..\PDP10\pdp6_mtc.c"
 				>
 			</File>
 			<File
@@ -434,6 +396,10 @@
 			</File>
 			<File
 				RelativePath="..\scp.c"
+				>
+			</File>
+			<File
+				RelativePath="..\sim_card.c"
 				>
 			</File>
 			<File
@@ -476,14 +442,30 @@
 				RelativePath="..\sim_video.c"
 				>
 			</File>
-			<File
-				RelativePath="..\display\sim_ws.c"
+			<Filter
+				Name="display"
 				>
-			</File>
-			<File
-				RelativePath="..\display\vt11.c"
-				>
-			</File>
+				<File
+					RelativePath="..\display\display.c"
+					>
+				</File>
+				<File
+					RelativePath="..\display\display.h"
+					>
+				</File>
+				<File
+					RelativePath="..\display\sim_ws.c"
+					>
+				</File>
+				<File
+					RelativePath="..\display\type340.c"
+					>
+				</File>
+				<File
+					RelativePath="..\display\type340.h"
+					>
+				</File>
+			</Filter>
 			<Filter
 				Name="slirp"
 				>
@@ -713,9 +695,10 @@
 				</File>
 			</Filter>
 			<Filter Name="REALCONS">
-				<File RelativePath="..\REALCONS\realcons_console_pdp11_20.c" />
-				<File RelativePath="..\REALCONS\realcons_console_pdp11_40.c" />
-				<File RelativePath="..\REALCONS\realcons_console_pdp11_70.c" />
+				<File RelativePath="..\REALCONS\realcons_console_ki10.c" />
+				<File RelativePath="..\REALCONS\realcons_ki10_control.c" />
+				<File RelativePath="..\REALCONS\realcons_ki10_maintpanel.c" />
+				<File RelativePath="..\REALCONS\realcons_ki10_operpanel.c" />
 				<File RelativePath="..\REALCONS\realcons.c" />
 				<File RelativePath="..\REALCONS\realcons_simh.c" />
 			</Filter>
@@ -732,63 +715,19 @@
 			Filter="h;hpp;hxx;hm;inl;inc"
 			>
 			<File
-				RelativePath="..\display\display.h"
+				RelativePath="..\PDP10\kx10_defs.h"
 				>
 			</File>
 			<File
-				RelativePath="..\display\ng.h"
-				>
-			</File>
-			<File
-				RelativePath="..\PDP11\pdp11_cpumod.h"
-				>
-			</File>
-			<File
-				RelativePath="..\PDP11\pdp11_cr_dat.h"
-				>
-			</File>
-			<File
-				RelativePath="..\PDP11\pdp11_ddcmp.h"
-				>
-			</File>
-			<File
-				RelativePath="..\PDP11\pdp11_defs.h"
-				>
-			</File>
-			<File
-				RelativePath="..\PDP11\pdp11_dmc.h"
-				>
-			</File>
-			<File
-				RelativePath="..\PDP11\pdp11_io_lib.h"
-				>
-			</File>
-			<File
-				RelativePath="..\PDP11\pdp11_mscp.h"
-				>
-			</File>
-			<File
-				RelativePath="..\PDP11\pdp11_td.h"
-				>
-			</File>
-			<File
-				RelativePath="..\PDP11\pdp11_uqssp.h"
-				>
-			</File>
-			<File
-				RelativePath="..\PDP11\pdp11_xq.h"
-				>
-			</File>
-			<File
-				RelativePath="..\PDP11\pdp11_xq_bootrom.h"
-				>
-			</File>
-			<File
-				RelativePath="..\PDP11\pdp11_xu.h"
+				RelativePath="..\PDP10\kx10_disk.h"
 				>
 			</File>
 			<File
 				RelativePath="..\scp.h"
+				>
+			</File>
+			<File
+				RelativePath="..\sim_card.h"
 				>
 			</File>
 			<File
@@ -839,20 +778,11 @@
 				RelativePath="..\sim_video.h"
 				>
 			</File>
-			<File
-				RelativePath="..\display\vt11.h"
-				>
-			</File>
-			<File
-				RelativePath="..\display\ws.h"
-				>
-			</File>
 			<File RelativePath="..\BlinkenBone\common\bitcalc.h" />
 			<File RelativePath="..\BlinkenBone\blinkenlight_api\blinkenlight_api_client.h" />
 			<File RelativePath="..\BlinkenBone\blinkenlight_api\blinkenlight_panels.h" />
-			<File RelativePath="..\REALCONS\realcons_console_pdp11_20.h" />
-			<File RelativePath="..\REALCONS\realcons_console_pdp11_40.h" />
-			<File RelativePath="..\REALCONS\realcons_console_pdp11_70.h" />
+			<File RelativePath="..\REALCONS\realcons_console_ki10.h" />
+			<File RelativePath="..\REALCONS\realcons_ki10_control.h" />
 			<File RelativePath="..\REALCONS\realcons.h" />
 			<File RelativePath="..\REALCONS\realcons_simh.h" />
 		</Filter>

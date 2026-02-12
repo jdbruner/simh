@@ -95,7 +95,7 @@ t_stat realcons_console_ki10_maintpanel_service(realcons_console_logic_ki10_t *_
     if (_this->buttons_READ_IN_DEVICE.enabled &&
         _this->buttons_READ_IN_DEVICE.pendingbuttons) {
         SIGNAL_SET(cpusignal_console_readin_device,
-            realcons_ki10_control_get(&_this->buttons_READ_IN_DEVICE) << 2);
+            (uint32)realcons_ki10_control_get(&_this->buttons_READ_IN_DEVICE) << 2);
         _this->buttons_READ_IN_DEVICE.pendingbuttons = 0;
     }
 #endif
