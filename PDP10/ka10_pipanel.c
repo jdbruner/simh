@@ -718,6 +718,8 @@ vm_read(char *cptr, int32 sz, FILE *file)
                            break;
                     }
                     switch_state[col].changed = 0;
+                    if (!MI_flag)
+                        MI = MB;
                 }
             }
        }
