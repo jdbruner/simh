@@ -1740,9 +1740,11 @@ REALCONS_PDP11= \
 	    $(REALCONS_DIR)realcons_console_pdp11_70.c
 
 REALCONS_PDP10= \
-        $(REALCONS_DIR)realcons_ki10_control.c \
+        $(REALCONS_DIR)realcons_kx10_control.c \
+        $(REALCONS_DIR)realcons_console_kx10.c \
+        $(REALCONS_DIR)realcons_console_ka10.c \
         $(REALCONS_DIR)realcons_console_ki10.c \
-        $(REALCONS_DIR)realcons_ki10_operpanel.c \
+        $(REALCONS_DIR)realcons_kx10_operpanel.c \
         $(REALCONS_DIR)realcons_ki10_maintpanel.c
 
 REALCONS_PDP8= \

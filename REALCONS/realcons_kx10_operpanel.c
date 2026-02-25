@@ -1,4 +1,4 @@
-/*  realcons_ki10_operpanel.c: Logic for the lower "operator panel".
+/*  realcons_kx10_operpanel.c: Logic for the lower "operator panel".
 
    Copyright (c) 2014-2016, Joerg Hoppe
    j_hoppe@t-online.de, www.retrocmp.com
@@ -25,12 +25,12 @@
    05-Sep-2014  JH      created
  */
 
-#define REALCONS_CONSOLE_KI10_C_   // enable private global defintions in realcons_console_ki10.h
+#define REALCONS_CONSOLE_KX10_C_   // enable private global defintions in realcons_console_kx10.h
 
 #include <inttypes.h>
 #include "realcons.h"
-#include "realcons_console_ki10.h"
-#include "realcons_ki10_control.h"
+#include "realcons_console_kx10.h"
+#include "realcons_kx10_control.h"
 
 // process panel state.
 // operates on Blinkenlight_API panel structs,
@@ -39,7 +39,7 @@
 // all output controls are written back to panel after call
 // controls already serviced
 
-t_stat realcons_ki10_operpanel_service(realcons_console_logic_ki10_t *_this)
+t_stat realcons_kx10_operpanel_service(realcons_console_logic_kx10_t *_this)
 {
     unsigned single_inst; //
 
@@ -71,7 +71,7 @@ t_stat realcons_ki10_operpanel_service(realcons_console_logic_ki10_t *_this)
     // instructions and there is thus no way to continue."
     // - SINGLE is a mode flag, not a command
     _this->button_SINGLE_INST.enabled = !_this->console_lock;
-    single_inst = !!realcons_ki10_control_get(&_this->button_SINGLE_INST);
+    single_inst = !!realcons_kx10_control_get(&_this->button_SINGLE_INST);
     if (single_inst && _this->run_state == RUN_STATE_RUN) {
         // first stop the CPU, like pressing "HALT"
         SIGNAL_SET(cpusignal_console_halt, 1);
@@ -94,14 +94,14 @@ t_stat realcons_ki10_operpanel_service(realcons_console_logic_ki10_t *_this)
     _this->button_START.enabled = !_this->console_lock;
     if (_this->button_START.pendingbuttons) {
         // PC value <=?=> value of addr lamps???
-        SIGNAL_SET(cpusignal_PC, (int32) realcons_ki10_control_get(&_this->buttons_ADDRESS));
+        SIGNAL_SET(cpusignal_PC, (int32) realcons_kx10_control_get(&_this->buttons_ADDRESS));
         if (single_inst) // set PC and single step
             sprintf(_this->realcons->simh_cmd_buffer, "deposit pc %" PRIo64 "\nstep 1\n",
-                    realcons_ki10_control_get(&_this->buttons_ADDRESS));
+                    realcons_kx10_control_get(&_this->buttons_ADDRESS));
         else
             // SimH start is like
             sprintf(_this->realcons->simh_cmd_buffer, "run %" PRIo64 "\n",
-                    realcons_ki10_control_get(&_this->buttons_ADDRESS));
+                    realcons_kx10_control_get(&_this->buttons_ADDRESS));
         _this->button_START.pendingbuttons = 0;
     }
 
@@ -155,7 +155,7 @@ t_stat realcons_ki10_operpanel_service(realcons_console_logic_ki10_t *_this)
     // selects the least significant octal digit (which is always 0 or 4) in the device code)."
     _this->button_READ_IN.enabled = !_this->console_lock && (_this->run_state != RUN_STATE_RUN);
     if (_this->button_READ_IN.pendingbuttons) {
-        unsigned readin_device = (unsigned) realcons_ki10_control_get(&_this->buttons_READ_IN_DEVICE);
+        unsigned readin_device = (unsigned) realcons_kx10_control_get(&_this->buttons_READ_IN_DEVICE);
         // readin device: button labels "3..9" -> bits 6..0
         readin_device <<= 2; // bits 1 and 0 are missing
         switch (readin_device) {
@@ -197,23 +197,23 @@ t_stat realcons_ki10_operpanel_service(realcons_console_logic_ki10_t *_this)
     _this->button_DATA_CLEAR.enabled = !_this->console_datalock;
     _this->button_DATA_LOAD.enabled = !_this->console_datalock && !_this->memory_indicator_program;
     if (_this->button_ADDRESS_CLEAR.pendingbuttons) {
-        realcons_ki10_control_set(&_this->buttons_ADDRESS, 0);
+        realcons_kx10_control_set(&_this->buttons_ADDRESS, 0);
         _this->button_ADDRESS_CLEAR.pendingbuttons = 0;
     }
     if (_this->button_ADDRESS_LOAD.pendingbuttons) {
         // load addr from data leds
-        realcons_ki10_control_set(&_this->buttons_ADDRESS,
-                realcons_ki10_control_get(&_this->leds_DATA));
+        realcons_kx10_control_set(&_this->buttons_ADDRESS,
+                realcons_kx10_control_get(&_this->leds_DATA));
         _this->button_ADDRESS_LOAD.pendingbuttons = 0;
     }
     if (_this->button_DATA_CLEAR.pendingbuttons) {
-        realcons_ki10_control_set(&_this->buttons_DATA, 0);
+        realcons_kx10_control_set(&_this->buttons_DATA, 0);
         _this->button_DATA_CLEAR.pendingbuttons = 0;
     }
     if (_this->button_DATA_LOAD.pendingbuttons) {
         // load data from data leds
-        realcons_ki10_control_set(&_this->buttons_DATA,
-                realcons_ki10_control_get(&_this->leds_DATA));
+        realcons_kx10_control_set(&_this->buttons_DATA,
+                realcons_kx10_control_get(&_this->leds_DATA));
         _this->button_DATA_LOAD.pendingbuttons = 0;
     }
 
@@ -233,13 +233,13 @@ t_stat realcons_ki10_operpanel_service(realcons_console_logic_ki10_t *_this)
             && (_this->run_state != RUN_STATE_RUN);
     if (_this->button_EXAMINE_THIS.pendingbuttons) {
         sprintf(_this->realcons->simh_cmd_buffer, "examine %" PRIo64 "\n",
-                realcons_ki10_control_get(&_this->buttons_ADDRESS));
+                realcons_kx10_control_get(&_this->buttons_ADDRESS));
         // addr&data result written to LEDs in "event_exam_deposit()"
         _this->button_EXAMINE_THIS.pendingbuttons = 0;
     }
     if (_this->button_EXAMINE_NEXT.pendingbuttons) {
-        // inc address buttons before examine
-        uint64_t addr = realcons_ki10_control_get(&_this->buttons_ADDRESS);
+        // inc address before examine
+        uint64_t addr = SIGNAL_GET(cpusignal_memory_address_phys_register); // realcons_kx10_control_get(&_this->buttons_ADDRESS);
         addr++;
         sprintf(_this->realcons->simh_cmd_buffer, "examine %" PRIo64 "\n", addr);
         // addr&data result written to LEDs in "event_exam_deposit()"
@@ -247,49 +247,54 @@ t_stat realcons_ki10_operpanel_service(realcons_console_logic_ki10_t *_this)
     }
     if (_this->button_DEPOSIT_THIS.pendingbuttons) {
         sprintf(_this->realcons->simh_cmd_buffer, "deposit %" PRIo64 " %" PRIo64 "\n",
-                realcons_ki10_control_get(&_this->buttons_ADDRESS),
-                realcons_ki10_control_get(&_this->buttons_DATA));
+                realcons_kx10_control_get(&_this->buttons_ADDRESS),
+                realcons_kx10_control_get(&_this->buttons_DATA));
         // addr&data result written to LEDs in "event_exam_deposit()"
         _this->button_DEPOSIT_THIS.pendingbuttons = 0;
     }
     if (_this->button_DEPOSIT_NEXT.pendingbuttons) {
-        uint64_t addr = realcons_ki10_control_get(&_this->buttons_ADDRESS);
+        uint64_t addr = realcons_kx10_control_get(&_this->buttons_ADDRESS);
         addr++;
         sprintf(_this->realcons->simh_cmd_buffer, "deposit %" PRIo64 " %" PRIo64 "\n", addr,
-                realcons_ki10_control_get(&_this->buttons_DATA));
+                realcons_kx10_control_get(&_this->buttons_DATA));
         // addr&data result written to LEDs in "event_exam_deposit()"
         _this->button_DEPOSIT_NEXT.pendingbuttons = 0;
     }
 
     // set the MEMORY INDICATOR triangle LEDs above row 4
     if (_this->memory_indicator_program == 1) {
-        _this->led_MEMORY_DATA.lamps->value = 0;
-        _this->led_PROGRAM_DATA.lamps->value = 1;
 
     } else {
-        _this->led_MEMORY_DATA.lamps->value = 1;
-        _this->led_PROGRAM_DATA.lamps->value = 0;
+        realcons_kx10_control_set(&_this->led_MEMORY_DATA, 1);
+        realcons_kx10_control_set(&_this->led_PROGRAM_DATA, 0);
     }
 
     // DATA Switches set the "console data switch register"
     // (so a Simh "deposit cds ...." is always overwritten with this
     SIGNAL_SET(cpusignal_console_data_switches,
-            realcons_ki10_control_get(&_this->buttons_DATA));
+        realcons_kx10_control_get(&_this->buttons_DATA));
+
+#ifndef VM_PDP10
+    // ADDRESS switches set the "console address switch register"
+    // (so a simh "deposit AS ..." is always overwritten with this)
+    SIGNAL_SET(cpusignal_console_address_switches,
+        realcons_kx10_control_get(&_this->buttons_ADDRESS));
+#endif
 
     // RUN/STOP LEDS
     switch (_this->run_state) {
     case RUN_STATE_HALT_MAN:
-        // halt bei user
-        _this->leds_STOP.lamps->value = 0x4; // STOP.MAN
-        _this->led_RUN.lamps->value = 0;
+        realcons_kx10_control_set(&_this->leds_STOP, 0x4); // STOP.MAN
+        realcons_kx10_control_set(&_this->led_RUN, 0);
         break;
     case RUN_STATE_HALT_PROG:
-        _this->leds_STOP.lamps->value = 0x2; // STOP.PROG
-        _this->led_RUN.lamps->value = 0;
-        break;
+        realcons_kx10_control_set(&_this->leds_STOP, 0x2); // STOP.PROG
+        realcons_kx10_control_set(&_this->led_PROG_STOP, 1);
+        realcons_kx10_control_set(&_this->led_RUN, 0);
+       break;
     case RUN_STATE_RUN:
-        _this->leds_STOP.lamps->value = 0; // no STOP
-        _this->led_RUN.lamps->value = 1;
+        realcons_kx10_control_set(&_this->leds_STOP, 0); // no STOP
+        realcons_kx10_control_set(&_this->led_RUN, 1);
         break;
     }
 
@@ -309,15 +314,15 @@ t_stat realcons_ki10_operpanel_service(realcons_console_logic_ki10_t *_this)
     // time clock to discount interrupt time while timing user programs."
 
     // Different signals names?
-    // Simh                         KI10 console
+    // Simh                         KX10 console
     // pi_act "active"              pi in progress  "chanels where interrupts are beeing held"
     // pi_enb "enabled pi levels"   pi active "channels which are ON"
     //
-    realcons_ki10_control_set(&_this->led_PI_ON, !!SIGNAL_GET(cpusignal_pi_on));
-    realcons_ki10_control_set(&_this->leds_PI_ACTIVE, SIGNAL_GET(cpusignal_pi_enb));
-    realcons_ki10_control_set(&_this->leds_PI_IN_PROGRESS, SIGNAL_GET(cpusignal_pi_act));
-    realcons_ki10_control_set(&_this->leds_IOB_PI_REQUEST, SIGNAL_GET(cpusignal_pi_ioq));
-    realcons_ki10_control_set(&_this->leds_PI_REQUEST, SIGNAL_GET(cpusignal_pi_prq));
+    realcons_kx10_control_set(&_this->led_PI_ON, !!SIGNAL_GET(cpusignal_pi_on));
+    realcons_kx10_control_set(&_this->leds_PI_ACTIVE, SIGNAL_GET(cpusignal_pi_enb));
+    realcons_kx10_control_set(&_this->leds_PI_IN_PROGRESS, SIGNAL_GET(cpusignal_pi_act));
+    realcons_kx10_control_set(&_this->leds_IOB_PI_REQUEST, SIGNAL_GET(cpusignal_pi_ioq));
+    realcons_kx10_control_set(&_this->leds_PI_REQUEST, SIGNAL_GET(cpusignal_pi_prq));
 
     // mode flags
     int32 mode_leds;
@@ -339,7 +344,8 @@ t_stat realcons_ki10_operpanel_service(realcons_console_logic_ki10_t *_this)
     else
         mode_leds = 1;
 #endif
-    _this->leds_MODE.lamps->value = mode_leds;
+    realcons_kx10_control_set(&_this->leds_MODE, mode_leds);
+    realcons_kx10_control_set(&_this->led_USER_MODE, (mode_leds == 8));
 
     return 0; // OK
 

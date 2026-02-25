@@ -160,11 +160,9 @@ void realcons_init(realcons_t *_this)
     // is set in pdp11_cpumod.c, depending on CPU model
 #endif
 #if defined(VM_PDP10) | defined(KA) | defined(KI) | defined(KL) | defined(KS)
-    // there's a separate panel for every PDP11 model,
-    // but only one is hardwired to the PDP10.
-    // Check the service configuration file "/etc/blinkenlightd.conf" on panel host
-    strcpy(_this->console_logic_name, "PDP10-KI10"); // overwritten by const
-    strcpy(_this->application_panel_name, "PDP10-KI10");
+    // name of the panel: defaults to "PDP10-KA10"
+    strcpy(_this->console_logic_name, "PDP10"); // overwritten by const
+    strcpy(_this->application_panel_name, "PDP10-KA10");
 #endif
 #ifdef VM_PDP8
     // name of the panel: defaults to "PiDP8" for Oscars device.
@@ -258,14 +256,14 @@ t_stat realcons_connect(realcons_t *_this, char *consolelogic_name, char *server
         }
 #endif
 #if defined(VM_PDP10) | defined(KA) | defined(KI) | defined(KL) | defined(KS)
-        // no selection, always "PDP10-KI10"
+        // no selection, always KX10 console logic with selected panel
         {
-            realcons_console_logic_ki10_t *console_logic;
+            realcons_console_logic_kx10_t *console_logic;
             // 1. create
-            console_logic = realcons_console_ki10_constructor(_this);
+            console_logic = realcons_console_kx10_constructor(_this);
             // 2. connect
-            realcons_console_ki10_interface_connect(console_logic,
-                &(_this->console_controller_interface), consolelogic_name);
+            realcons_console_kx10_interface_connect(console_logic,
+                &(_this->console_controller_interface), panel_name);
             _this->console_controller = console_logic;
         }
 #endif
@@ -703,8 +701,8 @@ void realcons_simh_event_deposit(realcons_t *_this, struct REG *reg)
         return;
 #if defined(VM_PDP10) | defined(KA) | defined(KI) | defined(KL) | defined(KS)
     // route to PDP10 panel
-    realcons_console_ki10_event_simh_deposit(
-        (realcons_console_logic_ki10_t *)(_this->console_controller), reg);
+    realcons_console_kx10_event_simh_deposit(
+        (realcons_console_logic_kx10_t *)(_this->console_controller), reg);
 #endif
 }
 

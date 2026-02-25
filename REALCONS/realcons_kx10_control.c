@@ -1,4 +1,4 @@
-/*  realcons_console_pd10_control.c: smarter controls than the "switch/lamp" representation of blinkenlight server.
+/*  realcons_kx10_control.c: smarter controls than the "switch/lamp" representation of blinkenlight server.
 
    Copyright (c) 2014-2016, Joerg Hoppe
    j_hoppe@t-online.de, www.retrocmp.com
@@ -47,24 +47,24 @@
  */
 
 
-#define REALCONS_KI10_CONTROL_C_
+#define REALCONS_KX10_CONTROL_C_
 
 #include <inttypes.h>
 #include "realcons.h"
-#include "realcons_ki10_control.h"
+#include "realcons_kx10_control.h"
 #include "bitcalc.h"
 
-#define REALCONS_KI10_CONTROL_MAX_COUNT    1000
+#define REALCONS_KX10_CONTROL_MAX_COUNT    1000
 
 /** global list, terminated with NULL ***/
-realcons_ki10_control_t *realcons_ki10_controls[REALCONS_KI10_CONTROL_MAX_COUNT + 1];
+realcons_kx10_control_t *realcons_kx10_controls[REALCONS_KX10_CONTROL_MAX_COUNT + 1];
 
-unsigned realcons_ki10_controls_count = 0;
+unsigned realcons_kx10_controls_count = 0;
 
 /*
  * Get both blinkenlight controls and reset the state
  */
-t_stat realcons_ki10_control_init(realcons_ki10_control_t *_this, realcons_t *realcons,
+t_stat realcons_kx10_control_init(realcons_kx10_control_t *_this, realcons_t *realcons,
         char *buttoncontrolname, char *lampcontrolname, unsigned mode)
 {
     _this->realcons = realcons;
@@ -87,19 +87,18 @@ t_stat realcons_ki10_control_init(realcons_ki10_control_t *_this, realcons_t *re
     }
 
     // add control to list
-    ASSURE(realcons_ki10_controls_count < REALCONS_KI10_CONTROL_MAX_COUNT);
-    _this->listindex = realcons_ki10_controls_count++; // count ...
-    realcons_ki10_controls[_this->listindex] = _this;
-    realcons_ki10_controls[_this->listindex + 1] = NULL; // ... terminate also with NULL
+    ASSURE(realcons_kx10_controls_count < REALCONS_KX10_CONTROL_MAX_COUNT);
+    _this->listindex = realcons_kx10_controls_count++; // count ...
+    realcons_kx10_controls[_this->listindex] = _this;
+    realcons_kx10_controls[_this->listindex + 1] = NULL; // ... terminate also with NULL
 
     return SCPE_OK;
 }
 
 
 // get state of buttons with account of enable logic
-uint64_t realcons_ki10_control_get(realcons_ki10_control_t *_this)
+uint64_t realcons_kx10_control_get(realcons_kx10_control_t *_this)
 {
-
     if (_this->lamps)
         // return lamp status: "enable" logic already evaluated
         return _this->lamps->value;
@@ -112,7 +111,7 @@ uint64_t realcons_ki10_control_get(realcons_ki10_control_t *_this)
         return 0;
 }
 
-void realcons_ki10_control_set(realcons_ki10_control_t *_this, uint64_t value)
+void realcons_kx10_control_set(realcons_kx10_control_t *_this, uint64_t value)
 // trunc value to bit mask
 // does NOT produce a change-event in service()!
 {
@@ -131,7 +130,7 @@ void realcons_ki10_control_set(realcons_ki10_control_t *_this, uint64_t value)
  * BEFORE: query input controls (buttons)
  * AFTER: set output controls (lamps)
  */
-unsigned realcons_ki10_control_service(realcons_ki10_control_t *_this)
+unsigned realcons_kx10_control_service(realcons_kx10_control_t *_this)
 {
     uint64_t now_pressed, now_changed, now_released;
 
@@ -147,46 +146,62 @@ unsigned realcons_ki10_control_service(realcons_ki10_control_t *_this)
     now_pressed = now_changed & _this->buttons->value; // changed and now pressed
     now_released = now_changed & ~_this->buttons->value;
 
-    // no initialisation call!
-    if (now_changed && _this->lamps) {
-        switch (_this->mode) {
-        case REALCONS_KI10_CONTROL_MODE_NONE:
-            break;
-        case REALCONS_KI10_CONTROL_MODE_KEY:
-            // direct: set the lamps as long button pressed
-            if (_this->enabled && now_pressed) {
-                _this->lamps->value = _this->buttons->value;
-                _this->pendingbuttons |= now_pressed;
-            }
-            _this->lamps->value &= ~now_released; // lamps OFF even if not enabled
-            if (_this->realcons->debug)
-                printf(
-                        "'Direct' button changed: %s, value= 0x%" PRIx64 ", now pressed = 0x%" PRIx64 ". pending = 0x%" PRIx64 "\n",
-                        _this->buttons->name, _this->lamps->value, now_pressed,
-                        _this->pendingbuttons);
+    if (now_changed) {
+        if (_this->lamps) {
+            // composite button-lamp (KI10 panel)
+            switch (_this->mode) {
+            case REALCONS_KX10_CONTROL_MODE_NONE:
+                break;
+            case REALCONS_KX10_CONTROL_MODE_KEY:
+                // direct: set the lamps as long button pressed
+                if (_this->enabled && now_pressed) {
+                    _this->lamps->value = _this->buttons->value;
+                    _this->pendingbuttons |= now_pressed;
+                }
+                _this->lamps->value &= ~now_released; // lamps OFF even if not enabled
+                if (_this->realcons->debug)
+                    printf(
+                            "'Direct' button changed: %s, value= 0x%" PRIx64 ", now pressed = 0x%" PRIx64 ". pending = 0x%" PRIx64 "\n",
+                            _this->buttons->name, _this->lamps->value, now_pressed,
+                            _this->pendingbuttons);
 
-            break;
-        case REALCONS_KI10_CONTROL_MODE_SWITCH: // switched:
-            // react only on PRESS event. toggle the lamps, when a button gets pressed
-            // if not enabled, lamp stays ON
-            if (_this->enabled && now_pressed) {
-                _this->lamps->value ^= now_pressed;
-                _this->pendingbuttons |= now_pressed;
-            }
-            if (_this->realcons->debug)
-                printf(
-                        "'Toggle' button changed: %s, value= 0x%" PRIx64  ", now pressed = 0x%" PRIx64 ". pending = 0x%" PRIx64 "\n",
-                        _this->buttons->name, _this->lamps->value, now_pressed,
-                        _this->pendingbuttons);
+                break;
+            case REALCONS_KX10_CONTROL_MODE_SWITCH: // switched:
+                // react only on PRESS event. toggle the lamps, when a button gets pressed
+                // if not enabled, lamp stays ON
+                if (_this->enabled && now_pressed) {
+                    _this->lamps->value ^= now_pressed;
+                    _this->pendingbuttons |= now_pressed;
+                }
+                if (_this->realcons->debug)
+                    printf(
+                            "'Toggle' button changed: %s, value= 0x%" PRIx64  ", now pressed = 0x%" PRIx64 ". pending = 0x%" PRIx64 "\n",
+                            _this->buttons->name, _this->lamps->value, now_pressed,
+                            _this->pendingbuttons);
 
-            break;
+                break;
+            }
+        } else {
+            // simple switch
+            switch (_this->mode) {
+            case REALCONS_KX10_CONTROL_MODE_NONE:
+                break;
+            case REALCONS_KX10_CONTROL_MODE_KEY:
+                // react only when button is pressed
+                _this->pendingbuttons |= now_pressed;
+                break;
+            case REALCONS_KX10_CONTROL_MODE_SWITCH:
+                // react on any change
+                _this->pendingbuttons |= 1;
+                break;
+            }
         }
     }
     return 1;
 }
 
 // button changed
-unsigned realcons_ki10_button_changed(realcons_ki10_control_t *_this)
+unsigned realcons_kx10_button_changed(realcons_kx10_control_t *_this)
 {
     if (!_this->buttons)
         return 0;

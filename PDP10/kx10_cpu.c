@@ -405,7 +405,6 @@ console_controller_event_func_t realcons_event_opcode_any; // triggered after an
 console_controller_event_func_t realcons_event_opcode_halt; // triggered after execution of HALT
 
 console_controller_event_func_t realcons_event_program_write_memory_indicator;
-console_controller_event_func_t realcons_event_program_write_address_addrcond;
 
 #define REALCONS_CHECK_STOP(reason) \
     if (reason == SCPE_STOP) \

@@ -1,4 +1,4 @@
-/*  realcons_ki10_maintpanel.c: Logic for the upper "maintenance panel".
+/*  realcons_kx10_maintpanel.c: Logic for the upper "maintenance panel".
 
    Copyright (c) 2014-2016, Joerg Hoppe
    j_hoppe@t-online.de, www.retrocmp.com
@@ -25,10 +25,10 @@
 
  */
 
-#define REALCONS_CONSOLE_KI10_C_   // enable private global defintions in realcons_console_ki10.h
+#define REALCONS_CONSOLE_KX10_C_   // enable private global defintions in realcons_console_kx10.h
 #include    "realcons.h"
-#include    "realcons_console_ki10.h"
-#include    "realcons_ki10_control.h"
+#include    "realcons_console_kx10.h"
+#include    "realcons_kx10_control.h"
 
 // process panel state.
 // operates on Blinkenlight_API panel structs,
@@ -36,7 +36,7 @@
 // all input controls are read from panel before call
 // all output controls are written back to panel after call
 // controls already serviced
-t_stat realcons_console_ki10_maintpanel_service(realcons_console_logic_ki10_t *_this)
+t_stat realcons_console_ki10_maintpanel_service(realcons_console_logic_kx10_t *_this)
 {
     blinkenlight_panel_t *p = _this->realcons->console_model; // alias
 
@@ -45,7 +45,7 @@ t_stat realcons_console_ki10_maintpanel_service(realcons_console_logic_ki10_t *_
 #endif
 
     /*** POWER ***/
-//  if (realcons_ki10_control_get(&_this->button_POWER) == 0) {
+//  if (realcons_kx10_control_get(&_this->button_POWER) == 0) {
     if (_this->button_POWER.buttons[0].value == 0 && _this->button_POWER.buttons[0].value_previous == 1) {
         // Power switch transition to POWER OFF: terminate SimH
         // This is drastic, but will teach users not to twiddle with the power switch.
@@ -61,8 +61,8 @@ t_stat realcons_console_ki10_maintpanel_service(realcons_console_logic_ki10_t *_
     /*** LOCK ***/
 
     // these two flags are referenced by all buttons as "disable"
-    _this->console_lock = !!realcons_ki10_control_get(&_this->button_CONSOLE_LOCK);
-    _this->console_datalock = !!realcons_ki10_control_get(&_this->button_CONSOLE_DATALOCK);
+    _this->console_lock = !!realcons_kx10_control_get(&_this->button_CONSOLE_LOCK);
+    _this->console_datalock = !!realcons_kx10_control_get(&_this->button_CONSOLE_DATALOCK);
 
     // controls, which are not set here, remain enabled by default
     // "enable =1"
@@ -95,7 +95,7 @@ t_stat realcons_console_ki10_maintpanel_service(realcons_console_logic_ki10_t *_
     if (_this->buttons_READ_IN_DEVICE.enabled &&
         _this->buttons_READ_IN_DEVICE.pendingbuttons) {
         SIGNAL_SET(cpusignal_console_readin_device,
-            (uint32)realcons_ki10_control_get(&_this->buttons_READ_IN_DEVICE) << 2);
+            (uint32)realcons_kx10_control_get(&_this->buttons_READ_IN_DEVICE) << 2);
         _this->buttons_READ_IN_DEVICE.pendingbuttons = 0;
     }
 #endif
@@ -191,12 +191,12 @@ t_stat realcons_console_ki10_maintpanel_service(realcons_console_logic_ki10_t *_
     /*** LAMP TEST ***/
     if (_this->realcons->lamp_test) {
         /* lamp test active: terminate? */
-        if (!realcons_ki10_control_get(&_this->button_LAMP_TEST)
+        if (!realcons_kx10_control_get(&_this->button_LAMP_TEST)
                 && !_this->realcons->timer_running_msec[TIMER_TEST])
             realcons_lamp_test(_this->realcons, 0); // end lamptest
     } else {
         /* lamp test inactive: start? */
-        if (realcons_ki10_control_get(&_this->button_LAMP_TEST)
+        if (realcons_kx10_control_get(&_this->button_LAMP_TEST)
                 || _this->realcons->timer_running_msec[TIMER_TEST])
             realcons_lamp_test(_this->realcons, 1); // begin lamptest
     }
