@@ -142,8 +142,8 @@ void realcons_console_kx10__event_step_halt(realcons_console_logic_kx10_t *_this
 {
     if (_this->realcons->debug)
         printf("realcons_console_kx10__event_step_halt\n");
-    SIGNAL_SET(cpusignal_console_halt, 1);
-    _this->run_state = RUN_STATE_HALT_MAN;
+    // SIGNAL_SET(cpusignal_console_halt, 1);
+    _this->run_state = RUN_STATE_HALT_MEM; // single-step stop is a MEM STOP
 }
 
 // exam and deposit
@@ -200,14 +200,61 @@ void realcons_console_kx10__event_program_write_memory_indicator(
 
 #ifndef VM_PDP10
 // program (actually SimH user) has written to READ IN device switches
-void realcons_console_kx10__event_program_write_readin_device(
+void
+realcons_console_kx10__event_program_write_readin_device(
     realcons_console_logic_kx10_t *_this)
 {
     uint32 value = SIGNAL_GET(cpusignal_console_readin_device) & 0774;
     SIGNAL_SET(cpusignal_console_readin_device, value);
     realcons_kx10_control_set(&_this->buttons_READ_IN_DEVICE, value >> 2);
 }
+
+#if KA | KI
+// program or SimH user has written to address condition switches
+void
+realcons_console_kx10__event_program_write_address_conditions(
+    realcons_console_logic_kx10_t *_this)
+{
+    int value = SIGNAL_GET(cpusignal_console_address_conditions);
+    realcons_kx10_control_set(&_this->button_FETCH_INST, (value >> 4)&1);
+    realcons_kx10_control_set(&_this->button_FETCH_DATA, (value >> 3)&1);
+    realcons_kx10_control_set(&_this->button_WRITE, (value >> 2)&1);
+    realcons_kx10_control_set(&_this->button_ADDRESS_STOP, (value >> 1)&1);
+    realcons_kx10_control_set(&_this->button_ADDRESS_BREAK, (value >> 0)&1);
+}
 #endif
+
+void
+realcons_console_kx10__event_operator_write_address_switches(
+    realcons_console_logic_kx10_t *_this)
+{
+    // if the panel supports writing to the switches (KI10), do it
+    // otherwise this is a no-op
+    realcons_kx10_control_set(&_this->buttons_ADDRESS,
+        SIGNAL_GET(cpusignal_console_address_switches));
+}
+
+void
+realcons_console_kx10__event_memory_halt(realcons_console_logic_kx10_t *_this)
+{
+    if (_this->realcons->debug)
+        printf("realcons_console_kx10__event_memory_halt\n");
+    SIGNAL_SET(cpusignal_console_halt, 0);
+    _this->run_state = RUN_STATE_HALT_MEM;
+}
+
+#endif
+
+void
+realcons_console_kx10__event_operator_write_data_switches(
+    realcons_console_logic_kx10_t *_this)
+{
+    // if the panel supports writing to the switches (KI10), do it
+    // otherwise this is a no-op
+    realcons_kx10_control_set(&_this->buttons_DATA,
+        SIGNAL_GET(cpusignal_console_data_switches));
+}
+
 
 /* There was a deposit over simh console.
  * Convert to an event, if necessary.
@@ -227,7 +274,15 @@ struct REG *reg)
 #ifndef VM_PDP10
     if (reg->loc == _this->cpusignal_console_readin_device) // rdrin_dev
         realcons_console_kx10__event_program_write_readin_device(_this);
+    if (reg->loc == _this->cpusignal_console_address_switches) // address switches
+        realcons_console_kx10__event_operator_write_address_switches(_this);
+#if KA | KI
+    if (reg->loc == _this->cpusignal_console_address_conditions) // addrcond
+        realcons_console_kx10__event_program_write_address_conditions(_this);
 #endif
+#endif
+    if (reg->loc == _this->cpusignal_console_data_switches) // data switches
+        realcons_console_kx10__event_operator_write_data_switches(_this);
 }
 
 
@@ -262,6 +317,7 @@ void realcons_console_kx10_interface_connect(realcons_console_logic_kx10_t *_thi
         extern  int32           realcons_PC; // own buffer!
         extern uint64_t     realcons_instruction; // current instr
         extern int32            flags; // CPU state flags
+        uint32 rdrin_dev = 0104;    // READ IN device (default to PTR)
 #else
         // from kx10_cpu.c
         extern uint16 IOB_PI;     /* Pending Interrupt requests */
@@ -272,10 +328,12 @@ void realcons_console_kx10_interface_connect(realcons_console_logic_kx10_t *_thi
         extern uint64 SW;         /* Switch register */
         extern t_addr AS;         /* Address switches */
         extern uint64 MI;         /* Memory indicator register */
+        extern int adr_cond;      /* Address conditions */
         extern uint32 rdrin_dev;  /* READ IN device */
+        extern int nxm_stop;      /* stop on non-existent memory */
         extern t_addr PC_Global;  /* Program counter register */
         extern uint64_t realcons_instruction; /* current instruction */
-	extern uint8 realcons_xct;/* XCT in progress */
+	    extern uint8 realcons_xct;/* XCT in progress */
         extern uint32 FLAGS;      /* CPU state flags */
 #endif
 
@@ -299,6 +357,7 @@ void realcons_console_kx10_interface_connect(realcons_console_logic_kx10_t *_thi
 #ifdef CAACS
         _this->cpusignal_console_address_addrcond = &caacs;
 #endif
+        _this->cpusignal_console_readin_device = &rdrin_dev;    // READ IN device
         _this->cpusignal_pi_on = &pi_on;
         _this->cpusignal_pi_enb = &pi_enb; // simh pdp10 cpu reg "PIENB"
         _this->cpusignal_pi_act = &pi_act; // simh  pdp10 cpu reg "PIACT"
@@ -313,7 +372,11 @@ void realcons_console_kx10_interface_connect(realcons_console_logic_kx10_t *_thi
         _this->cpusignal_console_address_switches = &AS;        /* address switch register */
         _this->cpusignal_console_memory_indicator = &MI;        /* memory indicator register */
         _this->cpusignal_console_readin_device = &rdrin_dev;    /* READ IN device */
-	    _this->cpusignal_xct = &realcons_xct;			/* XCT in progress */
+	    _this->cpusignal_xct = &realcons_xct;			        /* XCT in progress */
+#if KA | KI
+        _this->cpusignal_console_address_conditions = &adr_cond;/* address conditions */
+        _this->cpusignal_console_nxm_stop = &nxm_stop;          /* stop on non-existent memory */
+#endif
 #ifdef CAACS
         // _this->cpusignal_console_address_addrcond = 
 #endif
@@ -337,10 +400,13 @@ void realcons_console_kx10_interface_connect(realcons_console_logic_kx10_t *_thi
         extern console_controller_event_func_t realcons_event_operator_reg_exam;
         extern console_controller_event_func_t realcons_event_operator_reg_deposit;
         extern console_controller_event_func_t realcons_event_cpu_reset;
-        // pdp10_cpu.c
+        // pdp10_cpu.c / kx10_cpu.c
         extern console_controller_event_func_t realcons_event_opcode_any; // triggered after any opcode execution
         extern console_controller_event_func_t realcons_event_opcode_halt;
-        extern console_controller_event_func_t  realcons_event_program_write_memory_indicator;
+        extern console_controller_event_func_t realcons_event_program_write_memory_indicator;
+#ifndef VM_PDP10
+        extern console_controller_event_func_t realcons_event_memory_halt;
+#endif
 
         realcons_event_run_start =
             (console_controller_event_func_t)realcons_console_kx10__event_run_start;
@@ -363,6 +429,10 @@ void realcons_console_kx10_interface_connect(realcons_console_logic_kx10_t *_thi
             (console_controller_event_func_t)realcons_console_kx10__event_opcode_halt;
         realcons_event_program_write_memory_indicator =
             (console_controller_event_func_t)realcons_console_kx10__event_program_write_memory_indicator;
+#ifndef VM_PDP10
+        realcons_event_memory_halt =
+            (console_controller_event_func_t)realcons_console_kx10__event_memory_halt;
+#endif
     }
 
     if (!strcmp(panel_name, "PDP10-KA10"))

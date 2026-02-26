@@ -155,9 +155,7 @@ t_stat realcons_kx10_operpanel_service(realcons_console_logic_kx10_t *_this)
     // selects the least significant octal digit (which is always 0 or 4) in the device code)."
     _this->button_READ_IN.enabled = !_this->console_lock && (_this->run_state != RUN_STATE_RUN);
     if (_this->button_READ_IN.pendingbuttons) {
-        unsigned readin_device = (unsigned) realcons_kx10_control_get(&_this->buttons_READ_IN_DEVICE);
-        // readin device: button labels "3..9" -> bits 6..0
-        readin_device <<= 2; // bits 1 and 0 are missing
+        unsigned readin_device = SIGNAL_GET(cpusignal_console_readin_device);
         switch (readin_device) {
         case 0104: // "PTR" paper tape "PTR
             sprintf(_this->realcons->simh_cmd_buffer, "boot ptr\n");
@@ -270,30 +268,56 @@ t_stat realcons_kx10_operpanel_service(realcons_console_logic_kx10_t *_this)
     }
 
     // DATA Switches set the "console data switch register"
-    // (so a Simh "deposit cds ...." is always overwritten with this
+    // (so a Simh "deposit cds ...." is overwritten with this on the KA10 panel
     SIGNAL_SET(cpusignal_console_data_switches,
         realcons_kx10_control_get(&_this->buttons_DATA));
 
-#ifndef VM_PDP10
+#if KA | KI
     // ADDRESS switches set the "console address switch register"
-    // (so a simh "deposit AS ..." is always overwritten with this)
+    // (so a simh "deposit AS ..." is overwritten with this on the KA10 panel)
     SIGNAL_SET(cpusignal_console_address_switches,
         realcons_kx10_control_get(&_this->buttons_ADDRESS));
+
+    // Address condition switches set the "address condition" register
+    // (so a simh "deposit ACOND ..." is overwritten with this on the KA10 panel)
+    int addr_cond = 0;
+    addr_cond |= realcons_kx10_control_get(&_this->button_FETCH_INST) << 4;
+    addr_cond |= realcons_kx10_control_get(&_this->button_FETCH_DATA) << 3;
+    addr_cond |= realcons_kx10_control_get(&_this->button_WRITE) << 2;
+    addr_cond |= realcons_kx10_control_get(&_this->button_ADDRESS_STOP) << 1;
+    addr_cond |= realcons_kx10_control_get(&_this->button_ADDRESS_BREAK) << 0;
+    SIGNAL_SET(cpusignal_console_address_conditions, addr_cond);
+
+    // NXM_STOP switch sets the nxm_stop condition register
+    // (so a simh "deposit nxmstop ..." is always overwritten with this)
+    SIGNAL_SET(cpusignal_console_nxm_stop,
+        realcons_kx10_control_get(&_this->button_STOP_NXM));
 #endif
 
     // RUN/STOP LEDS
     switch (_this->run_state) {
     case RUN_STATE_HALT_MAN:
         realcons_kx10_control_set(&_this->leds_STOP, 0x4); // STOP.MAN
+        realcons_kx10_control_set(&_this->led_PROG_STOP, 0);
+        realcons_kx10_control_set(&_this->led_MEM_STOP, 0);
         realcons_kx10_control_set(&_this->led_RUN, 0);
         break;
     case RUN_STATE_HALT_PROG:
         realcons_kx10_control_set(&_this->leds_STOP, 0x2); // STOP.PROG
         realcons_kx10_control_set(&_this->led_PROG_STOP, 1);
+        realcons_kx10_control_set(&_this->led_MEM_STOP, 0);
+        realcons_kx10_control_set(&_this->led_RUN, 0);
+       break;
+    case RUN_STATE_HALT_MEM:
+        realcons_kx10_control_set(&_this->leds_STOP, 0x1); // STOP.MEM
+        realcons_kx10_control_set(&_this->led_PROG_STOP, 0);
+        realcons_kx10_control_set(&_this->led_MEM_STOP, 1);
         realcons_kx10_control_set(&_this->led_RUN, 0);
        break;
     case RUN_STATE_RUN:
         realcons_kx10_control_set(&_this->leds_STOP, 0); // no STOP
+        realcons_kx10_control_set(&_this->led_PROG_STOP, 0);
+        realcons_kx10_control_set(&_this->led_MEM_STOP, 0);
         realcons_kx10_control_set(&_this->led_RUN, 1);
         break;
     }
@@ -326,26 +350,30 @@ t_stat realcons_kx10_operpanel_service(realcons_console_logic_kx10_t *_this)
 
     // mode flags
     int32 mode_leds;
+#ifdef VM_PDP10
 #define FLAGS_USER   00100000
 #define FLAGS_PUBLIC 00020000
-
+#else
+#define FLAGS_USER   00000200
 #if KI | KL
+#define FLAGS_PUBLIC 00000040
+#else
+#define FLAGS_PUBLIC 00000000
+#endif
+#endif
+
     // LEDS are reversed in Java panel simulator
     // it might be better to change that than to work around it here...
     switch (SIGNAL_GET(cpusignal_flags) & (FLAGS_USER|FLAGS_PUBLIC)) {
     case FLAGS_USER|FLAGS_PUBLIC: mode_leds = 8; break; // USER PUBLIC
+#if KI | KL
     case FLAGS_USER:              mode_leds = 4; break; // USER CONCEAL
     case FLAGS_PUBLIC:            mode_leds = 2; break; // SUPER
+#endif
     case 0:                       mode_leds = 1; break; // KERNEL
     }
-#else
-    if (SIGNAL_GET(cpusignal_flags) & FLAGS_USER)
-        mode_leds = 8;
-    else
-        mode_leds = 1;
-#endif
     realcons_kx10_control_set(&_this->leds_MODE, mode_leds);
-    realcons_kx10_control_set(&_this->led_USER_MODE, (mode_leds == 8));
+    realcons_kx10_control_set(&_this->led_USER_MODE, (mode_leds >= 4));
 
     return 0; // OK
 

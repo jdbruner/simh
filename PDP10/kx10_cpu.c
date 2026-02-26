@@ -403,14 +403,23 @@ uint8 realcons_xct; // processing an XCT from the front panel
 extern console_controller_event_func_t realcons_event_operator_halt; // scp.c, needed here
 console_controller_event_func_t realcons_event_opcode_any; // triggered after any opcode execution
 console_controller_event_func_t realcons_event_opcode_halt; // triggered after execution of HALT
+console_controller_event_func_t realcons_event_memory_halt; // triggered by MEM STOP conditions
 
-console_controller_event_func_t realcons_event_program_write_memory_indicator;
+console_controller_event_func_t realcons_event_program_write_memory_indicator; // program write to MI
 
 #define REALCONS_CHECK_STOP(reason) \
-    if (reason == SCPE_STOP) \
+    switch (reason) { \
+    case SCPE_STOP: \
         REALCONS_EVENT(cpu_realcons, realcons_event_operator_halt); \
-    else if (reason == STOP_HALT) \
-        REALCONS_EVENT(cpu_realcons, realcons_event_opcode_halt);
+        break; \
+    case STOP_HALT: \
+        REALCONS_EVENT(cpu_realcons, realcons_event_opcode_halt); \
+        break; \
+    case STOP_IBKPT: \
+    case STOP_ACCESS: \
+        REALCONS_EVENT(cpu_realcons, realcons_event_memory_halt); \
+        break; \
+    }
 #endif
 
 /* Forward and external declarations */

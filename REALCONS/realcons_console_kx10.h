@@ -64,6 +64,7 @@ typedef struct
          int32_t    *cpusignal_pi_act ; // PI levels active. simh  pdp10 cpu reg "PIACT"
          int32_t    *cpusignal_pi_prq ; // PI levels with program requests . simh  pdp10 cpu reg "PIPRQ"
          int32_t    *cpusignal_pi_ioq ; // PI levels with IO requests. simh  pdp10 cpu reg "PIIOQ"
+         uint32     *cpusignal_console_readin_device; // READ IN device
         // KX10 console registers in SimH
     	uint64_t  *cpusignal_console_data_switches ;
 	uint64_t  *cpusignal_console_memory_indicator ;
@@ -86,6 +87,10 @@ typedef struct
         uint64 *cpusignal_console_data_switches;
         t_addr *cpusignal_console_address_switches;
         uint64 *cpusignal_console_memory_indicator;
+#if KA | KI
+        int *cpusignal_console_address_conditions;
+        int *cpusignal_console_nxm_stop;
+#endif
 #endif
 
     /* KX10 specific Blinkenlight API controls */
@@ -232,8 +237,7 @@ t_stat realcons_console_ki10_maintpanel_service(realcons_console_logic_kx10_t *_
 // state of the cpu
 #define RUN_STATE_HALT_MAN  0   // halt by panel
 #define RUN_STATE_HALT_PROG 1   // halt by opcode
-//#define RUN_STATE_RESET   1
-//#define RUN_STATE_WAIT    2
+#define RUN_STATE_HALT_MEM  2   // memory stop
 #define RUN_STATE_RUN       3
 
 

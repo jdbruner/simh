@@ -10348,6 +10348,9 @@ do {
     else {
         if (r != SCPE_STEP)                             /* done if step didn't complete with step expired */
             break;
+#ifdef USE_REALCONS
+        REALCONS_EVENT(cpu_realcons, realcons_event_step_halt);
+#endif
         }
     /* setup another next/step */
     sim_step = 0;
