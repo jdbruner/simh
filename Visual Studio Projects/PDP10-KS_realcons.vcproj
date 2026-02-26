@@ -559,10 +559,12 @@
 				</File>
 			</Filter>
 			<Filter Name="REALCONS">
+				<File RelativePath="..\REALCONS\realcons_console_ka10.c" />
 				<File RelativePath="..\REALCONS\realcons_console_ki10.c" />
-				<File RelativePath="..\REALCONS\realcons_ki10_control.c" />
+				<File RelativePath="..\REALCONS\realcons_console_kx10.c" />
+				<File RelativePath="..\REALCONS\realcons_kx10_control.c" />
 				<File RelativePath="..\REALCONS\realcons_ki10_maintpanel.c" />
-				<File RelativePath="..\REALCONS\realcons_ki10_operpanel.c" />
+				<File RelativePath="..\REALCONS\realcons_kx10_operpanel.c" />
 				<File RelativePath="..\REALCONS\realcons.c" />
 				<File RelativePath="..\REALCONS\realcons_simh.c" />
 			</Filter>

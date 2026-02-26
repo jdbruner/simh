@@ -276,22 +276,22 @@ t_stat realcons_kx10_operpanel_service(realcons_console_logic_kx10_t *_this)
     // ADDRESS switches set the "console address switch register"
     // (so a simh "deposit AS ..." is overwritten with this on the KA10 panel)
     SIGNAL_SET(cpusignal_console_address_switches,
-        realcons_kx10_control_get(&_this->buttons_ADDRESS));
+        (t_addr)realcons_kx10_control_get(&_this->buttons_ADDRESS));
 
     // Address condition switches set the "address condition" register
     // (so a simh "deposit ACOND ..." is overwritten with this on the KA10 panel)
     int addr_cond = 0;
-    addr_cond |= realcons_kx10_control_get(&_this->button_FETCH_INST) << 4;
-    addr_cond |= realcons_kx10_control_get(&_this->button_FETCH_DATA) << 3;
-    addr_cond |= realcons_kx10_control_get(&_this->button_WRITE) << 2;
-    addr_cond |= realcons_kx10_control_get(&_this->button_ADDRESS_STOP) << 1;
-    addr_cond |= realcons_kx10_control_get(&_this->button_ADDRESS_BREAK) << 0;
+    addr_cond |= (realcons_kx10_control_get(&_this->button_FETCH_INST)&1) << 4;
+    addr_cond |= (realcons_kx10_control_get(&_this->button_FETCH_DATA)&1) << 3;
+    addr_cond |= (realcons_kx10_control_get(&_this->button_WRITE)&1) << 2;
+    addr_cond |= (realcons_kx10_control_get(&_this->button_ADDRESS_STOP)&1) << 1;
+    addr_cond |= (realcons_kx10_control_get(&_this->button_ADDRESS_BREAK)&1) << 0;
     SIGNAL_SET(cpusignal_console_address_conditions, addr_cond);
 
     // NXM_STOP switch sets the nxm_stop condition register
     // (so a simh "deposit nxmstop ..." is always overwritten with this)
     SIGNAL_SET(cpusignal_console_nxm_stop,
-        realcons_kx10_control_get(&_this->button_STOP_NXM));
+        !!realcons_kx10_control_get(&_this->button_STOP_NXM));
 #endif
 
     // RUN/STOP LEDS
