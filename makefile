@@ -237,12 +237,13 @@ endif
 ifneq (,$(findstring pdp8,${MAKECMDGOALS}))
   VIDEO_USEFUL = true
 endif
-# REALCONS builds could use video and network support
-ifneq (,$(findstring realcons,${MAKECMDGOALS}))
+# REALCONS and PIPANEL builds could use video, network, and readline support
+ifneq (,$(findstring realcons,${MAKECMDGOALS})$(findstring pipanel,${MAKECMDGOALS}))
   BUILD_MULTIPLE = s
   BUILD_MULTIPLE_VERB = are
   VIDEO_USEFUL = true
   NETWORK_USEFUL = true
+  READLINE_USEFUL = true
 endif
 # building the pdp11, any pdp10, any 3b2, or any vax simulator could use networking support
 ifneq (,$(findstring pdp11,${MAKECMDGOALS})$(findstring pdp10,${MAKECMDGOALS})$(findstring vax,${MAKECMDGOALS})$(findstring frontpaneltest,${MAKECMDGOALS})$(findstring infoserver,${MAKECMDGOALS})$(findstring 3b2,${MAKECMDGOALS})$(findstring all,${MAKECMDGOALS}))
@@ -847,7 +848,7 @@ ifeq (${WIN32},)  #*nix Environments (&& cygwin)
   ifneq (,$(call find_lib,edit))
     ifneq (,$(call find_include,editline/readline))
       $(info using libedit: $(call find_lib,edit) $(call find_include,editline/readline))
-      ifneq (,$(ALL_DEPENDENCIES))
+      ifneq (,$(or $(ALL_DEPENDENCIES),$(READLINE_USEFUL)))
         OS_CCDEFS += -DHAVE_LIBEDIT
         OS_LDFLAGS += -ledit
         ifneq (,$(call find_lib,termcap))
@@ -1720,7 +1721,7 @@ else
   export LDFLAGS := ${OS_LDFLAGS} ${NETWORK_LDFLAGS} ${VIDEO_LDFLAGS} ${VIDEO_TTF_LDFLAGS} ${LDFLAGS_O}
 endif
 
-# REALCONS support
+### REALCONS support
 BLINKENLIGHT_COMMON_DIR=BlinkenBone/common/
 BLINKENLIGHT_API_DIR=BlinkenBone/blinkenlight_api/
 REALCONS_DIR=REALCONS/
@@ -1761,6 +1762,9 @@ REALCONS_OPT=-DUSE_REALCONS \
 	-I$(BLINKENLIGHT_API_DIR) \
 	-I/usr/include/tirpc \
 	-ltirpc
+
+### PIPANEL support
+PIDP10_OPT = -DPIDP10=1 -lgpiolib
 
 #
 # Common Libraries
@@ -2638,14 +2642,21 @@ EXPERIMENTAL = alpha pdq3 sage
 
 REALCONS_TARGETS = pdp8_realcons pdp15_realcons pdp10_realcons pdp11_realcons
 
-ifeq (,$(or ${PANDA_LIGHTS},${PIDP10}))
+PIPANEL_TARGETS =
+
+ifeq (,${PANDA_LIGHTS})
+# PDP10 REALCONS and PIPANEL are incompatible with PANDA_LIGHTS
 	REALCONS_TARGETS += pdp10-ka_realcons pdp10-ki_realcons \
 	    pdp10-kl_realcons pdp10-ks_realcons
+  PIPANEL_TARGETS += pdp10-ka_pipanel pdp10-ki_pipanel \
+      pdp10-kl_pipanel pdp10-ks_pipanel
 endif
 
 experimental : ${EXPERIMENTAL}
 
 realcons : ${REALCONS_TARGETS}
+
+pipanel : ${PIPANEL_TARGETS}
 
 clean :
 ifeq (${WIN32},)
@@ -3180,7 +3191,6 @@ pdp10-ka : $(BIN)pdp10-ka$(EXE)
 $(BIN)pdp10-ka$(EXE) : ${KA10} ${SIM}
 	$(MAKEIT) OPTS="$(KA10_OPT)"
 
-
 pdp10-ki : $(BIN)pdp10-ki$(EXE)
 
 $(BIN)pdp10-ki$(EXE) : ${KI10} ${SIM}
@@ -3198,8 +3208,9 @@ pdp10-ks : $(BIN)pdp10-ks$(EXE)
 $(BIN)pdp10-ks$(EXE) : ${KS10} ${SIM}
 	$(MAKEIT) OPTS="$(KS10_OPT)"
 
-ifeq (,$(or ${PANDA_LIGHTS},${PIDP10}))
-# REALCONS is incompatible with PANDA_LIGHTS and PIDP10
+ifeq (,${PANDA_LIGHTS})
+# PDP10 REALCONS and PIPANEL are incompatible with PANDA_LIGHTS
+
 pdp10-ka_realcons : $(BIN)pdp10-ka_realcons$(EXE)
 
 $(BIN)pdp10-ka_realcons$(EXE) : ${KA10} ${SIM} ${REALCONS} ${REALCONS_PDP10}
@@ -3219,6 +3230,27 @@ pdp10-ks_realcons : $(BIN)pdp10-ks_realcons$(EXE)
 
 $(BIN)pdp10-ks_realcons$(EXE) : ${KS10} ${SIM} ${REALCONS} ${REALCONS_PDP10}
 	$(MAKEIT) OPTS="$(KS10_OPT) $(REALCONS_OPT)"
+
+pdp10-ka_pipanel : $(BIN)pdp10-ka_pipanel$(EXE)
+
+$(BIN)pdp10-ka_pipanel$(EXE) : ${KA10} ${KA10D}/ka10_pipanel.c ${SIM}
+	$(MAKEIT) OPTS="$(KA10_OPT) $(PIDP10_OPT)"
+
+pdp10-ki_pipanel : $(BIN)pdp10-ki_pipanel$(EXE)
+
+$(BIN)pdp10-ki_pipanel$(EXE) : ${KI10} ${KI10D}/ka10_pipanel.c ${SIM}
+	$(MAKEIT) OPTS="$(KI10_OPT) $(PIDP10_OPT)"
+
+pdp10-kl_pipanel : $(BIN)pdp10-kl_pipanel$(EXE)
+
+$(BIN)pdp10-kl_pipanel$(EXE) : ${KL10} ${KL10D}/ka10_pipanel.c ${SIM}
+	$(MAKEIT) OPTS="$(KL10_OPT) $(PIDP10_OPT)"
+
+pdp10-ks_pipanel : $(BIN)pdp10-ks_pipanel$(EXE)
+
+$(BIN)pdp10-ks_pipanel$(EXE) : ${KS10} ${KS10D}/ka10_pipanel.c ${SIM}
+	$(MAKEIT) OPTS="$(KS10_OPT) $(PIDP10_OPT)"
+
 endif
 
 

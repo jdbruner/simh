@@ -475,6 +475,7 @@ WEAK void (*sim_vm_init) (void);
 
  */
 char* (*sim_vm_read) (char *ptr, int32 size, FILE *stream) = NULL;
+char *(*sim_vm_readline) (char *prompt, char *ptr, int32 size, FILE *stream) = NULL;
 void (*sim_vm_post) (t_bool from_scp) = NULL;
 CTAB *sim_vm_cmd = NULL;
 void (*sim_vm_sprint_addr) (char *buf, DEVICE *dptr, t_addr addr) = NULL;
@@ -3447,7 +3448,10 @@ while (stat != SCPE_EXIT) {                             /* in case exit */
         sim_cptr_is_action[sim_do_depth] = TRUE;
         }
     else {
-        if (sim_vm_read != NULL) {                      /* sim routine? */
+        if (sim_vm_readline != NULL) {                  /* sim routine?*/
+            cptr = (*sim_vm_readline) (sim_prompt, cbuf, sizeof(cbuf), stdin);
+            }
+        else if (sim_vm_read != NULL) {                 /* sim routine? */
             printf ("%s", sim_prompt);                  /* prompt */
             cptr = (*sim_vm_read) (cbuf, sizeof(cbuf), stdin);
             }

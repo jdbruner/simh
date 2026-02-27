@@ -38,7 +38,7 @@
 #include <unistd.h>                             /* Needed for sleep/geteuid */
 #include <sys/types.h>
 #include <editline/readline.h>
-#include "pinctrl/gpiolib.h"
+#include <gpiolib.h>
 #include "kx10_defs.h"
 
 extern uint64 SW;         /* Switch register */
@@ -577,18 +577,20 @@ read_line_handler(char *line)
  * Process input from stdin or switches.
  */
 static char *
-vm_read(char *cptr, int32 sz, FILE *file)
+vm_readline(char *prompt, char *cptr, int32 sz, FILE *file)
 {
     struct timeval tv = {0,10000};  /* Wait for 10ms */
     fd_set         read_set;
     int            fd = fileno(file);  /* What to wait on */
     int            col;
 
+    ASSURE(sz > 0);
+    *cptr = '\0';
     if (input_buffer != NULL)
         free(input_buffer);
-    rl_callback_handler_install(sim_prompt, (rl_vcpfunc_t*) &read_line_handler);
-    input_wait = 1;
     input_buffer = NULL;
+    input_wait = 1;
+    rl_callback_handler_install(prompt, (rl_vcpfunc_t*) &read_line_handler);
     while (input_wait) {
        FD_ZERO(&read_set);
        FD_SET(fd, &read_set);
@@ -599,12 +601,10 @@ vm_read(char *cptr, int32 sz, FILE *file)
            rl_callback_read_char();
        } else {
            if (pwr_off) {
-               if ((input_buffer = (char *)malloc(20)) != 0) {
-                   strcpy(input_buffer, "quit\r");
-                   stop_sw = 1;
-                   pwr_off = 0;
-                   input_wait = 0;
-               }
+               strlcpy(cptr, "quit\r", sz);
+               stop_sw = 1;
+               pwr_off = 0;
+               input_wait = 0;
                break;
            }
 
@@ -629,41 +629,32 @@ vm_read(char *cptr, int32 sz, FILE *file)
                             break;
 
                     case 2:      /* Execute function */
-                            if ((input_buffer = (char *)malloc(20)) != 0) {
-                                strcpy(input_buffer, "step\r");
-                                xct_sw = 1;
-                                input_wait = 0;
-                            }
+                            strlcpy(cptr, "step\r", sz);
+                            xct_sw = 1;
+                            input_wait = 0;
                             break;
 
                     case 3:      /* Reset function */
-                            if ((input_buffer = (char *)malloc(20)) != 0) {
-                                strcpy(input_buffer, "reset all\r");
-                                input_wait = 0;
-                            }
+                            strlcpy(cptr, "reset all\r", sz);
+                            input_wait = 0;
                             break;
 
                     case 4:      /* Stop function */
                             break;
 
                     case 5:      /* Continue */
-                            if ((input_buffer = (char *)malloc(10)) != 0) {
-                               strcpy(input_buffer,
-                                        (sing_inst_sw) ? "step\r" : "cont\r");
-                               input_wait = 0;
-                            }
+                            strlcpy(cptr, (sing_inst_sw) ? "step\r" : "cont\r", sz);
+                            input_wait = 0;
                             break;
 
                     case 6:      /* Start */
-                            if ((input_buffer = (char *)malloc(20)) != 0) {
-                                sprintf(input_buffer, "run %06o\r", AS);
-                                input_wait = 0;
-                            }
+                            snprintf(cptr, sz, "run %06o\r", AS);
+                            input_wait = 0;
                             break;
 
 #if KA | KI
                     case 7:      /* ReadIN */
-                            if ((input_buffer = (char *)malloc(20)) != 0) {
+                            {
                                 DEVICE         *dptr;
                                 int            i;
 
@@ -673,23 +664,20 @@ vm_read(char *cptr, int32 sz, FILE *file)
                                     if (dibp && !(dptr->flags & DEV_DIS) &&
                                         (dibp->dev_num == (rdrin_dev & 0774))) {
                                         if (dptr->numunits > 1)
-                                            sprintf(input_buffer, "boot %s0\r",
+                                            snprintf(cptr, sz, "boot %s0\r",
                                                       dptr->name);
                                         else
-                                            sprintf(input_buffer, "boot %s\r",
+                                            snprintf(cptr, sz, "boot %s\r",
                                                       dptr->name);
                                         input_wait = 0;
                                         break;
                                     }
                                 }
                             }
-                            /* If we did not find a boot device, free command */
-                            if (input_wait) {
-                                free(input_buffer);
-                                input_buffer = NULL;
+                            /* If we did not find a boot device, print message */
+                            if (input_wait)
                                 sim_messagef(SCPE_OK, "Device %03o not found\n",
                                                 rdrin_dev);
-                            }
                             break;
 #endif
 
@@ -725,12 +713,11 @@ vm_read(char *cptr, int32 sz, FILE *file)
        }
     }
     rl_callback_handler_remove();
-    return input_buffer;
-}
-
-static void
-vm_post(t_bool from_scp)
-{
+    if (*cptr != '\0')
+        printf("%s\n", cptr);               /* print the synthesized command */
+    else if (input_buffer != NULL)
+        strlcpy(cptr, input_buffer, sz);    /* put the input into the caller's buffer*/
+    return cptr;
 }
 
 /*
@@ -744,8 +731,7 @@ t_stat pi_panel_start(void)
 
     /* start up multiplexing thread */
     r = gpio_mux_thread_start();
-    sim_vm_read = &vm_read;
-    sim_vm_post = &vm_post;
+    sim_vm_readline = &vm_readline;
     return r;
 }
 
@@ -756,7 +742,7 @@ void pi_panel_stop(void)
 {
     if (blink_thread_terminate == 0) {
         blink_thread_terminate=1;
-        sim_vm_read = NULL;
+        sim_vm_readline = NULL;
 
         sleep (2);      /* allow threads to close down */
     }
