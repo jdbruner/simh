@@ -6777,6 +6777,7 @@ else {
                          (mptr->pstring && (MATCH_CMD (gbuf, mptr->pstring) == 0))) ||
                         (!(mptr->mask & MTAB_VDV) && (mptr->mstring && (MATCH_CMD (gbuf, mptr->mstring) == 0)))) {
                         dptr = sim_dflt_dev;
+                        uptr = dptr->units;
                         lvl = MTAB_VDV;                 /* device match */
                         cptr = svptr;
                         while (sim_isspace(*cptr))
