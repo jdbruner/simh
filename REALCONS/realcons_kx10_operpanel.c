@@ -261,7 +261,8 @@ t_stat realcons_kx10_operpanel_service(realcons_console_logic_kx10_t *_this)
 
     // set the MEMORY INDICATOR triangle LEDs above row 4
     if (_this->memory_indicator_program == 1) {
-
+        realcons_kx10_control_set(&_this->led_MEMORY_DATA, 0);
+        realcons_kx10_control_set(&_this->led_PROGRAM_DATA, 1);
     } else {
         realcons_kx10_control_set(&_this->led_MEMORY_DATA, 1);
         realcons_kx10_control_set(&_this->led_PROGRAM_DATA, 0);

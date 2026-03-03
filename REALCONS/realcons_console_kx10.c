@@ -96,8 +96,9 @@ void realcons_console_kx10__event_opcode_any(realcons_console_logic_kx10_t *_thi
     // set PC and instruction LEDS
     realcons_kx10_control_set(&_this->leds_PROGRAM_COUNTER, SIGNAL_GET(cpusignal_PC));
     realcons_kx10_control_set(&_this->leds_INSTRUCTION, SIGNAL_GET(cpusignal_instruction));
-
-     // _this->run_state = RUN_STATE_RUN; // single step?
+    if (_this->memory_indicator_program == 0)
+        realcons_kx10_control_set(&_this->leds_DATA,
+            SIGNAL_GET(cpusignal_console_memory_indicator));
 }
 
 void realcons_console_kx10__event_opcode_halt(realcons_console_logic_kx10_t *_this)
@@ -171,8 +172,7 @@ void realcons_console_kx10__event_operator_exam_deposit(realcons_console_logic_k
             (realcons_kx10_control_get(&_this->leds_INSTRUCTION) & ~0777777uL) | addr);
     realcons_kx10_control_set(&_this->leds_DATA,
         SIGNAL_GET(cpusignal_memory_data_register));
-    realcons_kx10_control_set(&_this->led_MEMORY_DATA, 1);
-    realcons_kx10_control_set(&_this->led_PROGRAM_DATA, 0);
+    // the small triangle memory indicators are set in service()
 }
 
 // if the program writes to console data or address registers,
