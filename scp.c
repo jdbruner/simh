@@ -2977,6 +2977,7 @@ if (vm_flag || ((reason = fprint_sym (sim_tmpfile, addr, val, uptr, sw)) > 0)) {
     reason = dfltinc;
     }
 sim_mfile = NULL;
+mbuf.buf[MIN(mbuf.pos,511)] = '\0'; /* ensure null termination */
 strlcpy (buf, mbuf.buf, MIN(bufsize, mbuf.pos + 1));
 free (mbuf.buf);
 return reason;
@@ -17989,3 +17990,4 @@ for (i = 0; (dptr = sim_devices[i]) != NULL; i++) {
     }
 return stat;
 }
+
