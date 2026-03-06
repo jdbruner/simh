@@ -83,7 +83,8 @@ t_stat realcons_kx10_operpanel_service(realcons_console_logic_kx10_t *_this)
     // "Turn off RUN so the processor stops with STOP MAN on. At the stop PC points to the location of the instruction that will
     // be fetched if CONT is pressed (this is the instruction that would have been done next had the processor not stopped)."
     if (_this->button_STOP.pendingbuttons) {
-        SIGNAL_SET(cpusignal_console_halt, 1);
+        if (_this->run_state == RUN_STATE_RUN)
+            SIGNAL_SET(cpusignal_console_halt, 1);
         _this->button_STOP.pendingbuttons = 0;
     }
 
@@ -108,6 +109,7 @@ t_stat realcons_kx10_operpanel_service(realcons_console_logic_kx10_t *_this)
     // CONT
     _this->button_CONT.enabled = !_this->console_lock && (_this->run_state != RUN_STATE_RUN);
     if (_this->button_CONT.pendingbuttons) {
+        SIGNAL_SET(cpusignal_console_halt, 0);  // sometimes needed due to a race condition
         if (single_inst)
             sprintf(_this->realcons->simh_cmd_buffer, "step 1\n");
         else
