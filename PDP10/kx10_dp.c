@@ -459,8 +459,10 @@ t_stat dp_devio(uint32 dev, uint64 *data) {
                  df10->status &= ~PI_ENABLE;
              else
                  df10_setirq(df10);
-         } else if ((uptr->UFLAGS & DONE) != 0) {
-             /* If setting the interrupt value and done set trigger IRQ */
+         }
+
+         /* If setting the interrupt value and done set trigger IRQ */
+         if ((uptr->UFLAGS & DONE) != 0) {
             df10_setirq(df10);
          }
   
