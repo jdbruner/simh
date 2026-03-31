@@ -108,6 +108,13 @@
 # Internal ROM support can be disabled if GNU make is invoked with
 # DONT_USE_ROMS=1 on the command line.
 #
+# If make is invoked with SOURCE_CHECK=1, after the build completes
+# a basic check of the compiled simulator code will validate that
+# the code just compiled conforms to the basic standars of the simh
+# project.  These checks involve source files having CRLF line 
+# endings, spaces instead of tabs, host platform specific code in
+# simulator code, etc.
+#
 # For linting (or other code analyzers) make may be invoked similar to:
 #
 #   make GCC=cppcheck CC_OUTSPEC= LDFLAGS= CFLAGS_G="--enable=all --template=gcc" CC_STD=--std=c99
