@@ -3,14 +3,14 @@
 [This is ``.github/README.md``. You can find the simh README [here](../README.md).]
 
 This repository integrates [simh](https://github.com/simh/simh)_: The Computer History Simulation Project_
-with REALCONS and BlinkenBone support and a PiDP11 panel server.
+with REALCONS and BlinkenBone support and a PiDP panel server.
 The non-simh sources are based upon:
 - [BlinkenBone](https://github.com/j-hoppe/BlinkenBone)_: extend the SimH simulator with real or simulated console panels_
 - [PiDP11](https://obsolescence.wixsite.com/obsolescence/pidp-11)_: recreating the PDP-11/70_
 
 Please consult the individual README and LICENSE files in the tree.
 
-The BlinkenBone and PiDP11 sources have been reorganized into a submodule,
+The BlinkenBone and PiDP sources have been reorganized into a submodule,
 with changes to simh itself in the simh source tree
 (including changes to ``scp.c`` and the addition of ``REALCONS``).
 There are additional build targets for REALCONS
