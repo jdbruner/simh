@@ -2758,7 +2758,8 @@ if (cptr && (*cptr != 0))                               /* too many arguments? *
     return SCPE_2MARG;
 if (sim_con_ldsc.serport == 0)                          /* ignore if already closed */
     return SCPE_OK;
-return tmxr_close_master (&sim_con_tmxr);               /* close master socket */
+tmxr_close_master (&sim_con_tmxr);                      /* close master socket */
+return tmxr_attach (&sim_con_tmxr, &sim_con_unit, "CONSOLE");
 }
 
 /* Show the console expect rules and state */
