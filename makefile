@@ -108,6 +108,13 @@
 # Internal ROM support can be disabled if GNU make is invoked with
 # DONT_USE_ROMS=1 on the command line.
 #
+# If make is invoked with SOURCE_CHECK=1, after the build completes
+# a basic check of the compiled simulator code will validate that
+# the code just compiled conforms to the basic standars of the simh
+# project.  These checks involve source files having CRLF line 
+# endings, spaces instead of tabs, host platform specific code in
+# simulator code, etc.
+#
 # For linting (or other code analyzers) make may be invoked similar to:
 #
 #   make GCC=cppcheck CC_OUTSPEC= LDFLAGS= CFLAGS_G="--enable=all --template=gcc" CC_STD=--std=c99
@@ -2296,10 +2303,14 @@ ALTAIR8800 = \
     ${ALTAIR8800D}/s100_rom.c \
     ${ALTAIR8800D}/s100_z80.c \
     ${ALTAIR8800D}/cromemco_dazzler.c \
+    ${ALTAIR8800D}/farmtek_fdcplus.c \
+    ${ALTAIR8800D}/icom_fd3x12.c \
     ${ALTAIR8800D}/mits_2sio.c \
     ${ALTAIR8800D}/mits_acr.c \
     ${ALTAIR8800D}/mits_dsk.c \
+    ${ALTAIR8800D}/mits_hdsk.c \
     ${ALTAIR8800D}/pmmi_mm103.c \
+    ${ALTAIR8800D}/pt_vdm1.c \
     ${ALTAIR8800D}/sds_sbc200.c \
     ${ALTAIR8800D}/sds_vfii.c \
     ${ALTAIR8800D}/tarbell_fdc.c \

@@ -2803,6 +2803,7 @@ static struct {
     {"76800",   TMLN_SPD_76800_BPS},
     {"80000",   TMLN_SPD_80000_BPS},
     {"115200",  TMLN_SPD_115200_BPS},
+    {"230400",  TMLN_SPD_230400_BPS},
     {"0",       0}};                    /* End of List, last valid value */
 int nspeed;
 char speed[24];
@@ -3755,13 +3756,18 @@ t_stat tmxr_set_console_units (UNIT *rxuptr, UNIT *txuptr)
 {
 extern TMXR sim_con_tmxr;
 
+if ((rxuptr == NULL) || (txuptr == NULL))
+    return sim_messagef (SCPE_IERR, "tmxr_set_console_units() must specify non NULL receive and transmit units\n");
+if (sim_con_tmxr.uptr)
+    sim_con_tmxr.uptr->dynflags &= ~UNIT_TM_POLL;
+if (sim_con_tmxr.ldsc->o_uptr)
+    sim_con_tmxr.ldsc->o_uptr->dynflags &= ~UNIT_TM_POLL;
 rxuptr->tmxr = &sim_con_tmxr;
 txuptr->tmxr = &sim_con_tmxr;
 tmxr_set_line_unit (&sim_con_tmxr, 0, rxuptr);
 tmxr_set_line_output_unit (&sim_con_tmxr, 0, txuptr);
 return SCPE_OK;
 }
-
 
 static TMXR **tmxr_open_devices = NULL;
 static int tmxr_open_device_count = 0;

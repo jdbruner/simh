@@ -277,8 +277,8 @@ REG dlo_reg[] = {
     };
 
 REG dlcjo_reg[] = {
-    { SRDATAD (CSR, dlcj_state, o_csr, DEV_RDX, 16, 0, DLX_LINES, "Output Control/Status") },
-    { SRDATAD (BUF, dlcj_state, o_buf, DEV_RDX, 8, 0, DLX_LINES, "Output Buffer") },
+    { SRDATAD (CSR, dlcj_state, o_csr, DEV_RDX, 16, 0, DLCJ_LINES, "Output Control/Status") },
+    { SRDATAD (BUF, dlcj_state, o_buf, DEV_RDX, 8, 0, DLCJ_LINES, "Output Buffer") },
     { GRDATA (IREQ, dlcjo_ireq, DEV_RDX, DLCJ_LINES, 0) },
     { URDATA (TIME, dlcjo_unit[0].wait, 10, 31, 0,
               DLCJ_LINES, PV_LEFT) },
