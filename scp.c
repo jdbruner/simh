@@ -1812,7 +1812,7 @@ static const char simh_help2[] =
       " %%SIM_GIT_COMMIT_TIME%%, %%SIM_ARCHIVE_GIT_COMMIT_ID%%,\n"
       " %%SIM_ARCHIVE_GIT_COMMIT_TIME%%, %%SIM_RUNLIMIT%%, %%SIM_RUNLIMIT_UNITS%%,\n"
       " %%SIM_HOST_CORE_COUNT%%, %%SIM_HOST_MAX_THREADS%%,\n"
-      " %%SIM_ETHERNET_CAPABILITIES%%\n\n"
+      " %%SIM_ETHERNET_CAPABILITIES%%, %%SIM_PROCESS_PID%%\n\n"
       "+Token %%0 expands to the command file name.\n"
       "+Token %%n (n being a single digit) expands to the n'th argument\n"
       "+Token %%* expands to the whole set of arguments (%%1 ... %%9)\n\n"
@@ -1884,6 +1884,7 @@ static const char simh_help2[] =
       "++%%SIM_VERSION_MODE%%     The release mode (Current, Alpha, Beta)\n"
       "++%%SIM_GIT_COMMIT_ID%%    The git commit id of the current build\n"
       "++%%SIM_GIT_COMMIT_TIME%%  The git commit time of the current build\n"
+      "++%%SIM_PROCESS_PID%%      The process id of the running simulator\n"
       "++%%SIM_RUNLIMIT%%         The current execution limit defined\n"
       "++%%SIM_RUNLIMIT_UNITS%%   The units of the SIM_RUNLIMIT value\n"
       "++++++++       (instructions, cycles or time)\n"
@@ -5115,6 +5116,10 @@ if (!ap) {                              /* no environment variable found? */
             sprintf (rbuf, "%s", sim_stop_messages[stat]);
         else
             sprintf (rbuf, "%s", sim_error_text (stat));
+        ap = rbuf;
+        }
+    else if (!strcmp ("SIM_PROCESS_PID", gbuf)) {
+        sprintf (rbuf, "%u", (uint32)(getpid ()));
         ap = rbuf;
         }
     else if (!strcmp ("SIM_VERIFY", gbuf)) {
