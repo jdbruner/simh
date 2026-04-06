@@ -3172,10 +3172,13 @@ if (sim_emax <= 0)
     sim_emax = 1;
 if (sim_timer_init ()) {
     fprintf (stderr, "Fatal timer initialization error\n");
-    if (sim_ttisatty())
-        read_line_p ("Hit Return to exit: ", cbuf, sizeof (cbuf) - 1, stdin);
-    free (targv);
-    return EXIT_FAILURE;
+    sim_exit_status = EXIT_FAILURE;
+    if (!register_check) {
+        if (sim_ttisatty())
+            read_line_p ("Hit Return to exit: ", cbuf, sizeof (cbuf) - 1, stdin);
+        free (targv);
+        return EXIT_FAILURE;
+        }
     }
 sim_register_internal_device (&sim_scp_dev);
 sim_register_internal_device (&sim_expect_dev);
@@ -3220,9 +3223,9 @@ if (register_check) {
         goto cleanup_and_exit;
         }
     sim_printf ("*** Good Registers in %s simulator.\n", sim_name);
-    if (argc < 2) {                                 /* No remaining command arguments? */
-        sim_exit_status = EXIT_SUCCESS;             /* then we're done */
-        goto cleanup_and_exit;
+    if ((argc < 2) ||                               /* No remaining command arguments */
+        (sim_exit_status != EXIT_SUCCESS)) {        /* OR prior error? */
+        goto cleanup_and_exit;                      /* then we're done */
         }
     }
 if ((stat = sim_brk_init ()) != SCPE_OK) {
