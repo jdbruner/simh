@@ -172,6 +172,10 @@ else
   export MKDIR = mkdir -p
   export OSTYPE = $(shell uname)
 endif
+NJOBS:=$(patsubst -j%,%,$(filter -j%,$(MAKEFLAGS)))
+ifneq (,$(NJOBS))
+  JOBS:=-j$(NJOBS)
+endif
 ifeq ($(WIN32),)
   SIM_MAJOR=$(shell grep SIM_MAJOR sim_rev.h | awk '{ print $$3 }')
 else
@@ -417,7 +421,7 @@ ifeq (${WIN32},)  #*nix Environments (&& cygwin)
   endif
   RUNNING_AS_ROOT:=$(if $(findstring Darwin,$(OSTYPE)),$(shell if [ `id -u` == '0' ]; then echo running_as_root; fi),$(shell if $(TEST) -r /dev/mem; then echo running_as_root; fi))
   CAN_AUTO_INSTALL_PACKAGES:=$(findstring HOMEBREW,$(PKG_MGR))$(RUNNING_AS_ROOT)
-  override AUTO_INSTALL_PACKAGES:=$(and $(AUTO_INSTALL_PACKAGES),$(or $(findstring HOMEBREW,$(PKG_MGR)),$(RUNNING_AS_ROOT)))
+  override AUTO_INSTALL_PACKAGES:=$(and $(or $(AUTO_INSTALL_PACKAGES),$(CI)),$(or $(findstring HOMEBREW,$(PKG_MGR)),$(RUNNING_AS_ROOT)))
   ifeq (${GCC},)
     ifeq (,$(call find_exe,gcc))
       ifneq (clang,$(findstring clang,$(and $(call find_exe,cc),$(shell cc -v /dev/null 2>&1 | grep 'clang'))))
@@ -1553,8 +1557,8 @@ ifneq (,$(and $(AUTO_INSTALL_PACKAGES),$(PKG_CMD),$(USEFUL_PACKAGES)))
     INSTALLER_RESULT = $(shell $(PKG_CMD) $(USEFUL_PACKAGES) $(OPTIONAL_PACKAGES) 1>&2)
     $(info $(INSTALLER_RESULT))
     $(info *** rerunning this make to perform your desired build...)
-    MAKE_RESULT = $(shell $(MAKE) $(MAKECMDGOALS) $(EXTRAS) 1>&2)
-    $(error Done: $(MAKE_RESULT))
+    MAKE_RESULT = $(shell $(MAKE) $(JOBS) $(MAKECMDGOALS) $(EXTRAS) 1>&2)
+    $(info Done: $(MAKE_RESULT))
   endif
 else
   ifneq (,$(USEFUL_PACKAGES))
@@ -1577,149 +1581,155 @@ else
         INSTALLER_RESULT = $(shell $(PKG_CMD) $(USEFUL_PACKAGES) $(OPTIONAL_PACKAGES) 1>&2)
         $(info $(INSTALLER_RESULT))
         $(info *** rerunning this make to perform your desired build...)
-        MAKE_RESULT = $(shell $(MAKE) $(MAKECMDGOALS) $(EXTRAS) 1>&2)
-        $(error Done: $(MAKE_RESULT))
+        MAKE_RESULT = $(shell $(MAKE) $(JOBS) $(MAKECMDGOALS) $(EXTRAS) 1>&2)
+        $(info Done: $(MAKE_RESULT))
       endif
-      ifeq (,$(PKG_NO_SUDO))
-        $(info Enter:    $$ sudo $(PKG_CMD) $(USEFUL_PACKAGES) $(OPTIONAL_PACKAGES))
-        $(info when that completes)
-        $(info re-enter: $$ $(MAKE) $(MAKECMDGOALS) $(EXTRAS))
-        $(error )
-      else
-        hash := \#
-        $(info Enter:    $$ su)
-        $(info Enter:    Password: <type-root-password>)
-        $(info Enter:    $(hash) $(PKG_CMD) $(USEFUL_PACKAGES) $(OPTIONAL_PACKAGES))
-        $(info when that completes)
-        $(info Enter:    $(hash) exit)
-        $(info re-enter: $$ $(MAKE) $(MAKECMDGOALS) $(EXTRAS))
-        $(error )
+      ifeq (,$(MAKE_RESULT))
+        ifeq (,$(PKG_NO_SUDO))
+          $(info Enter:    $$ sudo $(PKG_CMD) $(USEFUL_PACKAGES) $(OPTIONAL_PACKAGES))
+          $(info when that completes)
+          $(info re-enter: $$ $(MAKE) $(MAKECMDGOALS) $(EXTRAS))
+          $(error )
+        else
+          hash := \#
+          $(info Enter:    $$ su)
+          $(info Enter:    Password: <type-root-password>)
+          $(info Enter:    $(hash) $(PKG_CMD) $(USEFUL_PACKAGES) $(OPTIONAL_PACKAGES))
+          $(info when that completes)
+          $(info Enter:    $(hash) exit)
+          $(info re-enter: $$ $(MAKE) $(MAKECMDGOALS) $(EXTRAS))
+          $(error )
+        endif
       endif
     endif
   endif
 endif
-ifneq (,$(GIT_COMMIT_ID))
-  CFLAGS_GIT = -DSIM_GIT_COMMIT_ID=$(GIT_COMMIT_ID)
-endif
-ifneq (,$(GIT_COMMIT_TIME))
-  CFLAGS_GIT += -DSIM_GIT_COMMIT_TIME=$(GIT_COMMIT_TIME)
-endif
-ifneq (,$(UNSUPPORTED_BUILD))
-  CFLAGS_GIT += -DSIM_BUILD=Unsupported=$(UNSUPPORTED_BUILD)
-endif
-OPTIMIZE ?= -O2
-ifneq ($(DEBUG),)
-  CFLAGS_G = -g -ggdb -g3
-  CFLAGS_O = -O0
-  BUILD_FEATURES = - debugging support
-  LTO =
-else
-  ifneq (,$(findstring clang,$(COMPILER_NAME))$(findstring LLVM,$(COMPILER_NAME)))
-    CFLAGS_O = $(OPTIMIZE) -fno-strict-overflow
-    GCC_OPTIMIZERS_CMD = ${GCC} --help 2>&1
-  else
-    CFLAGS_O := $(OPTIMIZE)
-  endif
-  LDFLAGS_O =
-  GCC_MAJOR_VERSION = $(firstword $(subst  ., ,$(GCC_VERSION)))
-  ifneq (3,$(GCC_MAJOR_VERSION))
-    ifeq (,$(GCC_OPTIMIZERS_CMD))
-      GCC_OPTIMIZERS_CMD = ${GCC} --help=optimizers
-      GCC_COMMON_CMD = ${GCC} --help=common
-    endif
-  endif
-  ifneq (,$(GCC_OPTIMIZERS_CMD))
-    GCC_OPTIMIZERS = $(shell $(GCC_OPTIMIZERS_CMD))
-  endif
-  ifneq (,$(GCC_COMMON_CMD))
-    GCC_OPTIMIZERS += $(shell $(GCC_COMMON_CMD))
-  endif
-  ifneq (,$(findstring -finline-functions,$(GCC_OPTIMIZERS)))
-    CFLAGS_O += -finline-functions
-  endif
-  ifneq (,$(findstring -fgcse-after-reload,$(GCC_OPTIMIZERS)))
-    CFLAGS_O += -fgcse-after-reload
-  endif
-  ifneq (,$(findstring -fpredictive-commoning,$(GCC_OPTIMIZERS)))
-    CFLAGS_O += -fpredictive-commoning
-  endif
-  ifneq (,$(findstring -fipa-cp-clone,$(GCC_OPTIMIZERS)))
-    CFLAGS_O += -fipa-cp-clone
-  endif
-  ifneq (,$(findstring -funsafe-loop-optimizations,$(GCC_OPTIMIZERS)))
-    CFLAGS_O += -fno-unsafe-loop-optimizations
-  endif
-  ifneq (,$(findstring -fstrict-overflow,$(GCC_OPTIMIZERS)))
-    CFLAGS_O += -fno-strict-overflow
-  endif
-  ifneq (,$(findstring $(GCC_VERSION),$(LTO_EXCLUDE_VERSIONS)))
-    override LTO =
-  endif
-  ifneq (,$(LTO))
-    ifneq (,$(findstring -flto,$(GCC_OPTIMIZERS)))
-      CFLAGS_O += -flto
-      LTO_FEATURE = , with Link Time Optimization,
-    endif
-  endif
-  BUILD_FEATURES = - compiler optimizations$(LTO_FEATURE) and no debugging support
-endif
-ifneq (3,$(GCC_MAJOR_VERSION))
-  ifeq (,$(GCC_WARNINGS_CMD))
-    GCC_WARNINGS_CMD = ${GCC} --help=warnings
-  endif
-endif
-ifneq (clean,${MAKECMDGOALS})
-  BUILD_FEATURES := $(BUILD_FEATURES). $(COMPILER_NAME)
-  $(info ***)
-  $(info *** $(BUILD_SINGLE)Simulator$(BUILD_MULTIPLE) being built with:)
-  $(info *** $(BUILD_FEATURES).)
-  $(info *** - $(if $(findstring 1,$(BUILD_SEPARATE)),Each source module compiled separately,Building using a single compile and link).)
-  ifeq (1,$(QUIET))
-    $(info *** - Summary Compile and Link commands are displayed.)
-    $(info ***   Put QUIET=0 on the make command line to see command details.)
-  endif
-  ifneq (,$(NETWORK_FEATURES))
-    $(info *** $(NETWORK_FEATURES).)
-  endif
-  ifneq (,$(NETWORK_LAN_FEATURES))
-    $(info *** - Local LAN packet transports: $(NETWORK_LAN_FEATURES))
-  endif
-  ifneq (,$(VIDEO_FEATURES))
-    $(info *** $(VIDEO_FEATURES).)
-  endif
-  ifneq (,$(TESTING_FEATURES))
-    $(info *** $(TESTING_FEATURES).)
-  endif
+ifeq (,$(MAKE_RESULT))
   ifneq (,$(GIT_COMMIT_ID))
-    $(info ***)
-    $(info *** git$(GIT_ARCHIVE_COMMIT_ID) commit id is $(GIT_COMMIT_ID).)
-    $(info *** git$(GIT_ARCHIVE_COMMIT_ID) commit time is $(GIT_COMMIT_TIME).)
+    CFLAGS_GIT = -DSIM_GIT_COMMIT_ID=$(GIT_COMMIT_ID)
   endif
-  $(info ***)
-endif
-ifneq ($(DONT_USE_ROMS),)
-  ROMS_OPT = -DDONT_USE_INTERNAL_ROM
-else
-  BUILD_ROMS = ${BIN}buildtools/BuildROMs${EXE}
-endif
-ifneq ($(DONT_USE_READER_THREAD),)
-  NETWORK_OPT += -DDONT_USE_READER_THREAD
-endif
+  ifneq (,$(GIT_COMMIT_TIME))
+    CFLAGS_GIT += -DSIM_GIT_COMMIT_TIME=$(GIT_COMMIT_TIME)
+  endif
+  ifneq (,$(UNSUPPORTED_BUILD))
+    CFLAGS_GIT += -DSIM_BUILD=Unsupported=$(UNSUPPORTED_BUILD)
+  endif
+  OPTIMIZE ?= -O2
+  ifneq ($(DEBUG),)
+    CFLAGS_G = -g -ggdb -g3
+    CFLAGS_O = -O0
+    BUILD_FEATURES = - debugging support
+    LTO =
+  else
+    ifneq (,$(findstring clang,$(COMPILER_NAME))$(findstring LLVM,$(COMPILER_NAME)))
+      CFLAGS_O = $(OPTIMIZE) -fno-strict-overflow
+      GCC_OPTIMIZERS_CMD = ${GCC} --help 2>&1
+    else
+      CFLAGS_O := $(OPTIMIZE)
+    endif
+    LDFLAGS_O =
+    GCC_MAJOR_VERSION = $(firstword $(subst  ., ,$(GCC_VERSION)))
+    ifneq (3,$(GCC_MAJOR_VERSION))
+      ifeq (,$(GCC_OPTIMIZERS_CMD))
+        GCC_OPTIMIZERS_CMD = ${GCC} --help=optimizers
+        GCC_COMMON_CMD = ${GCC} --help=common
+      endif
+    endif
+    ifneq (,$(GCC_OPTIMIZERS_CMD))
+      GCC_OPTIMIZERS = $(shell $(GCC_OPTIMIZERS_CMD))
+    endif
+    ifneq (,$(GCC_COMMON_CMD))
+      GCC_OPTIMIZERS += $(shell $(GCC_COMMON_CMD))
+    endif
+    ifneq (,$(findstring -finline-functions,$(GCC_OPTIMIZERS)))
+      CFLAGS_O += -finline-functions
+    endif
+    ifneq (,$(findstring -fgcse-after-reload,$(GCC_OPTIMIZERS)))
+      CFLAGS_O += -fgcse-after-reload
+    endif
+    ifneq (,$(findstring -fpredictive-commoning,$(GCC_OPTIMIZERS)))
+      CFLAGS_O += -fpredictive-commoning
+    endif
+    ifneq (,$(findstring -fipa-cp-clone,$(GCC_OPTIMIZERS)))
+      CFLAGS_O += -fipa-cp-clone
+    endif
+    ifneq (,$(findstring -funsafe-loop-optimizations,$(GCC_OPTIMIZERS)))
+      CFLAGS_O += -fno-unsafe-loop-optimizations
+    endif
+    ifneq (,$(findstring -fstrict-overflow,$(GCC_OPTIMIZERS)))
+      CFLAGS_O += -fno-strict-overflow
+    endif
+    ifneq (,$(findstring $(GCC_VERSION),$(LTO_EXCLUDE_VERSIONS)))
+      override LTO =
+    endif
+    ifneq (,$(LTO))
+      ifneq (,$(findstring -flto,$(GCC_OPTIMIZERS)))
+        CFLAGS_O += -flto
+        LTO_FEATURE = , with Link Time Optimization,
+      endif
+    endif
+    BUILD_FEATURES = - compiler optimizations$(LTO_FEATURE) and no debugging support
+  endif
+  ifneq (3,$(GCC_MAJOR_VERSION))
+    ifeq (,$(GCC_WARNINGS_CMD))
+      GCC_WARNINGS_CMD = ${GCC} --help=warnings
+    endif
+  endif
+  ifneq (clean,${MAKECMDGOALS})
+    BUILD_FEATURES := $(BUILD_FEATURES). $(COMPILER_NAME)
+    $(info ***)
+    $(info *** $(BUILD_SINGLE)Simulator$(BUILD_MULTIPLE) being built by GNU Make version $(GNUMakeVERSION) with:)
+    $(info *** $(BUILD_FEATURES).)
+    $(info *** - $(if $(findstring 1,$(BUILD_SEPARATE)),Each source module compiled separately,Building using a single compile and link).)
+    ifeq (1,$(QUIET))
+      $(info *** - Summary Compile and Link commands are displayed.)
+      $(info ***   Put QUIET=0 on the make command line to see command details.)
+    endif
+    ifneq (,$(NJOBS))
+      $(info *** - Building $(NJOBS) targets in parallel.)
+    endif
+    ifneq (,$(NETWORK_FEATURES))
+      $(info *** $(NETWORK_FEATURES).)
+    endif
+    ifneq (,$(NETWORK_LAN_FEATURES))
+      $(info *** - Local LAN packet transports: $(NETWORK_LAN_FEATURES))
+    endif
+    ifneq (,$(VIDEO_FEATURES))
+      $(info *** $(VIDEO_FEATURES).)
+    endif
+    ifneq (,$(TESTING_FEATURES))
+      $(info *** $(TESTING_FEATURES).)
+    endif
+    ifneq (,$(GIT_COMMIT_ID))
+      $(info ***)
+      $(info *** git$(GIT_ARCHIVE_COMMIT_ID) commit id is $(GIT_COMMIT_ID).)
+      $(info *** git$(GIT_ARCHIVE_COMMIT_ID) commit time is $(GIT_COMMIT_TIME).)
+    endif
+    $(info ***)
+  endif
+  ifneq ($(DONT_USE_ROMS),)
+    ROMS_OPT = -DDONT_USE_INTERNAL_ROM
+  else
+    BUILD_ROMS = ${BIN}buildtools/BuildROMs${EXE}
+  endif
+  ifneq ($(DONT_USE_READER_THREAD),)
+    NETWORK_OPT += -DDONT_USE_READER_THREAD
+  endif
 
-CC_OUTSPEC = -o $@
-export CC := ${GCC} ${CC_STD} -U__STRICT_ANSI__ ${CFLAGS_G} ${CFLAGS_O} ${CFLAGS_GIT} ${CFLAGS_I} -DSIM_COMPILER="${COMPILER_NAME}" $(SIM_BUILD_OS_VERSION) -DSIM_BUILD_TOOL=simh-makefile$(if $(findstring 1,$(BUILD_SEPARATE)),-separate-compiles,-single-compile) -I . ${OS_CCDEFS} ${ROMS_OPT}
-ifneq (,${SIM_VERSION_MODE})
-  CC += -DSIM_VERSION_MODE="${SIM_VERSION_MODE}"
+  CC_OUTSPEC = -o $@
+  export CC := ${GCC} ${CC_STD} -U__STRICT_ANSI__ ${CFLAGS_G} ${CFLAGS_O} ${CFLAGS_GIT} ${CFLAGS_I} -DSIM_COMPILER="${COMPILER_NAME}" $(SIM_BUILD_OS_VERSION) -DSIM_BUILD_TOOL=simh-makefile$(if $(findstring 1,$(BUILD_SEPARATE)),-separate-compiles,-single-compile) -I . ${OS_CCDEFS} ${ROMS_OPT}
+  ifneq (,${SIM_VERSION_MODE})
+    CC += -DSIM_VERSION_MODE="${SIM_VERSION_MODE}"
+  endif
+  ifneq (,$(shell if $(TEST) -d BIN/unix-build/local/lib; then echo extra libs; fi))
+    OS_LDFLAGS += -LBIN/unix-build/local/lib
+  endif
+  ifneq (,$(and $(findstring -lpthread,$(NETWORK_LDFLAGS)),$(findstring -lpthread,$(VIDEO_LDFLAGS))))
+    export LDFLAGS := ${OS_LDFLAGS} $(NETWORK_LDFLAGS:-lpthread=) ${VIDEO_LDFLAGS} ${VIDEO_TTF_LDFLAGS} ${LDFLAGS_O}
+  else
+    export LDFLAGS := ${OS_LDFLAGS} ${NETWORK_LDFLAGS} ${VIDEO_LDFLAGS} ${VIDEO_TTF_LDFLAGS} ${LDFLAGS_O}
+  endif
 endif
-ifneq (,$(shell if $(TEST) -d BIN/unix-build/local/lib; then echo extra libs; fi))
-  OS_LDFLAGS += -LBIN/unix-build/local/lib
-endif
-ifneq (,$(and $(findstring -lpthread,$(NETWORK_LDFLAGS)),$(findstring -lpthread,$(VIDEO_LDFLAGS))))
-  export LDFLAGS := ${OS_LDFLAGS} $(NETWORK_LDFLAGS:-lpthread=) ${VIDEO_LDFLAGS} ${VIDEO_TTF_LDFLAGS} ${LDFLAGS_O}
-else
-  export LDFLAGS := ${OS_LDFLAGS} ${NETWORK_LDFLAGS} ${VIDEO_LDFLAGS} ${VIDEO_TTF_LDFLAGS} ${LDFLAGS_O}
-endif
-
 #
 # Common Libraries
 #
@@ -3235,49 +3245,49 @@ endef
 $(BLDDIR)/%.o : $(word 1,$(DIRS))/%.c
 	-@$(MKDIR) $(call pathfix,$(dir $@))
   ifeq (1,$(QUIET))
-	@echo Compiling $< into $@
+	@echo $(@D) Compiling $<
   endif
 	$(CC) -c $< -o $@ ${OPTS}
 
 $(BLDDIR)/%.o : $(word 1,$(DIRS))/*/%.c
 	-@$(MKDIR) $(call pathfix,$(dir $@))
   ifeq (1,$(QUIET))
-	@echo Compiling $< into $@
+	@echo $(@D) Compiling $<
   endif
 	$(CC) -c $< -o $@ ${OPTS}
 
 $(BLDDIR)/%.o : $(word 1,$(DIRS))/*/*/%.c
 	-@$(MKDIR) $(call pathfix,$(dir $@))
   ifeq (1,$(QUIET))
-	@echo Compiling $< into $@
+	@echo $(@D) Compiling $<
   endif
 	$(CC) -c $< -o $@ ${OPTS}
 
 $(BLDDIR)/%.o : display/%.c
 	-@$(MKDIR) $(call pathfix,$(dir $@))
   ifeq (1,$(QUIET))
-	@echo Compiling $< into $@
+	@echo $(@D) Compiling $<
   endif
 	$(CC) -c $< -o $@ ${OPTS}
 
 $(BLDDIR)/%.o : slirp/%.c
 	-@$(MKDIR) $(call pathfix,$(dir $@))
   ifeq (1,$(QUIET))
-	@echo Compiling $< into $@
+	@echo $(@D) Compiling $<
   endif
 	$(CC) -c $< -o $@ ${OPTS}
 
 $(BLDDIR)/%.o : slirp_glue/%.c
 	-@$(MKDIR) $(call pathfix,$(dir $@))
   ifeq (1,$(QUIET))
-	@echo Compiling $< into $@
+	@echo $(@D) Compiling $<
   endif
 	$(CC) -c $< -o $@ ${OPTS}
 
 $(BLDDIR)/%.o : %.c
 	-@$(MKDIR) $(call pathfix,$(dir $@))
   ifeq (1,$(QUIET))
-	@echo Compiling $< into $@
+	@echo $(@D) Compiling $<
   endif
 	$(CC) -c $< -o $@ ${OPTS}
 
@@ -3285,42 +3295,42 @@ ifneq (,$(word 2,$(DIRS)))
 $(BLDDIR)/%.o : $(word 2,$(DIRS))/%.c
 	-@$(MKDIR) $(call pathfix,$(dir $@))
   ifeq (1,$(QUIET))
-	@echo Compiling $< into $@
+	@echo $(@D) Compiling $<
   endif
 	$(CC) -c $< -o $@ ${OPTS}
 
 $(BLDDIR)/%.o : $(word 2,$(DIRS))/*/%.c
 	@$(MKDIR) $(call pathfix,$(dir $@))
   ifeq (1,$(QUIET))
-	@echo Compiling $< into $@
+	@echo $(@D) Compiling $<
   endif
 	$(CC) -c $< -o $@ ${OPTS}
 
 $(BLDDIR)/%.o : $(word 2,$(DIRS))/*/*/%.c
 	@$(MKDIR) $(call pathfix,$(dir $@))
   ifeq (1,$(QUIET))
-	@echo Compiling $< into $@
+	@echo $(@D) Compiling $<
   endif
 	$(CC) -c $< -o $@ ${OPTS}
 ifneq (,$(word 3,$(DIRS)))
 $(BLDDIR)/%.o : $(word 3,$(DIRS))/%.c
 	@$(MKDIR) $(call pathfix,$(dir $@))
   ifeq (1,$(QUIET))
-	@echo Compiling $< into $@
+	@echo $(@D) Compiling $<
   endif
 	$(CC) -c $< -o $@ ${OPTS}
 
 $(BLDDIR)/%.o : $(word 3,$(DIRS))/*/%.c
 	@$(MKDIR) $(call pathfix,$(dir $@))
   ifeq (1,$(QUIET))
-	@echo Compiling $< into $@
+	@echo $(@D) Compiling $<
   endif
 	$(CC) -c $< -o $@ ${OPTS}
 
 $(BLDDIR)/%.o : $(word 3,$(DIRS))/*/*/%.c
 	@$(MKDIR) $(call pathfix,$(dir $@))
   ifeq (1,$(QUIET))
-	@echo Compiling $< into $@
+	@echo $(@D) Compiling $<
   endif
 	$(CC) -c $< -o $@ ${OPTS}
 endif
@@ -3336,7 +3346,7 @@ endif
 $(TARGET): $(OBJS)
 	$(MKDIRBIN)
     ifeq (1,$(QUIET))
-	  @echo Linking $(TARGET)
+	  @echo $(TARGET) Linking
     endif
 	  ${CC} $(OBJS) ${OPTS} ${LNK_OPTS} -o $@ ${LDFLAGS}
     else
