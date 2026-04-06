@@ -1,5 +1,5 @@
 image:
-  - macos-bigsur
+  - macos-monterey
   - Ubuntu1604
   - Visual Studio 2015
 
@@ -28,13 +28,12 @@ before_build:
         $platform = uname -s
         if ($platform -eq 'Linux') {
           sudo apt-get update -yqqm
-          sudo apt-get install -ym gcc libpcap-dev libvdeplug-dev libpcre3-dev libedit-dev libsdl2-dev libpng-dev libsdl2-ttf-dev
+          sudo apt-get install -ym make gcc libpcap-dev libvdeplug-dev libpcre3-dev libedit-dev libsdl2-dev libpng-dev libsdl2-ttf-dev
         } else {
           if ($platform -eq 'Darwin') {
-            $env:HOMEBREW_NO_AUTO_UPDATE=1; brew install pcre libedit sdl2 libpng zlib sdl2_ttf make git-lfs
+            $env:HOMEBREW_NO_AUTO_UPDATE=1; brew install pcre libedit sdl2 libpng zlib sdl2_ttf make
           }
         }
-        git lfs install
 
 build_script:
   - cmd: |
@@ -49,15 +48,26 @@ build_script:
         } else {
           $platform = uname -s
           $arch = arch
+          if (Get-Command "gmake" -ErrorAction SilentlyContinue) {
+            $make = (Get-Command "gmake").Path
+          } else {
+            $make = (Get-Command "make").Path
+          }
           if ($platform -eq 'Linux') {
             $ncpus = nproc
+          } if ($platform -eq 'Darwin') {
+            $platform = 'macOS'
+            $ncpus = sysctl -n hw.perflevel0.logicalcpu
+            if ($ncpus -eq '') {
+              $ncpus = sysctl -n hw.logicalcpu
+            }
+          }
+          if ($ncpus -ne '') {
             $parallel = '-j' + $ncpus
             Write-Host "Building with $ncpus processors"
-          } else {
-            $platform = 'macOS'
           }
           $commit_id_file = '.git-commit-id' 
-          make QUIET=1 $parallel
+          & $make QUIET=1 $parallel
         }
 
 on_success:
