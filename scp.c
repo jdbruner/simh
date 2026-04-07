@@ -9123,8 +9123,6 @@ if (uptr->flags & UNIT_BUFABLE) {                       /* buffer? */
     if (uptr->flags & UNIT_MUSTBUF) {                   /* dyn alloc? */
         uptr->filebuf = calloc (cap, SZ_D (dptr));      /* allocate */
         if (uptr->filebuf == NULL) {
-            free (uptr->filebuf);
-            uptr->filebuf = NULL;
             free (uptr->filebuf2);
             uptr->filebuf2 = NULL;
             return attach_err (uptr, SCPE_MEM);         /* error */
@@ -9258,8 +9256,9 @@ if ((dptr->flags & DEV_TAPE) && ((dptr->flags & DEV_DISK) == 0))
     return sim_tape_detach (uptr);
 if ((uptr->flags & UNIT_BUF) && (uptr->filebuf)) {
     uint32 cap = (uptr->hwmark + dptr->aincr - 1) / dptr->aincr;
-    if (((uptr->flags & UNIT_RO) == 0) &&
-        (memcmp (uptr->filebuf, uptr->filebuf2, (size_t)(SZ_D (dptr) * (uptr->capac / dptr->aincr))) != 0)) {
+    if (((uptr->flags & UNIT_RO) == 0) && 
+        ((uptr->filebuf2 == NULL) ||
+         (memcmp (uptr->filebuf, uptr->filebuf2, (size_t)(SZ_D (dptr) * (uptr->capac / dptr->aincr))) != 0))) {
         sim_messagef (SCPE_OK, "%s: writing buffer to file: %s\n", sim_uname (uptr), sim_attach_name (uptr));
         rewind (uptr->fileref);
         sim_fwrite (uptr->filebuf, SZ_D (dptr), cap, uptr->fileref);
@@ -9269,9 +9268,9 @@ if ((uptr->flags & UNIT_BUF) && (uptr->filebuf)) {
     if (uptr->flags & UNIT_MUSTBUF) {                   /* dyn alloc? */
         free (uptr->filebuf);                           /* free buffers */
         uptr->filebuf = NULL;
-        free (uptr->filebuf2);
-        uptr->filebuf2 = NULL;
         }
+    free (uptr->filebuf2);
+    uptr->filebuf2 = NULL;
     uptr->flags = uptr->flags & ~UNIT_BUF;
     }
 uptr->flags = uptr->flags & ~(UNIT_ATT | ((uptr->flags & UNIT_ROABLE) ? UNIT_RO : 0));
