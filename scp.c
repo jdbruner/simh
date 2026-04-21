@@ -1817,7 +1817,7 @@ static const char simh_help2[] =
       " %%SIM_GIT_COMMIT_TIME%%, %%SIM_ARCHIVE_GIT_COMMIT_ID%%,\n"
       " %%SIM_ARCHIVE_GIT_COMMIT_TIME%%, %%SIM_RUNLIMIT%%, %%SIM_RUNLIMIT_UNITS%%,\n"
       " %%SIM_HOST_CORE_COUNT%%, %%SIM_HOST_MAX_THREADS%%,\n"
-      " %%SIM_ETHERNET_CAPABILITIES%%\n\n"
+      " %%SIM_ETHERNET_CAPABILITIES%%, %%SIM_PROCESS_PID%%\n\n"
       "+Token %%0 expands to the command file name.\n"
       "+Token %%n (n being a single digit) expands to the n'th argument\n"
       "+Token %%* expands to the whole set of arguments (%%1 ... %%9)\n\n"
@@ -1889,6 +1889,7 @@ static const char simh_help2[] =
       "++%%SIM_VERSION_MODE%%     The release mode (Current, Alpha, Beta)\n"
       "++%%SIM_GIT_COMMIT_ID%%    The git commit id of the current build\n"
       "++%%SIM_GIT_COMMIT_TIME%%  The git commit time of the current build\n"
+      "++%%SIM_PROCESS_PID%%      The process id of the running simulator\n"
       "++%%SIM_RUNLIMIT%%         The current execution limit defined\n"
       "++%%SIM_RUNLIMIT_UNITS%%   The units of the SIM_RUNLIMIT value\n"
       "++++++++       (instructions, cycles or time)\n"
@@ -3221,10 +3222,13 @@ if (sim_emax <= 0)
     sim_emax = 1;
 if (sim_timer_init ()) {
     fprintf (stderr, "Fatal timer initialization error\n");
-    if (sim_ttisatty())
-        read_line_p ("Hit Return to exit: ", cbuf, sizeof (cbuf) - 1, stdin);
-    free (targv);
-    return EXIT_FAILURE;
+    sim_exit_status = EXIT_FAILURE;
+    if (!register_check) {
+        if (sim_ttisatty())
+            read_line_p ("Hit Return to exit: ", cbuf, sizeof (cbuf) - 1, stdin);
+        free (targv);
+        return EXIT_FAILURE;
+        }
     }
 sim_register_internal_device (&sim_scp_dev);
 sim_register_internal_device (&sim_expect_dev);
@@ -3269,9 +3273,9 @@ if (register_check) {
         goto cleanup_and_exit;
         }
     sim_printf ("*** Good Registers in %s simulator.\n", sim_name);
-    if (argc < 2) {                                 /* No remaining command arguments? */
-        sim_exit_status = EXIT_SUCCESS;             /* then we're done */
-        goto cleanup_and_exit;
+    if ((argc < 2) ||                               /* No remaining command arguments */
+        (sim_exit_status != EXIT_SUCCESS)) {        /* OR prior error? */
+        goto cleanup_and_exit;                      /* then we're done */
         }
     }
 if ((stat = sim_brk_init ()) != SCPE_OK) {
@@ -5167,6 +5171,10 @@ if (!ap) {                              /* no environment variable found? */
             sprintf (rbuf, "%s", sim_stop_messages[stat]);
         else
             sprintf (rbuf, "%s", sim_error_text (stat));
+        ap = rbuf;
+        }
+    else if (!strcmp ("SIM_PROCESS_PID", gbuf)) {
+        sprintf (rbuf, "%u", (uint32)(getpid ()));
         ap = rbuf;
         }
     else if (!strcmp ("SIM_VERIFY", gbuf)) {
@@ -9173,8 +9181,6 @@ if (uptr->flags & UNIT_BUFABLE) {                       /* buffer? */
     if (uptr->flags & UNIT_MUSTBUF) {                   /* dyn alloc? */
         uptr->filebuf = calloc (cap, SZ_D (dptr));      /* allocate */
         if (uptr->filebuf == NULL) {
-            free (uptr->filebuf);
-            uptr->filebuf = NULL;
             free (uptr->filebuf2);
             uptr->filebuf2 = NULL;
             return attach_err (uptr, SCPE_MEM);         /* error */
@@ -9308,8 +9314,9 @@ if ((dptr->flags & DEV_TAPE) && ((dptr->flags & DEV_DISK) == 0))
     return sim_tape_detach (uptr);
 if ((uptr->flags & UNIT_BUF) && (uptr->filebuf)) {
     uint32 cap = (uptr->hwmark + dptr->aincr - 1) / dptr->aincr;
-    if (((uptr->flags & UNIT_RO) == 0) &&
-        (memcmp (uptr->filebuf, uptr->filebuf2, (size_t)(SZ_D (dptr) * (uptr->capac / dptr->aincr))) != 0)) {
+    if (((uptr->flags & UNIT_RO) == 0) && 
+        ((uptr->filebuf2 == NULL) ||
+         (memcmp (uptr->filebuf, uptr->filebuf2, (size_t)(SZ_D (dptr) * (uptr->capac / dptr->aincr))) != 0))) {
         sim_messagef (SCPE_OK, "%s: writing buffer to file: %s\n", sim_uname (uptr), sim_attach_name (uptr));
         rewind (uptr->fileref);
         sim_fwrite (uptr->filebuf, SZ_D (dptr), cap, uptr->fileref);
@@ -9319,9 +9326,9 @@ if ((uptr->flags & UNIT_BUF) && (uptr->filebuf)) {
     if (uptr->flags & UNIT_MUSTBUF) {                   /* dyn alloc? */
         free (uptr->filebuf);                           /* free buffers */
         uptr->filebuf = NULL;
-        free (uptr->filebuf2);
-        uptr->filebuf2 = NULL;
         }
+    free (uptr->filebuf2);
+    uptr->filebuf2 = NULL;
     uptr->flags = uptr->flags & ~UNIT_BUF;
     }
 uptr->flags = uptr->flags & ~(UNIT_ATT | ((uptr->flags & UNIT_ROABLE) ? UNIT_RO : 0));
