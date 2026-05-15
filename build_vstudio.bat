@@ -20,19 +20,27 @@
 :: binaries which is the default.
 ::
 :: An argument to this procedure may be the word Clean, which
-:: will cause all the outputs produced by this procedure or 
-:: activities produced by the Visual Studio IDE to be removed
-:: before possible converting of the simh.sln and or building
-:: anything.  If the simh.sln had been previously converted
-:: by the IDE to support a newer version of Visual Studio,
-:: that conversion will also be undone.
+:: will cause all the outputs produced by building with this 
+:: procedure or activities produced by the Visual Studio IDE 
+:: to be removed before possible converting of the simh.sln 
+:: and or building anything.  If the simh.sln had been previously 
+:: converted by the IDE to support a newer version of Visual 
+:: Studio, that conversion will also be undone.
 ::
-:: The default is to build all simulators mentioned in the simh solution.
-:: Optionally, individual simulators may be built by listing the specific
-:: simulator name(s) on the command line invoking this procedure.
+:: The default activitiy is to rebuild all simulators mentioned 
+:: in the simh solution when no arguments are provided to this
+:: procedure. Optionally, individual simulators may be built by 
+:: listing the specific simulator name(s) on the command line 
+:: invoking this procedure.
+::
+:: An argument to this procedure may be the word Build, which will
+:: cause the specific (or all) simulators being built to only
+:: build the needed (or changed) components of the simulator rather 
+:: than the default which is to rebuild all components of the project.
 ::
 :: Individual simulator sources are in .\simulator_name
-:: Individual simulator executables are produced in .\BIN\NT\Win32-{Debug or Release}\
+:: Individual simulator executables are produced in:
+::        .\BIN\NT\Win32-{Debug or Release}\
 ::
 ::
 
@@ -42,12 +50,15 @@ set _BUILD_PROJECTS=
 set _REBUILD_PROJECTS=
 set _BUILD_PROJECT_NAMES=
 set _BUILD_CLEAN_FIRST=
+set _BUILD_ONLY_BUILD=
 set _BUILD_PROJECT_DIR=%~dp0Visual Studio Projects\
 :_CheckArg
 if "%1" == "" goto _DoneArgs
 if /i "%1" == "Debug" set _BUILD_CONFIG=Debug& shift & goto _CheckArg
 if /i "%1" == "Release" set _BUILD_CONFIG=Release& shift & goto _CheckArg
 if /i "%1" == "Clean" set _BUILD_CLEAN_FIRST=True& shift & goto _CheckArg
+if /i "%1" == "Build" set _BUILD_ONLY_BUILD=True& shift & goto _CheckArg
+if /i "%1" == "ReBuild" set _BUILD_ONLY_BUILD=& shift & goto _CheckArg
 call :GetFileName "%_BUILD_PROJECT_DIR%%1.vcproj" _BUILD_PROJECT
 if exist "%_BUILD_PROJECT_DIR%%1.vcproj" set _BUILD_PROJECTS=%_BUILD_PROJECTS%;%_BUILD_PROJECT%
 if exist "%_BUILD_PROJECT_DIR%%1.vcproj" set _REBUILD_PROJECTS=%_REBUILD_PROJECTS%;%_BUILD_PROJECT%:Rebuild
@@ -277,10 +288,16 @@ set _SLN_FILE=%_BUILD_PROJECT_DIR%Simh.sln
 if exist "%_BUILD_PROJECT_DIR%Simh-%_VC_VER%.sln" set _SLN_FILE=%_BUILD_PROJECT_DIR%Simh-%_VC_VER%.sln
 SET _X_SLN_VERSION=
 for /F "usebackq tokens=8" %%a in (`findstr /C:"Microsoft Visual Studio Solution File, Format Version" "%_SLN_FILE%"`) do SET _X_SLN_VERSION=%%a
-
 if not "%_VC_VER%" == "9" goto _DoMSBuild
+
 echo _SLN_FILE=%_SLN_FILE%
-if "%_BUILD_PROJECTS%" == "" vcbuild /nologo /M%_BUILD_PARALLEL% /useenv /rebuild "%_SLN_FILE%" "%_BUILD_CONFIG%|Win32" & goto :EOF
+set _BUILD_REBUILD=/rebuild
+set _BUILD_MODE=Rebuilding
+if not "%_BUILD_ONLY_BUILD%" == "" set _BUILD_REBUILD=
+if not "%_BUILD_ONLY_BUILD%" == "" set _BUILD_MODE=Building
+echo.
+if "%_BUILD_PROJECTS%" == "" echo *** %_BUILD_MODE% Everything *** & echo.
+if "%_BUILD_PROJECTS%" == "" vcbuild /nologo /M%_BUILD_PARALLEL% /useenv %_BUILD_REBUILD% "%_SLN_FILE%" "%_BUILD_CONFIG%|Win32" & goto :EOF
 
 set _BUILD_PROJECTS=%_BUILD_PROJECTS:~1%
 :_NextProject
@@ -288,8 +305,9 @@ set _BUILD_PROJECT=
 for /f "tokens=1* delims=;" %%a in ("%_BUILD_PROJECTS%") do set _BUILD_PROJECT=%%a& set _BUILD_PROJECTS=%%b
 if "%_BUILD_PROJECT%" == "" goto :EOF
 echo.
-echo Building %_BUILD_PROJECT%
-vcbuild /nologo /useenv /rebuild "%_BUILD_PROJECT_DIR%%_BUILD_PROJECT%.vcproj" "%_BUILD_CONFIG%|Win32" 
+echo *** %_BUILD_MODE% %_BUILD_PROJECT% ***
+echo.
+vcbuild /nologo /useenv %_BUILD_REBUILD% "%_BUILD_PROJECT_DIR%%_BUILD_PROJECT%.vcproj" "%_BUILD_CONFIG%|Win32" 
 goto _NextProject
 
 :_DoMSBuild
@@ -317,8 +335,32 @@ echo v141 Convert completed at %TIME%
 set _X_PROJS_CONVERTED=
 
 :_RunBuild
-if "%_BUILD_PROJECTS%" == "" MSBuild /nologo "%_SLN_FILE%" /maxCpuCount:%_BUILD_PARALLEL% /Target:Rebuild /Property:Configuration=%_BUILD_CONFIG% /Property:Platform=Win32 /fileLogger "/fileLoggerParameters:LogFile=%_BUILD_PROJECT_DIR%Build-VS%_VC_VER%.log" & goto :EOF
-set _BUILD_PROJECTS=%_BUILD_PROJECTS:~1%
-set _REBUILD_PROJECTS=%_REBUILD_PROJECTS:~1%
-MSBuild /nologo "%_SLN_FILE%" /maxCpuCount:%_BUILD_PARALLEL% /Target:%_REBUILD_PROJECTS% /Property:Configuration=%_BUILD_CONFIG% /Property:Platform=Win32 "/fileLoggerParameters:LogFile=%_BUILD_PROJECT_DIR%Build-VS%_VC_VER%.log" & goto :EOF
+:: Default with no projects mentioned and Build not specified is to rebuild everything
+:: With Build not specified and projects indicated, Rebuild those projects
+:: With no projects mentioned and Build specified, Build everything
+:: With Build specified and projects indicated, Build those projects
+if "%_BUILD_ONLY_BUILD%" == "" (
+    if "%_REBUILD_PROJECTS%" == "" (
+        set _TARGET_PROJECTS=/Target:Rebuild
+    ) else (
+        set _TARGET_PROJECTS=/Target:%_REBUILD_PROJECTS:~1%
+    )
+) else (
+    if "%_BUILD_PROJECTS%" == "" (
+        set _TARGET_PROJECTS=
+    ) else (
+        set _TARGET_PROJECTS=/Target:%_BUILD_PROJECTS:~1%
+    )
+)
+echo.
+if "%_TARGET_PROJECTS%" == "/Target:Rebuild" echo *** Rebuilding Everything *** & goto _MSBuildCommand
+if "%_TARGET_PROJECTS%" == "" echo *** Building Everything *** & goto _MSBuildCommand
+echo *** Building %_TARGET_PROJECTS% ***
+:_MSBuildCommand
+echo.
+MSBuild /nologo "%_SLN_FILE%" /maxCpuCount:%_BUILD_PARALLEL% %_TARGET_PROJECTS% /Property:Configuration=%_BUILD_CONFIG% /Property:Platform=Win32 /fileLogger "/fileLoggerParameters:LogFile=%_BUILD_PROJECT_DIR%Build-VS%_VC_VER%.log"
+set _BUILD_PROJECTS=
+set _REBUILD_PROJECTS=
+set _BUILD_ONLY_BUILD=
+set _TARGET_PROJECTS=
 set _SLN_FILE=

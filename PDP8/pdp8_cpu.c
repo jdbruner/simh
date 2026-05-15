@@ -1526,6 +1526,10 @@ static const char *pdp8_clock_precalibrate_commands[] = {
     "PC 100",
     NULL};
 
+static const char *pdp8_clock_precalibrate_cleanup_commands[] = {
+    "100-112 0",
+    NULL};
+
 /* Reset routine */
 
 t_stat cpu_reset (DEVICE *dptr)
@@ -1545,6 +1549,7 @@ else
 	realcons_flipflops = 0;
 #endif
 sim_clock_precalibrate_commands = pdp8_clock_precalibrate_commands;
+sim_clock_precalibrate_cleanup_commands = pdp8_clock_precalibrate_cleanup_commands;
 sim_vm_initial_ips = 10 * SIM_INITIAL_IPS;
 sim_brk_types = SWMASK ('E') | SWMASK('I');
 sim_brk_dflt = SWMASK ('E');

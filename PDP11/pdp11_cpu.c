@@ -3673,6 +3673,10 @@ static const char *pdp11_clock_precalibrate_commands[] = {
     "PC 100",
     NULL};
 
+static const char *pdp11_clock_precalibrate_cleanup_commands[] = {
+    "100-200 0",
+    NULL};
+
 /* Special boot command - linked into SCP by initial reset
 
    Syntax: BOOT {CPU}
@@ -3740,6 +3744,7 @@ if (M == NULL) {                    /* First time init */
     sim_brk_type_desc = cpu_breakpoints;
     sim_vm_is_subroutine_call = &cpu_is_pc_a_subroutine_call;
     sim_clock_precalibrate_commands = pdp11_clock_precalibrate_commands;
+    sim_clock_precalibrate_cleanup_commands = pdp11_clock_precalibrate_cleanup_commands;
     auto_config(NULL, 0);           /* do an initial auto configure */
     }
 pcq_r = find_reg ("PCQ", NULL, dptr);

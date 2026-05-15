@@ -411,7 +411,7 @@ static void RepaintRegion (HWND hWnd, int left, int top, int right, int bottom)
  * reflected instantly.
  * ------------------------------------------------------------------------ */
 
-void update_gui (BOOL force)
+void update_gui (t_bool force)
 {   
     int i;
     BOOL state;

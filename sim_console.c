@@ -152,7 +152,7 @@ static t_stat sim_os_ttinit (void);
 static t_stat sim_os_ttrun (void);
 static t_stat sim_os_ttcmd (void);
 static t_stat sim_os_ttclose (void);
-static t_bool sim_os_fd_isatty (int fd);
+static int sim_os_fd_isatty (int fd);
 static t_stat sim_os_connect_telnet (int port);
 
 static t_stat sim_set_rem_telnet (int32 flag, CONST char *cptr);
@@ -3311,12 +3311,12 @@ static int answer = -1;
 
 if (answer == -1)
     answer = sim_os_fd_isatty (0);
-return (t_bool)answer;
+return (t_bool)(answer != 0);
 }
 
 t_bool sim_fd_isatty (int fd)
 {
-return sim_os_fd_isatty (fd);
+return (sim_os_fd_isatty (fd) != 0);
 }
 
 /* Platform specific routine definitions */
@@ -3414,7 +3414,7 @@ sys$dassgn (tty_chan);
 return SCPE_OK;
 }
 
-static t_bool sim_os_fd_isatty (int fd)
+static int sim_os_fd_isatty (int fd)
 {
 return isatty (fd);
 }
@@ -3615,7 +3615,7 @@ static t_stat sim_os_ttclose (void)
 return SCPE_OK;
 }
 
-static t_bool sim_os_fd_isatty (int fd)
+static int sim_os_fd_isatty (int fd)
 {
 DWORD Mode;
 HANDLE handle;
@@ -3634,7 +3634,9 @@ switch (fd) {
         handle = NULL;
     }
 
-return (handle) && (handle != INVALID_HANDLE_VALUE) && GetConsoleMode (handle, &Mode);
+return (((handle)                         && 
+         (handle != INVALID_HANDLE_VALUE) && 
+         (GetConsoleMode (handle, &Mode) != 0)) ? 1 : 0);
 }
 
 static t_stat sim_os_poll_kbd (void)
@@ -3890,7 +3892,7 @@ static t_stat sim_os_ttclose (void)
 return sim_ttcmd ();
 }
 
-static t_bool sim_os_fd_isatty (int fd)
+static int sim_os_fd_isatty (int fd)
 {
 return isatty (fd);
 }
@@ -4259,7 +4261,7 @@ static t_stat sim_os_ttclose (void)
 return sim_ttcmd ();
 }
 
-static t_bool sim_os_fd_isatty (int fd)
+static int sim_os_fd_isatty (int fd)
 {
 return isatty (fd);
 }

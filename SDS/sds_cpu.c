@@ -1806,12 +1806,17 @@ static const char *sds_clock_precalibrate_commands[] = {
     "111 BRU 100",
     NULL};
 
+static const char *sds_clock_precalibrate_cleanup_commands[] = {
+    "100-120 0",
+    NULL};
+
 
 /* Clock reset */
 
 t_stat rtc_reset (DEVICE *dptr)
 {
 sim_clock_precalibrate_commands = sds_clock_precalibrate_commands;
+sim_clock_precalibrate_cleanup_commands = sds_clock_precalibrate_cleanup_commands;
 rtc_pie = 0;                                            /* disable pulse */
 rtc_unit.wait = sim_rtcn_init (rtc_unit.wait, TMR_RTC); /* initialize clock calibration */
 sim_activate (&rtc_unit, rtc_unit.wait);                /* activate unit */

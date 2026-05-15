@@ -172,7 +172,9 @@ else
   export MKDIR = mkdir -p
   export OSTYPE = $(shell uname)
 endif
-NJOBS:=$(patsubst -j%,%,$(filter -j%,$(MAKEFLAGS)))
+ifeq (,$(NJOBS))
+  NJOBS:=$(patsubst -j%,%,$(filter -j%,$(MAKEFLAGS)))
+endif
 ifneq (,$(NJOBS))
   JOBS:=-j$(NJOBS)
 endif
@@ -283,6 +285,8 @@ ifneq (,$(and $(word 1,${MAKECMDGOALS}),$(word 2,${MAKECMDGOALS})))
   BUILD_MULTIPLE_VERB = are
   MAKECMDGOALS_DESCRIPTION = the $(MAKECMDGOALS) simulators
 endif
+SHOWTARGET=$(BUILD_MULTIPLE)
+export SHOWTARGET
 # someone may want to explicitly build simulators without network support
 ifneq ($(NONETWORK),)
   NETWORK_USEFUL =
@@ -3357,7 +3361,7 @@ else # end of primary make recipies
     pathfix = $(1)
   endif
 
-  find_test = $(if $(findstring 0,$(TESTS)),, RegisterSanityCheck $(if $(abspath $(wildcard $(PRIMARY_SRC)/tests/$(1)_test.ini)),$(abspath $(wildcard $(PRIMARY_SRC)/tests/$(1)_test.ini)),$(abspath $(wildcard $(PRIMARY_INC)/tests/$(1)_test.ini))) </dev/null)
+  find_test = $(if $(findstring 0,$(TESTS)),, RegisterSanityCheck $(if $(subst //,/, $(wildcard $(PRIMARY_SRC)/tests/$(1)_test.ini)),$(subst //,/, $(wildcard $(PRIMARY_SRC)/tests/$(1)_test.ini)),$(subst //,/, $(wildcard $(PRIMARY_INC)/tests/$(1)_test.ini))) </dev/null)
 
   TARGETNAME = $(basename $(notdir $(TARGET)))
   BIN = $(dir $(TARGET))
@@ -3386,42 +3390,42 @@ endef
 $(BLDDIR)/%.o : $(word 1,$(DIRS))/%.c
 	-@$(MKDIR) $(call pathfix,$(dir $@))
   ifeq (1,$(QUIET))
-	@echo $(@D) Compiling $<
+	@echo $(if $(SHOWTARGET),$(subst BIN/$(OSTYPE)-build/,,$(@D)),) Compiling $<
   endif
 	$(CC) -c $< -o $@ ${OPTS}
 
 $(BLDDIR)/%.o : $(word 1,$(DIRS))/*/%.c
 	-@$(MKDIR) $(call pathfix,$(dir $@))
   ifeq (1,$(QUIET))
-	@echo $(@D) Compiling $<
+	@echo $(if $(SHOWTARGET),$(subst BIN/$(OSTYPE)-build/,,$(@D)),) Compiling $<
   endif
 	$(CC) -c $< -o $@ ${OPTS}
 
 $(BLDDIR)/%.o : $(word 1,$(DIRS))/*/*/%.c
 	-@$(MKDIR) $(call pathfix,$(dir $@))
   ifeq (1,$(QUIET))
-	@echo $(@D) Compiling $<
+	@echo $(if $(SHOWTARGET),$(subst BIN/$(OSTYPE)-build/,,$(@D)),) Compiling $<
   endif
 	$(CC) -c $< -o $@ ${OPTS}
 
 $(BLDDIR)/%.o : display/%.c
 	-@$(MKDIR) $(call pathfix,$(dir $@))
   ifeq (1,$(QUIET))
-	@echo $(@D) Compiling $<
+	@echo $(if $(SHOWTARGET),$(subst BIN/$(OSTYPE)-build/,,$(@D)),) Compiling $<
   endif
 	$(CC) -c $< -o $@ ${OPTS}
 
 $(BLDDIR)/%.o : slirp/%.c
 	-@$(MKDIR) $(call pathfix,$(dir $@))
   ifeq (1,$(QUIET))
-	@echo $(@D) Compiling $<
+	@echo $(if $(SHOWTARGET),$(subst BIN/$(OSTYPE)-build/,,$(@D)),) Compiling $<
   endif
 	$(CC) -c $< -o $@ ${OPTS}
 
 $(BLDDIR)/%.o : slirp_glue/%.c
 	-@$(MKDIR) $(call pathfix,$(dir $@))
   ifeq (1,$(QUIET))
-	@echo $(@D) Compiling $<
+	@echo $(if $(SHOWTARGET),$(subst BIN/$(OSTYPE)-build/,,$(@D)),) Compiling $<
   endif
 	$(CC) -c $< -o $@ ${OPTS}
 
@@ -3442,7 +3446,7 @@ $(BLDDIR)/%.o : BlinkenBone/*/*/%.c
 $(BLDDIR)/%.o : %.c
 	-@$(MKDIR) $(call pathfix,$(dir $@))
   ifeq (1,$(QUIET))
-	@echo $(@D) Compiling $<
+	@echo $(if $(SHOWTARGET),$(subst BIN/$(OSTYPE)-build/,,$(@D)),) Compiling $<
   endif
 	$(CC) -c $< -o $@ ${OPTS}
 
@@ -3450,42 +3454,42 @@ ifneq (,$(word 2,$(DIRS)))
 $(BLDDIR)/%.o : $(word 2,$(DIRS))/%.c
 	-@$(MKDIR) $(call pathfix,$(dir $@))
   ifeq (1,$(QUIET))
-	@echo $(@D) Compiling $<
+	@echo $(if $(SHOWTARGET),$(subst BIN/$(OSTYPE)-build/,,$(@D)),) Compiling $<
   endif
 	$(CC) -c $< -o $@ ${OPTS}
 
 $(BLDDIR)/%.o : $(word 2,$(DIRS))/*/%.c
 	@$(MKDIR) $(call pathfix,$(dir $@))
   ifeq (1,$(QUIET))
-	@echo $(@D) Compiling $<
+	@echo $(if $(SHOWTARGET),$(subst BIN/$(OSTYPE)-build/,,$(@D)),) Compiling $<
   endif
 	$(CC) -c $< -o $@ ${OPTS}
 
 $(BLDDIR)/%.o : $(word 2,$(DIRS))/*/*/%.c
 	@$(MKDIR) $(call pathfix,$(dir $@))
   ifeq (1,$(QUIET))
-	@echo $(@D) Compiling $<
+	@echo $(if $(SHOWTARGET),$(subst BIN/$(OSTYPE)-build/,,$(@D)),) Compiling $<
   endif
 	$(CC) -c $< -o $@ ${OPTS}
 ifneq (,$(word 3,$(DIRS)))
 $(BLDDIR)/%.o : $(word 3,$(DIRS))/%.c
 	@$(MKDIR) $(call pathfix,$(dir $@))
   ifeq (1,$(QUIET))
-	@echo $(@D) Compiling $<
+	@echo $(if $(SHOWTARGET),$(subst BIN/$(OSTYPE)-build/,,$(@D)),) Compiling $<
   endif
 	$(CC) -c $< -o $@ ${OPTS}
 
 $(BLDDIR)/%.o : $(word 3,$(DIRS))/*/%.c
 	@$(MKDIR) $(call pathfix,$(dir $@))
   ifeq (1,$(QUIET))
-	@echo $(@D) Compiling $<
+	@echo $(if $(SHOWTARGET),$(subst BIN/$(OSTYPE)-build/,,$(@D)),) Compiling $<
   endif
 	$(CC) -c $< -o $@ ${OPTS}
 
 $(BLDDIR)/%.o : $(word 3,$(DIRS))/*/*/%.c
 	@$(MKDIR) $(call pathfix,$(dir $@))
   ifeq (1,$(QUIET))
-	@echo $(@D) Compiling $<
+	@echo $(if $(SHOWTARGET),$(subst BIN/$(OSTYPE)-build/,,$(@D)),) Compiling $<
   endif
 	$(CC) -c $< -o $@ ${OPTS}
 endif
@@ -3501,7 +3505,7 @@ endif
 $(TARGET): $(OBJS)
 	$(MKDIRBIN)
     ifeq (1,$(QUIET))
-	  @echo $(TARGET) Linking
+	  @echo $(subst BIN/,,$(TARGET)) Linking
     endif
 	  ${CC} $(OBJS) ${OPTS} ${LNK_OPTS} -o $@ ${LDFLAGS}
     else

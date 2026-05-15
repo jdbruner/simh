@@ -50,8 +50,10 @@ build_script:
           $arch = arch
           if (Get-Command "gmake" -ErrorAction SilentlyContinue) {
             $make = (Get-Command "gmake").Path
+            $makeversion = gmake --version
           } else {
             $make = (Get-Command "make").Path
+            $makeversion = make --version
           }
           if ($platform -eq 'Linux') {
             $ncpus = nproc
@@ -63,11 +65,13 @@ build_script:
             }
           }
           if ($ncpus -ne '') {
-            $parallel = '-j' + $ncpus
-            Write-Host "Building with $ncpus processors"
+            Write-Host $makeversion
+            $parallel = "-j$ncpus NJOBS=$ncpus"
+            Write-Host "Running $make and Building with $ncpus processors"
+            Write-Host "Make command: $make $parallel QUIET=1"
           }
           $commit_id_file = '.git-commit-id' 
-          & $make QUIET=1 $parallel
+          Invoke-Expression "$make $parallel QUIET=1"
         }
 
 on_success:

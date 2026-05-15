@@ -488,6 +488,7 @@ t_bool (*sim_vm_fprint_stopped) (FILE *st, t_stat reason) = NULL;
 const char *sim_vm_release = NULL;
 const char *sim_vm_release_message = NULL;
 const char **sim_clock_precalibrate_commands = NULL;
+const char **sim_clock_precalibrate_cleanup_commands = NULL;
 
 
 /* Prototypes */
@@ -1641,7 +1642,7 @@ static const char simh_help1[] =
       "3Device and Unit\n"
       "+SET <dev> OCT|DEC|HEX|BIN   set device display radix\n"
       "+SET <dev> ENABLED           enable device\n"
-      "+SET <dev> DISABLED          disable device\n"
+      "+SET [-F] <dev> DISABLED     disable device; -F forces detach/cancel\n"
       "+SET <dev> DEBUG{=arg}       set device debug flags\n"
       "+SET <dev> NODEBUG={arg}     clear device debug flags\n"
       "+SET <dev> arg{,arg...}      set device parameters (see show modifiers)\n"
@@ -3366,7 +3367,13 @@ if (docmdp) {
             stat = stat;    /* current working directory which we've already checked */
         }
     if (SCPE_BARE_STATUS(stat) == SCPE_OPENERR) {
-        snprintf(nbuf, sizeof (nbuf), "\"%s%s%sLibrary%sPreferences%ssimh.ini\"", cptr2 ? cptr2 : "", cptr, strchr (cptr, '/') ? "/" : "\\", strchr (cptr, '/') ? "/" : "\\", strchr (cptr, '/') ? "/" : "\\");
+        char sep = sim_file_path_separator;         /* Default to host path separator */
+
+        if ((cptr != NULL) && (strchr (cptr, '/')))
+            sep = '/';
+        if ((cptr != NULL) && (strchr (cptr, '\\')))
+            sep = '\\';
+        snprintf(nbuf, sizeof (nbuf), "\"%s%s%cLibrary%cPreferences%csimh.ini\"", cptr2 ? cptr2 : "", cptr ? cptr : "", sep, sep, sep);
         stat = docmdp->action (-1, nbuf);                   /* simh.ini proc cmd file */
         }
     if (SCPE_BARE_STATUS(stat) == SCPE_OPENERR)
@@ -5322,12 +5329,12 @@ for (; *ip && (op < oend); ) {
                         if (do_arg[i] == NULL)
                             break;
                         else
-                            if ((sizeof(rbuf)-strlen(rbuf)) < (2 + strlen(do_arg[i]))) {
+                            if ((sizeof(rbuf)-strlen(rbuf)) >= (4 + strlen(do_arg[i]))) {
                                 if (strchr(do_arg[i], ' ')) { /* need to surround this argument with quotes */
                                     char quote = '"';
                                     if (strchr(do_arg[i], quote))
                                         quote = '\'';
-                                    sprintf(&rbuf[strlen(rbuf)], "%s%c%s%c\"", (i != 1) ? " " : "", quote, do_arg[i], quote);
+                                    sprintf(&rbuf[strlen(rbuf)], "%s%c%s%c", (i != 1) ? " " : "", quote, do_arg[i], quote);
                                     }
                                 else
                                     sprintf(&rbuf[strlen(rbuf)], "%s%s", (i != 1) ? " " : "", do_arg[i]);
@@ -8672,7 +8679,8 @@ int32 num;
 t_stat r;
 double usec_factor = 1.0;
 const char *units = "";
-char runlimit[32];
+char runlimit[70];
+char *rptr;
 
 GET_SWITCHES (cptr);                                    /* get switches */
 if (0 == flag) {
@@ -8731,6 +8739,8 @@ if (sim_runlimit_switches & SWMASK ('T')) {
     if (sim_host_speed_factor () > 1.0)
         sim_messagef (SCPE_OK, "Slow host - adjusting RUNLIMIT from %d %s to %.1f %s\n", num, units, num * sim_host_speed_factor (), units);
     snprintf (runlimit, sizeof (runlimit), "%s", sim_fmt_secs (num * sim_host_speed_factor ()));
+    if ((rptr = strrchr (runlimit, ' ')))
+        *rptr = '\0';
     setenv ("SIM_RUNLIMIT", runlimit, 1);
     setenv ("SIM_RUNLIMIT_UNITS", units, 1);
     return sim_activate_after_d (&sim_runlimit_unit, sim_runlimit_d);
@@ -13744,7 +13754,6 @@ for (i=0; i<sim_brk_lnt; i++) {
         bp = bpt;
         }
     }
-memset (sim_brk_tab, 0, sim_brk_lnt*sizeof (BRKTAB*));
 sim_brk_lnt = SIM_BRK_INILNT;
 sim_brk_tab = (BRKTAB **) realloc (sim_brk_tab, sim_brk_lnt*sizeof (BRKTAB*));
 if (sim_brk_tab == NULL)
@@ -14709,7 +14718,7 @@ for (i=0; i < exp->size; i++) {
                 sprintf (env_name, "_EXPECT_MATCH_GROUP_%d", (int)j);
                 unsetenv (env_name);            /* Remove previous extra environment variables */
                 }
-            sim_exp_match_sub_count = ep->re_nsub;
+            sim_exp_match_sub_count = (size_t)(ep->re_nsub + 1);
             free (ovector);
             ovector = NULL;
             free (buf);
@@ -17273,10 +17282,12 @@ if (sim_isalpha (*data) || (*data == '_')) {
         }
     gptr = _sim_get_env_special (data, string, string_size - 1);
     if (gptr) {
-        *svalue = strtotsv(string, &gptr, 0);
+        const char *eptr;
+
+        *svalue = strtotsv(gptr, &eptr, 0);
         sprint_val (string, *svalue, 10, string_size - 1, PV_LEFTSIGN);
         sim_debug (SIM_DBG_EXP_EVAL, &sim_scp_dev, "[Value: %s=%s]\n", data, string);
-        return ((*gptr == '\0') && (*string));
+        return ((*eptr == '\0') && (*string));
         }
     else {
         data = "";

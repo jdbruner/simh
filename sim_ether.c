@@ -3195,31 +3195,32 @@ if (0 == strncmp("vde:", savname, 4)) {
   if (eth_vde_network_available) {
     char vdeswitch_s[CBUFSIZE]; /* VDE switch name */
     char vdeport_s[CBUFSIZE];   /* VDE switch port (optional), numeric */
-
-    struct vde_open_args voa;
+    char vde_descr[CBUFSIZE];
     const char *devname = savname + 4;
 
-    memset(&voa, 0, sizeof(voa));
     if (!strcmp(savname, "vde:vdedevice")) {
       snprintf (errbuf, errbuf_size, "Must specify actual vde device name (i.e. vde:/tmp/switch)\n");
       return SCPE_OPENERR;
       }
     while (isspace(*devname))
       ++devname;
+    snprintf(vde_descr, sizeof(vde_descr), "simh %s Device in %s Simulator PID:%d", dptr->name, sim_name, (int)getpid());
     devname = get_glyph_nc (devname, vdeswitch_s, ':'); /* Extract switch name          */
     devname = get_glyph_nc (devname, vdeport_s, 0);     /* Extract optional port number */
 
     if (vdeport_s[0]) {                                 /* port provided? */
       t_stat r;
+      int port = (int)get_uint (vdeport_s, 10, 255, &r);
 
-      voa.port = (int)get_uint (vdeport_s, 10, 255, &r);
       if (r != SCPE_OK) {
         snprintf (errbuf, errbuf_size, "Invalid vde port number: %1.64s in %1.100s\n", vdeport_s, savname);
         return SCPE_OPENERR;
         }
+      snprintf (vdeport_s, sizeof(vdeport_s), "[%d]", port);
+      strlcat (vdeswitch_s, vdeport_s, sizeof(vdeswitch_s));
       }
 
-    if (!(*handle = (void*) p_vde_open_real((char *)vdeswitch_s, (char *)"simh", LIBVDEPLUG_INTERFACE_VERSION, &voa)))
+    if (!(*handle = (void*) p_vde_open_real((char *)vdeswitch_s, vde_descr, LIBVDEPLUG_INTERFACE_VERSION, NULL)))
       strlcpy(errbuf, strerror(errno), errbuf_size);
     else {
       *eth_api = ETH_API_VDE;

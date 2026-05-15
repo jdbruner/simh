@@ -3324,6 +3324,10 @@ static const char *vax_clock_precalibrate_commands[] = {
     "PC 100",
     NULL};
 
+static const char *vax_clock_precalibrate_cleanup_commands[] = {
+    "100-140 0",
+    NULL};
+
 /* Reset */
 
 t_stat cpu_reset (DEVICE *dptr)
@@ -3341,6 +3345,7 @@ if (M == NULL) {                        /* first time init? */
     sim_brk_types = sim_brk_dflt = SWMASK ('E');
     sim_vm_is_subroutine_call = cpu_is_pc_a_subroutine_call;
     sim_clock_precalibrate_commands = vax_clock_precalibrate_commands;
+    sim_clock_precalibrate_cleanup_commands = vax_clock_precalibrate_cleanup_commands;
     sim_vm_initial_ips = SIM_INITIAL_IPS;
     pcq_r = find_reg ("PCQ", NULL, dptr);
     if (pcq_r == NULL)

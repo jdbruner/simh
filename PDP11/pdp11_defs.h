@@ -479,7 +479,9 @@ typedef struct {
 #define STOP_RQ         (TRAP_V_MAX + 6)                /* RQDX3 panic */
 #define STOP_SANITY     (TRAP_V_MAX + 7)                /* sanity timer exp */
 #define STOP_DTOFF      (TRAP_V_MAX + 8)                /* DECtape off reel */
-#define IORETURN(f,v)   ((f)? (v): SCPE_OK)             /* cond error return */
+#define IORETURN(f,v)   ((f)? (v):                      /* stop on error */ \
+                              (((v) != STOP_DTOFF) ? SCPE_OK :              \
+                                                   sim_messagef ((v), "*** DECtape has gone off reel - listen for the flapping tape\r\n"), SCPE_OK))             /* stop on error */
 
 /* Timers */
 
