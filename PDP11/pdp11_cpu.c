@@ -1143,9 +1143,6 @@ while (reason == 0)  {
             hst_p = 0;
         }
     PC = (PC + 2) & 0177777;                            /* incr PC, mod 65k */
-#ifdef USE_REALCONS
-    saved_PC = PC ; // saved_PC used in panel
-#endif
     switch ((IR >> 12) & 017) {                         /* decode IR<15:12> */
 
 /* Opcode 0: no operands, specials, branches, JSR, SOPs */
@@ -2611,9 +2608,11 @@ while (reason == 0)  {
 			reason = SCPE_STOP; // transition is triggered at end of instr loop
 		}
 
-		if (reason == 0)
+		if (reason == 0) {
 			// if HALT, a more specific transition is done above
+			saved_PC = PC & 0177777;
 			REALCONS_EVENT(cpu_realcons, realcons_event_opcode_any);
+		}
 #endif
     }                                                   /* end main loop */
 
