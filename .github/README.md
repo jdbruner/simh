@@ -87,10 +87,11 @@ To build on a Raspberry Pi, change directory to the root of the
 GIT repository and do the following:
 ```bash
 cd BlinkenBone
-./make.sh [-x10]
+./make.sh [-x10] [-x11]
 ```
-Specify ``-x10`` to build PIDP10;
-the default is ``-x11``, which builds PiDP11.
+Specify ``-x10`` to build PIDP10 and/or
+``-x11`` to build PIDP11.
+If neither is specified, the default is to build PiDP11.
 On some systems you may need to configure the kernel variable
 ``dev.tty.legacy_tiocsti`` to 1
 to allow the console to inject characters into the simh console input.
