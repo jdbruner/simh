@@ -1,6 +1,6 @@
 #
 # This GNU make makefile has been tested on:
-#   Linux (x86 & Sparc & PPC)
+#   Linux (x86 & ARM & Sparc & PPC)
 #   Android (Termux)
 #   OS X
 #   Solaris (x86 & Sparc) (gcc and Sun C)
@@ -258,6 +258,10 @@ ifneq (,$(findstring realcons,${MAKECMDGOALS})$(findstring pipanel,${MAKECMDGOAL
   NETWORK_USEFUL = true
   READLINE_USEFUL = true
 endif
+# building the PIDP11 on certain platforms (Raspberry Pi) could use gpio support
+ifneq (,$(findstring pidp11,${MAKECMDGOALS}))
+  GPIO_USEFUL = true
+endif
 # building the pdp11, any pdp10, any 3b2, or any vax simulator could use networking support
 ifneq (,$(findstring pdp11,${MAKECMDGOALS})$(findstring pdp10,${MAKECMDGOALS})$(findstring vax,${MAKECMDGOALS})$(findstring frontpaneltest,${MAKECMDGOALS})$(findstring infoserver,${MAKECMDGOALS})$(findstring 3b2,${MAKECMDGOALS})$(findstring all,${MAKECMDGOALS}))
   NETWORK_USEFUL = true
@@ -266,6 +270,7 @@ ifneq (,$(findstring pdp11,${MAKECMDGOALS})$(findstring pdp10,${MAKECMDGOALS})$(
     BUILD_MULTIPLE_VERB = are
     VIDEO_USEFUL = true
     BESM6_BUILD = true
+    GPIO_USEFUL = true
     MAKECMDGOALS_DESCRIPTION = everything
   endif
 else
@@ -277,6 +282,7 @@ else
     BUILD_MULTIPLE_VERB = are
     BUILD_SINGLE := all $(BUILD_SINGLE)
     BESM6_BUILD = true
+    GPIO_USEFUL = true
     MAKECMDGOALS_DESCRIPTION = everything
   endif
 endif
@@ -386,21 +392,22 @@ DPKG_PNG       = 7
 DPKG_ZLIB      = 8
 DPKG_SDL_TTF   = 9
 DPKG_GMAKE     = 10
-DPKG_CURL      = 11
-DPKG_BUILD     = 12
+DPKG_GPIO      = 11
+DPKG_CURL      = 12
+DPKG_BUILD     = 13
 ifneq (3,${SIM_MAJOR})
-  # Platform Pkg Names  COMPILER PCAP          VDE            PCRE         EDITLINE      SDL               PNG            ZLIB       SDL_TTF           GMAKE CURL  BUILD-TOOL
-  PKGS_SRC_HOMEBREW   = -        -             vde            pcre         libedit       sdl2              libpng         zlib       sdl2_ttf          make  -     -
-  PKGS_SRC_MACPORTS   = -        -             vde2           pcre         libedit       libsdl2           libpng         zlib       libsdl2_ttf       gmake -     -
-  PKGS_SRC_APT        = gcc      libpcap-dev   libvdeplug-dev libpcre3-dev libedit-dev   libsdl2-dev       libpng-dev     -          libsdl2-ttf-dev   -     curl  build-essential:/usr/share/build-essential
-  PKGS_SRC_YUM        = gcc      libpcap-devel -              pcre-devel   libedit-devel SDL2-devel        libpng-devel   zlib-devel SDL2_ttf-devel    -     -     -
-  PKGS_SRC_DNF        = gcc      libpcap-devel -              pcre-devel   libedit-devel SDL2-devel        libpng-devel   zlib-devel SDL2_ttf-devel    -     -     -
-  PKGS_SRC_ZYPPER     = gcc-c++  libpcap-devel -              -            libedit-devel sdl2-compat-devel libpng16-devel zlib-devel SDL2_ttf-devel    make  -     -
-  PKGS_SRC_APK        = clang    libpcap-devel -              -            libedit-devel sdl2-compat-devel libpng-devel   -          sdl2_ttf-devel    gmake curl  -
-  PKGS_SRC_PKGSRC     = -        -             -              pcre         editline      SDL2              png            zlib       SDL2_ttf          gmake -     -
-  PKGS_SRC_PKGBSD     = -        -             -              pcre         libedit       SDL2              png            -          sdl2_ttf          gmake -     -
-  PKGS_SRC_PKGADD     = -        -             -              pcre         -             sdl2              png            -          sdl2-ttf          gmake -     -
-  PKGS_SRC_TERMUX     = clang    libpcap       -              pcre         -             -                 -              -          -                 -     curl  -
+# Platform Pkg Names  COMPILER PCAP          VDE            PCRE         EDITLINE      SDL               PNG            ZLIB       SDL_TTF           GMAKE GPIO CURL  BUILD-TOOL
+  PKGS_SRC_HOMEBREW   = -        -             vde            pcre         libedit       sdl2              libpng         zlib       sdl2_ttf          make  -            -     -
+  PKGS_SRC_MACPORTS   = -        -             vde2           pcre         libedit       libsdl2           libpng         zlib       libsdl2_ttf       gmake -            -     -
+  PKGS_SRC_APT        = gcc      libpcap-dev   libvdeplug-dev libpcre3-dev libedit-dev   libsdl2-dev       libpng-dev     -          libsdl2-ttf-dev   -     libgpiod-dev curl  build-essential:/usr/share/build-essential
+  PKGS_SRC_YUM        = gcc      libpcap-devel -              pcre-devel   libedit-devel SDL2-devel        libpng-devel   zlib-devel SDL2_ttf-devel    -     -            -     -
+  PKGS_SRC_DNF        = gcc      libpcap-devel -              pcre-devel   libedit-devel SDL2-devel        libpng-devel   zlib-devel SDL2_ttf-devel    -     -            -     -
+  PKGS_SRC_ZYPPER     = gcc-c++  libpcap-devel -              -            libedit-devel sdl2-compat-devel libpng16-devel zlib-devel SDL2_ttf-devel    make  -            -     -
+  PKGS_SRC_APK        = clang    libpcap-devel -              -            libedit-devel sdl2-compat-devel libpng-devel   -          sdl2_ttf-devel    gmake -            curl  -
+  PKGS_SRC_PKGSRC     = -        -             -              pcre         editline      SDL2              png            zlib       SDL2_ttf          gmake -            -     -
+  PKGS_SRC_PKGBSD     = -        -             -              pcre         libedit       SDL2              png            -          sdl2_ttf          gmake -            -     -
+  PKGS_SRC_PKGADD     = -        -             -              pcre         -             sdl2              png            -          sdl2-ttf          gmake -            -     -
+  PKGS_SRC_TERMUX     = clang    libpcap       -              pcre         -             -                 -              -          -                 -     -            curl  -
   ifneq (0,$(TESTS))
     ifneq (,${TEST_ARG})
       export TEST_ARG
@@ -559,10 +566,14 @@ ifeq (${WIN32},)  #*nix Environments (&& cygwin)
     endif
     ifneq (,$(or $(NEED_COMMIT_ID),$(GIT_EXTRA_FILES)))
       isodate=$(shell git $(REPO_PATH) log -1 --pretty="%ai"|sed -e 's/ /T/'|sed -e 's/ //')
-      $(shell git $(REPO_PATH) log -1 --pretty="SIM_GIT_COMMIT_ID %H$(GIT_EXTRA_FILES)%nSIM_GIT_COMMIT_TIME $(isodate)" >.git-commit-id)
+      ifneq (,$(GIT_EXTRA_FILES))
+        $(shell git $(REPO_PATH) log -1 --pretty="SIM_GIT_COMMIT_ID %H$(GIT_EXTRA_FILES)%nSIM_GIT_COMMIT_TIME $(isodate)%nSIM_GIT_UNCOMMITTED_CHANGES 1" >.git-commit-id)
+      else
+        $(shell git $(REPO_PATH) log -1 --pretty="SIM_GIT_COMMIT_ID %H$(GIT_EXTRA_FILES)%nSIM_GIT_COMMIT_TIME $(isodate)" >.git-commit-id)
+      endif
     endif
   endif
-  SIM_BUILD_OS_VERSION= -DSIM_BUILD_OS_VERSION="$(shell uname -a|sed 's/,//g')"
+  SIM_BUILD_OS_VERSION= -DSIM_BUILD_OS_VERSION="$(shell uname -srvmo|sed 's/,//g')"
   LTO_EXCLUDE_VERSIONS =
   PCAPLIB = pcap
   ifeq (agcc,$(findstring agcc,${GCC})) # Android target build?
@@ -1279,6 +1290,18 @@ ifeq (${WIN32},)  #*nix Environments (&& cygwin)
     endif
     NETWORK_OPT = $(NETWORK_CCDEFS)
   endif
+  ifneq (,$(GPIO_USEFUL))
+    ifneq (,$(and $(findstring Linux,$(OSTYPE)),$(findstring APT,$(PKG_MGR)),$(wildcard /sys/firmware/devicetree/base/model),$(shell cat /sys/firmware/devicetree/base/model | awk '{ if ($$1 = "Raspberry") {print $$1} }')))
+      ifneq (,$(and $(wildcard /etc/debian_version),$(shell cat /etc/debian_version | awk '{ if ($$1 >= "13.2") {print "good"} }')))
+        $(info Building on a Raspberry Pi)
+        ifeq (,$(call find_include,gpiod))
+          NEEDED_PKGS += DPKG_GPIO
+        else
+          GPIO_AVAILABLE = true
+        endif
+      endif
+    endif
+  endif
   ifneq (binexists,$(shell if ${TEST} -e BIN/buildtools; then echo binexists; fi))
     export MKDIRBIN
     MKDIRBIN = @$(MKDIR) BIN/buildtools
@@ -1448,11 +1471,15 @@ else
       isodate=$(word 1,$(isodatetime))T$(word 2,$(isodatetime))$(word 3,$(isodatetime))
       $(shell echo SIM_GIT_COMMIT_ID $(ACTUAL_GIT_COMMIT_ID)$(GIT_EXTRA_FILES)>.git-commit-id)
       $(shell echo SIM_GIT_COMMIT_TIME $(isodate)>>.git-commit-id)
+      ifneq (,$(GIT_EXTRA_FILES))
+        $(shell echo SIM_GIT_UNCOMMITTED_CHANGES 1>>.git-commit-id)
+      endif
     endif
   endif
   ifneq (,$(shell if exist .git-commit-id echo git-commit-id))
     GIT_COMMIT_ID=$(shell for /F "tokens=2" %%i in ("$(shell findstr /C:"SIM_GIT_COMMIT_ID" .git-commit-id)") do echo %%i)
     GIT_COMMIT_TIME=$(shell for /F "tokens=2" %%i in ("$(shell findstr /C:"SIM_GIT_COMMIT_TIME" .git-commit-id)") do echo %%i)
+    GIT_EXTRA_FILES=$(shell for /F "tokens=2" %%i in ("$(shell findstr /C:"SIM_GIT_UNCOMMITTED_CHANGES" .git-commit-id)") do echo %%i)
   else
     ifeq (,$(shell findstr /C:"define SIM_GIT_COMMIT_ID" sim_rev.h | findstr Format))
       GIT_COMMIT_ID=$(shell for /F "tokens=3" %%i in ("$(shell findstr /C:"define SIM_GIT_COMMIT_ID" sim_rev.h)") do echo %%i)
@@ -1623,12 +1650,15 @@ ifeq (,$(MAKE_RESULT))
   ifneq (,$(GIT_COMMIT_TIME))
     CFLAGS_GIT += -DSIM_GIT_COMMIT_TIME=$(GIT_COMMIT_TIME)
   endif
+  ifneq (,$(GIT_EXTRA_FILES))
+    CFLAGS_GIT += -DSIM_GIT_UNCOMMITTED_CHANGES
+  endif
   ifneq (,$(UNSUPPORTED_BUILD))
     CFLAGS_GIT += -DSIM_BUILD=Unsupported=$(UNSUPPORTED_BUILD)
   endif
   OPTIMIZE ?= -O2
   ifneq ($(DEBUG),)
-    CFLAGS_G = -g -ggdb -g3
+    CFLAGS_G = -g -ggdb -g3 -D_DEBUG
     CFLAGS_O = -O0
     BUILD_FEATURES = - debugging support
     LTO =
@@ -2795,6 +2825,8 @@ tt2500 : $(BIN)tt2500$(EXE)
 $(BIN)tt2500$(EXE) : ${TT2500} ${SIM}
 	$(MAKEIT) OPTS="$(TT2500_OPT)"
 
+# PiDP11: build pdp11, pidp11-frontpanel (on Raspberry Pi only)
+pidp11 : pdp11 $(if $(GPIO_AVAILABLE),pidp11-frontpanel)
 
 pdp11 : $(BIN)pdp11$(EXE)
 
@@ -2806,6 +2838,14 @@ pdp11_realcons : $(BIN)pdp11_realcons$(EXE)
 $(BIN)pdp11_realcons$(EXE) : ${PDP11} ${SIM} ${BUILD_ROMS} ${REALCONS} ${REALCONS_PDP11}
 	$(MAKEIT) OPTS="$(PDP11_OPT) $(REALCONS_OPT)"
 
+pidp11-frontpanel : $(BIN)pidp11-frontpanel$(EXE)
+
+$(BIN)pidp11-frontpanel$(EXE) : 
+	mkdir -p $(BIN)frontpanels/ && test ! -d $(BIN)frontpanels/pidp11-frontpanel && git clone https://github.com/hammurabi-mendes/pidp-frontpanel $(BIN)frontpanels/pidp11-frontpanel
+	cp $(BIN)../sim_frontpanel.* $(BIN)frontpanels/pidp11-frontpanel/
+	cp $(BIN)../sim_sock.* $(BIN)frontpanels/pidp11-frontpanel/
+	sed -i 's/sim_panel_destroy.simh_panel/sim_panel_destroy\(\&simh_panel/g' $(BIN)frontpanels/pidp11-frontpanel/frontpanel.cpp
+	cd $(BIN)frontpanels/pidp11-frontpanel/ && make && cp frontpanel ../../pidp11-frontpanel
 
 uc15 : $(BIN)uc15$(EXE)
 
