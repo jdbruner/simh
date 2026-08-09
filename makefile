@@ -2825,9 +2825,6 @@ tt2500 : $(BIN)tt2500$(EXE)
 $(BIN)tt2500$(EXE) : ${TT2500} ${SIM}
 	$(MAKEIT) OPTS="$(TT2500_OPT)"
 
-# PiDP11: build pdp11, pidp11-frontpanel (on Raspberry Pi only)
-pidp11 : pdp11 $(if $(GPIO_AVAILABLE),pidp11-frontpanel)
-
 pdp11 : $(BIN)pdp11$(EXE)
 
 $(BIN)pdp11$(EXE) : ${PDP11} ${SIM} ${BUILD_ROMS}
@@ -2838,7 +2835,7 @@ pdp11_realcons : $(BIN)pdp11_realcons$(EXE)
 $(BIN)pdp11_realcons$(EXE) : ${PDP11} ${SIM} ${BUILD_ROMS} ${REALCONS} ${REALCONS_PDP11}
 	$(MAKEIT) OPTS="$(PDP11_OPT) $(REALCONS_OPT)"
 
-pidp11-frontpanel : $(BIN)pidp11-frontpanel$(EXE)
+pidp11-frontpanel : pdp11 $(BIN)pidp11-frontpanel$(EXE)
 
 $(BIN)pidp11-frontpanel$(EXE) : 
 	mkdir -p $(BIN)frontpanels/ && test ! -d $(BIN)frontpanels/pidp11-frontpanel && git clone https://github.com/hammurabi-mendes/pidp-frontpanel $(BIN)frontpanels/pidp11-frontpanel
