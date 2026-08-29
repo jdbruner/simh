@@ -119,7 +119,7 @@
 #
 #   make GCC=cppcheck CC_OUTSPEC= LDFLAGS= CFLAGS_G="--enable=all --template=gcc" CC_STD=--std=c99
 #
-ifeq (0,$(MAKELEVEL))	# recursive individual target build logic is end of this makefile
+ifeq (0,$(if $(findstring 11,$(SUBMODULE)$(MAKELEVEL)),0,$(MAKELEVEL)))	# recursive individual target build logic is end of this makefile
 #
 # CC Command (and platform available options).  (Poor man's autoconf)
 #
@@ -909,7 +909,8 @@ ifeq (${WIN32},)  #*nix Environments (&& cygwin)
   # Find available ncurses library.
   ifneq (,$(call find_include,ncurses))
     ifneq (,$(call find_lib,ncurses))
-      OS_CURSES_DEFS += -DHAVE_NCURSES -lncurses
+      OS_CURSES_DEFS += -DHAVE_NCURSES
+      OS_CURSES_LDFLAGS += -lncurses
     endif
   endif
   ifeq (,$(findstring Android,$(shell uname -a)))
@@ -1294,7 +1295,6 @@ ifeq (${WIN32},)  #*nix Environments (&& cygwin)
     ifneq (,$(and $(findstring Linux,$(OSTYPE)),$(findstring APT,$(PKG_MGR)),$(wildcard /sys/firmware/devicetree/base/model),$(shell cat /sys/firmware/devicetree/base/model | awk '{ if ($$1 = "Raspberry") {print $$1} }')))
       ifneq (,$(and $(wildcard /etc/debian_version),$(shell cat /etc/debian_version | awk '{ if ($$1 >= "13.2") {print "good"} }')))
         RASPBERRY_PI_SYSTEM = true
-        $(info Building on a Raspberry Pi)
         ifeq (,$(call find_include,gpiod))
           NEEDED_PKGS += DPKG_GPIO
         else
@@ -2708,6 +2708,9 @@ ALL = pdp1 pdp4 pdp7 pdp8 pdp9 pdp15 pdp11 pdp10 \
 	sigma uc15 pdp10-ka pdp10-ki pdp10-kl pdp10-ks pdp6 i650 \
 	imlac linc tt2500 sel32
 
+#Insert-Extras-Here
+#End-Of-Extras-Insertion
+
 all : ${ALL}
 
 EXPERIMENTAL = alpha pdq3 sage
@@ -3347,8 +3350,7 @@ endif
 frontpaneltest : ${BIN}frontpaneltest${EXE} ${BIN}vax${EXE} 
 
 ${BIN}frontpaneltest${EXE} : frontpanel/FrontPanelTest.c sim_sock.c sim_frontpanel.c
-	#cmake:ignore-target
-	$(MAKEIT) OPTS="$(OS_CURSES_DEFS)" TESTS=0
+	$(MAKEIT) OPTS="$(OS_CURSES_DEFS)" LNK_OPTS="$(OS_CURSES_LDFLAGS)" TESTS=0
 
 else # end of primary make recipies
 
