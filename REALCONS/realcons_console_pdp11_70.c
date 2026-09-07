@@ -236,10 +236,10 @@ static char *realcons_console_pdp11_70_addr_panel2simh(t_addr panel_addr, uint64
 // set virtual and physical address
 // use MMU
 static void set_memory_address_va_pa(realcons_console_logic_pdp11_70_t *_this, int32 va) {
-    int32 realcons_reloc(int32 addr);
+    extern int32 relocX(int32 addr);
     // use something like relocC(), but feed CPU I/D & mode into it!
     SIGNAL_SET(cpusignal_memory_address_virt_register, va & 0xffff);
-    SIGNAL_SET(cpusignal_memory_address_phys_register, realcons_reloc(va));
+    SIGNAL_SET(cpusignal_memory_address_phys_register, relocX(va));
 }
 
 
@@ -530,7 +530,7 @@ void realcons_console_pdp11_70_interface_connect(realcons_console_logic_pdp11_70
         extern int realcons_bus_ID_mode; // 1 = DATA space access, 0 = instruction space access
         extern t_value realcons_DATAPATH_shifter; // output of ALU
         extern t_value realcons_IR; // buffer for instruction register (opcode)
-        extern t_value realcons_PSW; // buffer for program status word
+        extern int32 PSW; // buffer for program status word
 
         realcons_console_halt = 0;
 
@@ -550,7 +550,7 @@ void realcons_console_pdp11_70_interface_connect(realcons_console_logic_pdp11_70
 
         _this->cpusignal_DATAPATH_shifter = &realcons_DATAPATH_shifter; // not used
         _this->cpusignal_instruction_register = &realcons_IR;
-        _this->cpusignal_PSW = &realcons_PSW;
+        _this->cpusignal_PSW = &PSW;
         _this->cpusignal_bus_ID_mode = &realcons_bus_ID_mode;
         _this->cpusignal_cpu_mode = (t_value*)&cm; // MD_SUP,MD_
         _this->cpusignal_MMR0 = &MMR0; // MMU register 17 777 572

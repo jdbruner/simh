@@ -242,9 +242,13 @@
 
 /* Definitions */
 
+#if !defined(FRONTPANEL) && (defined(USE_REALCONS) || defined(USE_PIPANEL))
+#define FRONTPANEL
+#endif
+
 #ifdef USE_REALCONS
-#include "realcons.h"	/* REAL-CONSOLE */
-// !!! must be included before pd11_defs.h, because  duplicate symbol INT_PTR
+#include "realcons.h"   /* REAL-CONSOLE */
+// !!! must be included before pdp11_defs.h, because of duplicate symbol INT_PTR
 // #1: realcons.h  -> .... -> rpc_blinkenlight_api.h -> rpc.h -> windows.h --> basetsd.h
 // #2: pdp11_defs.h
 #endif
@@ -337,6 +341,43 @@ int16 reg_mods;                                         /* reg deltas */
 int32 last_pa;                                          /* pa from ReadMW/ReadMB */
 int32 saved_sim_interval;                               /* saved at inst start */
 t_stat reason;                                          /* stop reason */
+
+#ifdef FRONTPANEL
+/* state extension for front panel interfaces */
+#ifdef USE_REALCONS
+/* these are common to all CPUs and used in scp.c */
+#define frontpanel_PA realcons_memory_address_phys_register
+#define frontpanel_VA realcons_memory_address_virt_register
+#define frontpanel_DATA realcons_memory_data_register
+#define frontpanel_RW realcons_memory_write_access
+#define frontpanel_HALT realcons_console_halt
+extern t_addr frontpanel_PA;                            /* most recent pa */
+extern t_addr frontpanel_VA;                            /* most recent va */
+extern t_value frontpanel_DATA;                         /* most recent data */
+extern int frontpanel_RW;                               /* read=0, write=1 */
+extern int frontpanel_HALT;                             /* front panel RUN/HALT switch (HALT=1) */
+/* these are defined here and used in REALCONS/*.c */
+#define frontpanel_IDMODE realcons_bus_ID_mode
+#define frontpanel_DATAPATH realcons_DATAPATH_shifter
+#define frontpanel_IR realcons_IR
+#else
+t_addr frontpanel_PA;                                   /* most recent pa */
+t_addr frontpanel_VA;                                   /* most recent va */
+t_value frontpanel_DATA;                                /* most recent data */
+int frontpanel_RW;                                      /* read=0, write=1 */
+int frontpanel_HALT;                                    /* CPU halted by front panel */
+#endif
+
+/*
+ * Conceptual problem:
+ *   For panel logic, PDP-11 CPU signals are required, which depend on CPU model.
+ *   (PDP-11/40 DMUX, etc.)
+ * Initialize in cpu_reset()
+ */
+int     frontpanel_IDMODE;  /* 1 = data space access, 0 = instruction space access */
+t_value frontpanel_DATAPATH;/* value of shifter in PDP-11 processor data paths */
+t_value frontpanel_IR;      /* buffer for instruction register */
+#endif
 
 extern int32 CPUERR, MAINT;
 extern CPUTAB cpu_tab[];
@@ -618,6 +659,15 @@ REG cpu_reg[] = {
     { ORDATAD (WRU, sim_int_char, 8, "interrupt character") },
     { ORDATA (MODEL, cpu_model, 16), REG_HRO },
     { ORDATA (OPTIONS, cpu_opt, 32), REG_HRO },
+#ifdef FRONTPANEL
+    { ORDATAD (BUS_PA, frontpanel_PA, 22, "last physical memory address on the bus") },
+    { ORDATAD (BUS_VA, frontpanel_VA, 22, "last virtual memory address on the bus") },
+    { ORDATAD (BUS_DATA, frontpanel_DATA, 16, "last memory access data on the bus") },
+    { ORDATAD (BUS_RW, frontpanel_RW, 1, "last memory access was R/W (R=0,W=1)") },
+    { ORDATAD (BUS_IDMODE, frontpanel_IDMODE, 1, "last bus access I/D (I=0,D=1") },
+    { ORDATAD (DATAPATH, frontpanel_DATAPATH, 16, "datapath shifter result") },
+    { ORDATAD (IR, frontpanel_IR, 16, "last instruction") },
+#endif
     { NULL}
     };
 
@@ -727,91 +777,59 @@ DEVICE cpu_dev = {
     };
 
 #ifdef USE_REALCONS
-// extended cpu state for panel logic
-// 1. state for all cpu's in scp.c
-extern	t_addr realcons_memory_address_phys_register; // memory address
-extern	t_addr realcons_memory_address_virt_register; // memory address
-extern 	t_value realcons_memory_data_register; // memory data
-extern 	int realcons_memory_write_access;
-extern 	int realcons_console_halt; // 1: CPU halted by realcons console
-  // 2. state extension for PDP11
-  //    Conceptual problem:
-  //    For panel logic PDP11 cpu signals are required, which depend on cpu model.
-  //	(PDP11/40 DMUX, etc.)
-  //	Initialize in cpu_reset()
-
-int		realcons_bus_ID_mode; // 1 = DATA space access, 0 = instruction space access
-t_value realcons_DATAPATH_shifter;  // value of shifter in PDP-11 processor data paths
-t_value realcons_IR; // buffer for instruction register (opcode)
-t_value realcons_PSW; // buffer for program status word
-
-								   // Pointers to event handlers
-								   // Events are called in SimH-code as pointers to functions in panel logic
-extern console_controller_event_func_t	realcons_event_operator_halt; // scp.c, needed here
-extern console_controller_event_func_t	realcons_event_step_halt; // scp.c, needed here
-extern console_controller_event_func_t	realcons_event_cpu_reset;
-console_controller_event_func_t	realcons_event_opcode_any; // triggered after any opcode execution
+/*
+ * Pointers to event handlers
+ * Events are called in SimH-code as pointers to functions in panel logic
+ */
+extern console_controller_event_func_t  realcons_event_operator_halt; // scp.c, needed here
+extern console_controller_event_func_t  realcons_event_step_halt; // scp.c, needed here
+extern console_controller_event_func_t  realcons_event_cpu_reset;
+console_controller_event_func_t realcons_event_opcode_any; // triggered after any opcode execution
 console_controller_event_func_t realcons_event_opcode_halt;
-console_controller_event_func_t	realcons_event_opcode_reset; // triggered after execution of RESET
-console_controller_event_func_t	realcons_event_opcode_wait; // triggered after execution of WAIT
+console_controller_event_func_t realcons_event_opcode_reset; // triggered after execution of RESET
+console_controller_event_func_t realcons_event_opcode_wait; // triggered after execution of WAIT
+#endif
 
+#ifdef FRONTPANEL
+/*** observe memory accesses for front panel
+ * SimH emulated opcodes access memory in many code paths.
+ * In order to display these on the front panel interface,
+ * each virtual, physical address, data value etc must be observed.
+ * Because of speed, macros instead of functions are used.
+ * To make code more readable, situation-specific names are used.
+ *
+ * va - virtual address (may be 0xffffffff denoting it is invalid)
+ * pa - physical address
+ * data_expr - data being read or written
+ * write - 1 for write, 0 for read
+ */
+#define FRONTPANEL_OBSERVE_MEMACCESS_INTERN(va,pa,data_expr,write)  do { \
+    frontpanel_IDMODE = ((va) & 0x10000)? 1 : 0 ; \
+    frontpanel_PA = (pa) ; \
+    if ((va) != 0xffffffff) /* only pa given ? */ \
+        frontpanel_VA = (va) & 0xffff ; \
+    frontpanel_DATA = (data_expr) ; \
+    frontpanel_RW = (write) ; \
+  } while(0)
+#else
+#define FRONTPANEL_OBSERVE_MEMACCESS_INTERN(va,pa,data_expr,write)
+#endif
 
-
-  /*** register memory accesses
-   * SimH codes access memory in many code paths,
-   * for each virtual, physical address, data value etc must be registered.
-   * Because of speed, macros instead of functions are used.
-   * To make code more reliable, telling names for diffrenet situtaions are used.
-   */
-
-   // R/W access, virtual and physical address given. va can be invalid
-//#define REALCONS_CPU_PDP11_MEMACCESS_INTERN(realcons,va,pa,data_expr,write)	 (data_expr)
-//#define RETURN_REALCONS_CPU_PDP11_MEMACCESS_INTERN(realcons,va,pa,data_expr,write)	 return (data_expr)
-
-
-#define REALCONS_CPU_PDP11_MEMACCESS_INTERN(realcons,va,pa,data_expr,write)	 do { \
- 				  realcons_bus_ID_mode = ((va) & 0x10000)? 1 : 0 ; \
-				  realcons_memory_address_phys_register = (pa) ; \
-                  if ((va) != 0xffffffff) /* only pa given ?) */ \
-				    realcons_memory_address_virt_register = (va) & 0xffff ; \
-				  realcons_memory_data_register = (data_expr) ; \
-				  realcons_memory_write_access = (write) ; \
-/*printf("%s M[va=%o, pa=%o] = %o, line #%d\n", realcons_memory_write_access?"WRITE":"READ", realcons_memory_address_virt_register, realcons_memory_address_phys_register, realcons_memory_data_register, __LINE__) ;/**/ \
-			  } while(0)
-
-      //dto, terminate current procedure with data_expr as result
-#define RETURN_REALCONS_CPU_PDP11_MEMACCESS_INTERN(realcons,va,pa,data_expr,write)	 do { \
-				  realcons_bus_ID_mode = ((va) & 0x10000)? 1 : 0 ; \
-				  realcons_memory_address_phys_register = (pa) ; \
-                  if ((va) != 0xffffffff) /* only pa given ?) */ \
-				    realcons_memory_address_virt_register = (va) & 0xffff ; \
-				  realcons_memory_write_access = (write) ; \
-				  realcons_memory_data_register = (data_expr) ; \
-/*printf("RETURN %s M[va=%o, pa=%o] = %o, line #%d\n", realcons_memory_write_access?"WRITE":"READ", realcons_memory_address_virt_register, realcons_memory_address_phys_register, realcons_memory_data_register, __LINE__) ;/**/ \
-  				  return realcons_memory_data_register ; /* eval data_expr only once!!*/ \
-			  } while(0)
-
-/*** tailored to situations ***/
+/*** FRONTPANEL_OBSERVE, tailored to situations ***/
 // Read access, only physical address given
-#define REALCONS_CPU_PDP11_MEMACCESS_PA_READ(realcons,pa,data_expr)\
-	REALCONS_CPU_PDP11_MEMACCESS_INTERN((realcons),0xffffffff,(pa),(data_expr),FALSE)
-// Read access physical address, terminate current procedure with data_expr as result
-#define RETURN_REALCONS_CPU_PDP11_MEMACCESS_PA_READ(realcons,pa,data_expr)\
-	RETURN_REALCONS_CPU_PDP11_MEMACCESS_INTERN((realcons),0xffffffff,(pa),(data_expr),FALSE)
+#define FRONTPANEL_OBSERVE_MEMACCESS_PA_READ(pa,data_expr)\
+    FRONTPANEL_OBSERVE_MEMACCESS_INTERN(0xffffffff,(pa),(data_expr),FALSE)
 // READ access virtual and physical
-#define REALCONS_CPU_PDP11_MEMACCESS_VA_PA_READ(realcons,va,pa,data_expr)	\
-	REALCONS_CPU_PDP11_MEMACCESS_INTERN((realcons),(va),(pa),(data_expr),FALSE)
-// READ access, terminate current procedure with data_expr as result
-#define RETURN_REALCONS_CPU_PDP11_MEMACCESS_VA_PA_READ(realcons,va,pa,data_expr)	\
-	RETURN_REALCONS_CPU_PDP11_MEMACCESS_INTERN((realcons),(va),(pa),(data_expr),FALSE)
+#define FRONTPANEL_OBSERVE_MEMACCESS_VA_PA_READ(va,pa,data_expr)   \
+    FRONTPANEL_OBSERVE_MEMACCESS_INTERN((va),(pa),(data_expr),FALSE)
 // WRITE access, only physical address given
-#define REALCONS_CPU_PDP11_MEMACCESS_PA_WRITE(realcons,pa,data_expr)\
-		REALCONS_CPU_PDP11_MEMACCESS_INTERN((realcons),0xffffffff,(pa),(data_expr),TRUE)
+#define FRONTPANEL_OBSERVE_MEMACCESS_PA_WRITE(pa,data_expr)\
+    FRONTPANEL_OBSERVE_MEMACCESS_INTERN(0xffffffff,(pa),(data_expr),TRUE)
 // WRITE access virtual and physical
-#define REALCONS_CPU_PDP11_MEMACCESS_VA_PA_WRITE(realcons,va,pa,data_expr)	\
-		REALCONS_CPU_PDP11_MEMACCESS_INTERN((realcons),(va),(pa),(data_expr),TRUE)
+#define FRONTPANEL_OBSERVE_MEMACCESS_VA_PA_WRITE(va,pa,data_expr)  \
+    FRONTPANEL_OBSERVE_MEMACCESS_INTERN((va),(pa),(data_expr),TRUE)
 
-
+#ifdef USE_REALCONS
 /* relocate virtual addresses.
  * like relocR(), but without change of CPU state
  * uses relocC()
@@ -821,7 +839,7 @@ console_controller_event_func_t	realcons_event_opcode_wait; // triggered after e
  * bit 18,17 = cm = mode: MD_SUP, MD_KER,MD_USR,MD_UND, see calc_is()
  * bit 16 = I/D space flag, see calc_ds(). 1 = data, 0 = instruction
  */
-int32 realcons_reloc(int32 va) {
+int32 relocX(int32 va) {
     int32  sw;
     int32 relocC(int32 va, int32 sw) ;
 
@@ -840,9 +858,9 @@ int32 realcons_reloc(int32 va) {
     }
 
     if (va & 0x10000) // decode D-space from bit 16
-        sw |= SWMASK('D') ;
+        sw |= SWMASK('T') ;
 
-    return relocC(va, sw); // now these switches are reverse decoded
+    return relocC(va & 0177777, sw); // now these switches are reverse decoded
 }
 #endif
 
@@ -1143,7 +1161,7 @@ while (reason == 0)  {
             hst_p = 0;
         }
     PC = (PC + 2) & 0177777;                            /* incr PC, mod 65k */
-#ifdef USE_REALCONS
+#ifdef FRONTPANEL
     saved_PC = PC ; // saved_PC used in panel
 #endif
     switch ((IR >> 12) & 017) {                         /* decode IR<15:12> */
@@ -1171,7 +1189,7 @@ while (reason == 0)  {
             case 1:                                     /* WAIT */
                 wait_state = 1;
 #if USE_REALCONS
-					REALCONS_EVENT(cpu_realcons, realcons_event_opcode_wait);
+                REALCONS_EVENT(cpu_realcons, realcons_event_opcode_wait);
 #endif
                 break;
             case 3:                                     /* BPT */
@@ -1193,8 +1211,8 @@ while (reason == 0)  {
                     trap_req = trap_req & ~TRAP_INT;
                     dsenable = calc_ds (cm);
 #if USE_REALCONS
-						REALCONS_EVENT(cpu_realcons, realcons_event_opcode_reset);
-						// The realcons event handler must handle the RESET-delay (70ms for 11/40, 10ms for 11/70, etc)
+                    REALCONS_EVENT(cpu_realcons, realcons_event_opcode_reset);
+                    // The realcons event handler must handle the RESET-delay (70ms for 11/40, 10ms for 11/70, etc)
 #endif
                     }
                 break;
@@ -2581,39 +2599,47 @@ while (reason == 0)  {
         else setTRAP (TRAP_ILL);
         break;                                          /* end case 017 */
         }                                               /* end switch op */
-#ifdef USE_REALCONS
-        // assume tmp var "dst" is holding the data path shifter output
-        // It is used on PDP-11/70 for DATA PATH knob position.
-        // Other PDP-11's may show different signals, or implement "shifter" in another way.
-        // The shifter usage on 11/70 is implemneted ad hoc, so the known "idle patterns" appear right
-        // Tested for RSX11M, 2.11BSD, IAS
-        {
-            unsigned ir15_06 = IR & 0177700; // mask bits 15:6
-            unsigned ir15_09 = IR & 0177000; // mask bits 15:9
-            unsigned ir15_12 = IR & 0170000; // mask bits 15:9
-            if (   ir15_09 == 0072000 // ASH
-                || ir15_09 == 0073000 // ASHC
-                || ir15_06 == 0063000 // ASL
-                || ir15_06 == 0163000 // ASLB
-                || ir15_06 == 0062000 // ASR
-                || ir15_06 == 0162000 // ASRB
-                || ir15_12 == 0010000 // MOV
-                || ir15_12 == 0110000 // MOVB
-                )
-            realcons_DATAPATH_shifter = dst;
+#ifdef FRONTPANEL
+    // assume tmp var "dst" is holding the data path shifter output
+    // It is used on PDP-11/70 for DATA PATH knob position.
+    // (Other PDP-11's may show different signals, or implement
+    //  "shifter" in another way.)
+    // The shifter usage on 11/70 is implemented ad hoc, so the
+    //  known "idle patterns" appear right
+    // Tested for RSX11M, 2.11BSD, IAS
+    {
+        unsigned ir15_06 = IR & 0177700; // mask bits 15:6
+        unsigned ir15_09 = IR & 0177000; // mask bits 15:9
+        unsigned ir15_12 = IR & 0170000; // mask bits 15:12
+        if (   ir15_09 == 0072000 // ASH
+            || ir15_09 == 0073000 // ASHC
+            || ir15_06 == 0063000 // ASL
+            || ir15_06 == 0163000 // ASLB
+            || ir15_06 == 0062000 // ASR
+            || ir15_06 == 0162000 // ASRB
+            || ir15_12 == 0010000 // MOV
+            || ir15_12 == 0110000 // MOVB
+            )
+            frontpanel_DATAPATH = dst;
+        else if (IR == 1)       // WAIT
+            frontpanel_DATAPATH = R[0];
         }
 
-		// fetch CPU state after opcode processing.
-		realcons_IR = IR; // copy: IR only local var
-		realcons_PSW = get_PSW(); // copy: PSW not atomic
-		// check if the ENABLE/HALT switch was set to HALT
-		if (cpu_realcons->connected && realcons_console_halt) {
-			reason = SCPE_STOP; // transition is triggered at end of instr loop
-		}
+    // fetch CPU state after opcode processing.
+    frontpanel_IR = IR; // copy: IR only local var
+    PSW = get_PSW(); // copy: PSW not atomic
+    // check if the ENABLE/HALT switch was set to HALT
+#ifdef USE_REALCONS
+    if (cpu_realcons->connected && frontpanel_HALT)
+        reason = SCPE_STOP; // transition is triggered at end of instr loop
 
-		if (reason == 0)
-			// if HALT, a more specific transition is done above
-			REALCONS_EVENT(cpu_realcons, realcons_event_opcode_any);
+    if (reason == 0)
+        // if HALT, a more specific transition is done above
+        REALCONS_EVENT(cpu_realcons, realcons_event_opcode_any);
+#else
+    if (frontpanel_HALT)
+        reason = SCPE_STOP; // transition is triggered at end of instr loop
+#endif
 #endif
     }                                                   /* end main loop */
 
@@ -2627,28 +2653,29 @@ saved_PC = PC & 0177777;
 MMR1 = clean_MMR1 (MMR1);                               /* clean up MMR1 */
 pcq_r->qptr = pcq_p;                                    /* update pc q ptr */
 set_r_display (rs, cm);
+#ifdef FRONTPANEL
+    if ((reason == STOP_HALT) || (reason == STOP_WAIT) || (reason == SCPE_STOP)
+        || (reason == STOP_VECABORT) || (reason == STOP_SPABORT)) {
+        // during HALT, general register R0 contents are displayed.
+        frontpanel_DATAPATH = R[0];
 #ifdef USE_REALCONS
-	//	if (cm == MD_KER)
-	//		realcons_machine_set(cpu_realcons, REALCONS_MP_PDP11_CPU_MEMMODE,REALCONS_MP_PDP11_CPU_MEMMODE_KERNEL) ;
-	//	else if (cm == MD_SUP)
-	//		realcons_machine_set(cpu_realcons, REALCONS_MP_PDP11_CPU_MEMMODE,REALCONS_MP_PDP11_CPU_MEMMODE_SUPERVISOR) ;
-	//	else realcons_machine_set(cpu_realcons, REALCONS_MP_PDP11_CPU_MEMMODE,REALCONS_MP_PDP11_CPU_MEMMODE_USER) ;
-
-	if ((reason == STOP_HALT) || (reason == STOP_WAIT) || (reason == SCPE_STOP)
-		|| (reason == STOP_VECABORT) || (reason == STOP_SPABORT))
-	{ // during HALT, general register R0 contents are displayed.
-	  // trigger HALT transition after fetch of processor state
-		if (reason == SCPE_STOP) // address halt, cpu_realcons halt:
-			REALCONS_EVENT(cpu_realcons, realcons_event_operator_halt);
-		else  // STOP_HALT is opcode , STOP_SPABORT, STOP_VECABORT others are traps, STOP_WAIT  not used
-			REALCONS_EVENT(cpu_realcons, realcons_event_opcode_halt);
-	}
-	else
-	{ // during Single Instruction operation, the Processor Status Word is displayed.
-		realcons_PSW = (uint16)PSW; // not get_PSW()?
-		REALCONS_EVENT(cpu_realcons, realcons_event_step_halt);
-	}
-#endif /* USE_REALCONS */
+        // trigger HALT transition after fetch of processor state
+        if (reason == SCPE_STOP) // address halt, cpu_realcons halt:
+            REALCONS_EVENT(cpu_realcons, realcons_event_operator_halt);
+        else  // STOP_HALT is opcode , STOP_SPABORT, STOP_VECABORT others are traps, STOP_WAIT  not used
+            REALCONS_EVENT(cpu_realcons, realcons_event_opcode_halt);
+#else
+        frontpanel_PA = frontpanel_VA = saved_PC; // show PC in address LEDs
+#endif
+        }
+    else {
+#ifdef USE_REALCONS
+        // during Single Instruction operation, the Processor Status Word is displayed.
+        // realcons_PSW = (uint16)PSW; // not get_PSW()?
+        REALCONS_EVENT(cpu_realcons, realcons_event_step_halt);
+#endif
+    }
+#endif
 return reason;
 }
 
@@ -2843,12 +2870,11 @@ if (BPT_SUMM_RD &&
     (sim_brk_test (va & 0177777, BPT_RDVIR) ||
      sim_brk_test (pa, BPT_RDPHY)))                     /* read breakpoint? */
     ABORT (ABRT_BKPT);                                  /* stop simulation */
-if (ADDR_IS_MEM (pa))                                   /* memory address? */
-#ifdef USE_REALCONS
-		RETURN_REALCONS_CPU_PDP11_MEMACCESS_VA_PA_READ(cpu_realcons, va, pa, RdMemW (pa));
-#else
-    return RdMemW (pa);
-#endif
+if (ADDR_IS_MEM (pa)) {                                 /* memory address? */
+    data = RdMemW (pa);
+    FRONTPANEL_OBSERVE_MEMACCESS_VA_PA_READ(va, pa, data);
+    return data;
+    }
 if ((pa < IOPAGEBASE) ||                                /* not I/O address */
     (CPUT (CPUT_J) && (pa >= IOBA_CPU))) {              /* or J11 int reg? */
         setCPUERR (CPUE_NXM);
@@ -2858,15 +2884,13 @@ if (iopageR (&data, pa, READ) != SCPE_OK) {             /* invalid I/O addr? */
     setCPUERR (CPUE_TMO);
     ABORT (TRAP_NXM);
     }
-#ifdef USE_REALCONS
-	REALCONS_CPU_PDP11_MEMACCESS_VA_PA_READ(cpu_realcons, va, pa, data);
-#endif
+FRONTPANEL_OBSERVE_MEMACCESS_VA_PA_READ(va, pa, data);
 return data;
 }
 
 int32 ReadW (int32 va)
 {
-int32 pa;
+int32 pa, data;
 
 if ((va & 1) && CPUT (HAS_ODD)) {                       /* odd address? */
     setCPUERR (CPUE_ODD);
@@ -2877,27 +2901,23 @@ if (BPT_SUMM_RD &&
     (sim_brk_test (va & 0177777, BPT_RDVIR) ||
      sim_brk_test (pa, BPT_RDPHY)))                     /* read breakpoint? */
     ABORT (ABRT_BKPT);                                  /* stop simulation */
-#ifdef USE_REALCONS
-	RETURN_REALCONS_CPU_PDP11_MEMACCESS_VA_PA_READ(cpu_realcons, va, pa, PReadW (pa));
-#else
-return PReadW (pa);
-#endif
+data = PReadW (pa);
+FRONTPANEL_OBSERVE_MEMACCESS_VA_PA_READ(va, pa, data);
+return data;
 }
 
 int32 ReadB (int32 va)
 {
-int32 pa;
+int32 pa, data;
 
 pa = relocR (va);                                       /* relocate */
 if (BPT_SUMM_RD &&
     (sim_brk_test (va & 0177777, BPT_RDVIR) ||
      sim_brk_test (pa, BPT_RDPHY)))                     /* read breakpoint? */
     ABORT (ABRT_BKPT);                                  /* stop simulation */
-#ifdef USE_REALCONS
-	RETURN_REALCONS_CPU_PDP11_MEMACCESS_VA_PA_READ(cpu_realcons, va, pa, PReadB (pa));
-#else
-    return PReadB (pa);
-#endif
+data = PReadB (pa);
+FRONTPANEL_OBSERVE_MEMACCESS_VA_PA_READ(va, pa, data);
+return data;
 }
 
 /* Read word with breakpoint check: if a data breakpoint is encountered,
@@ -2905,7 +2925,7 @@ if (BPT_SUMM_RD &&
    to break after doing the operation, used for interrupt processing.  */
 int32 ReadCW (int32 va)
 {
-int32 pa;
+int32 pa, data;
 
 if ((va & 1) && CPUT (HAS_ODD)) {                       /* odd address? */
     setCPUERR (CPUE_ODD);
@@ -2916,15 +2936,14 @@ if (BPT_SUMM_RD &&
     (sim_brk_test (va & 0177777, BPT_RDVIR) ||
      sim_brk_test (pa, BPT_RDPHY)))                     /* read breakpoint? */
     reason = STOP_IBKPT;                                /* report that */
-#ifdef USE_REALCONS
-		RETURN_REALCONS_CPU_PDP11_MEMACCESS_VA_PA_READ(cpu_realcons, va, pa,  PReadW (pa));
-#else
-return PReadW (pa);
-#endif
+data = PReadW (pa);
+FRONTPANEL_OBSERVE_MEMACCESS_VA_PA_READ(va, pa, data);
+return data;
 }
 
 int32 ReadMW (int32 va)
 {
+int32 data;
 if ((va & 1) && CPUT (HAS_ODD)) {                       /* odd address? */
     setCPUERR (CPUE_ODD);
     ABORT (TRAP_ODD);
@@ -2934,37 +2953,33 @@ if (BPT_SUMM_RW &&
     (sim_brk_test (va & 0177777, BPT_RWVIR) ||
      sim_brk_test (last_pa, BPT_RWPHY)))                /* read or write breakpoint? */
     ABORT (ABRT_BKPT);                                  /* stop simulation */
-#ifdef USE_REALCONS
-	RETURN_REALCONS_CPU_PDP11_MEMACCESS_VA_PA_READ(cpu_realcons, va, last_pa, PReadW (last_pa));
-#else
-return PReadW (last_pa);
-#endif
+data = PReadW (last_pa);
+FRONTPANEL_OBSERVE_MEMACCESS_VA_PA_READ(va, last_pa, data);
+return data;
 }
 
 int32 ReadMB (int32 va)
 {
+int32 data;
 last_pa = relocW (va);                                  /* reloc, wrt chk */
 if (BPT_SUMM_RW &&
     (sim_brk_test (va & 0177777, BPT_RWVIR) ||
      sim_brk_test (last_pa, BPT_RWPHY)))                /* read or write breakpoint? */
     ABORT (ABRT_BKPT);                                  /* stop simulation */
-#ifdef USE_REALCONS
-	RETURN_REALCONS_CPU_PDP11_MEMACCESS_VA_PA_READ(cpu_realcons, va, last_pa, PReadB (last_pa));
-#else
-return PReadB (last_pa);
-#endif
+data = PReadB (last_pa);
+FRONTPANEL_OBSERVE_MEMACCESS_VA_PA_READ(va, last_pa, data);
+return data;
 }
 
 int32 PReadW (int32 pa)
 {
 int32 data;
 
-if (ADDR_IS_MEM (pa))                                   /* memory address? */
-#ifdef USE_REALCONS
-	RETURN_REALCONS_CPU_PDP11_MEMACCESS_PA_READ(cpu_realcons, pa, RdMemW (pa));
-#else
-    return RdMemW (pa);
-#endif
+if (ADDR_IS_MEM (pa)) {                                 /* memory address? */
+    data = RdMemW (pa);
+    FRONTPANEL_OBSERVE_MEMACCESS_PA_READ(pa, data);
+    return data;
+    }
 if (pa < IOPAGEBASE) {                                  /* not I/O address? */
     setCPUERR (CPUE_NXM);
     ABORT (TRAP_NXM);
@@ -2973,9 +2988,7 @@ if (iopageR (&data, pa, READ) != SCPE_OK) {             /* invalid I/O addr? */
     setCPUERR (CPUE_TMO);
     ABORT (TRAP_NXM);
     }
-#ifdef USE_REALCONS
-	REALCONS_CPU_PDP11_MEMACCESS_PA_READ(cpu_realcons, pa, data);
-#endif
+FRONTPANEL_OBSERVE_MEMACCESS_PA_READ(pa, data);
 return data;
 }
 
@@ -2983,12 +2996,11 @@ int32 PReadB (int32 pa)
 {
 int32 data;
 
-if (ADDR_IS_MEM (pa))                                   /* memory address? */
-#ifdef USE_REALCONS
-	RETURN_REALCONS_CPU_PDP11_MEMACCESS_PA_READ(cpu_realcons, pa, RdMemB (pa));
-#else
-    return RdMemB (pa);
-#endif
+if (ADDR_IS_MEM (pa)) {                                 /* memory address? */
+    data = RdMemB (pa);
+    FRONTPANEL_OBSERVE_MEMACCESS_PA_READ(pa, data);
+    return data;
+    }
 if (pa < IOPAGEBASE) {                                  /* not I/O address? */
     setCPUERR (CPUE_NXM);
     ABORT (TRAP_NXM);
@@ -2997,11 +3009,9 @@ if (iopageR (&data, pa, READ) != SCPE_OK) {             /* invalid I/O addr? */
     setCPUERR (CPUE_TMO);
     ABORT (TRAP_NXM);
     }
-#ifdef USE_REALCONS
-	RETURN_REALCONS_CPU_PDP11_MEMACCESS_PA_READ(cpu_realcons, pa, (((pa & 1)? data >> 8: data) & 0377));
-#else
-return ((pa & 1)? data >> 8: data) & 0377;
-#endif
+data = ((pa & 1)? data >> 8: data) & 0377;
+FRONTPANEL_OBSERVE_MEMACCESS_PA_READ(pa, data);
+return data;
 }
 
 /* Write byte and word routines
@@ -3026,9 +3036,7 @@ if (BPT_SUMM_WR &&
     (sim_brk_test (va & 0177777, BPT_WRVIR) ||
      sim_brk_test (pa, BPT_WRPHY)))                     /* write breakpoint? */
     ABORT (ABRT_BKPT);                                  /* stop simulation */
-#ifdef USE_REALCONS
-	REALCONS_CPU_PDP11_MEMACCESS_VA_PA_WRITE(cpu_realcons, va, pa, data);
-#endif
+FRONTPANEL_OBSERVE_MEMACCESS_VA_PA_WRITE(va, pa, data);
 PWriteW (data, pa);
 }
 
@@ -3041,9 +3049,7 @@ if (BPT_SUMM_WR &&
     (sim_brk_test (va & 0177777, BPT_WRVIR) ||
      sim_brk_test (pa, BPT_WRPHY)))                     /* write breakpoint? */
     ABORT (ABRT_BKPT);                                  /* stop simulation */
-#ifdef USE_REALCONS
-	REALCONS_CPU_PDP11_MEMACCESS_VA_PA_WRITE(cpu_realcons, va, pa, data);
-#endif
+FRONTPANEL_OBSERVE_MEMACCESS_VA_PA_WRITE(va, pa, data);
 PWriteB (data, pa);
 }
 
@@ -3063,18 +3069,14 @@ if (BPT_SUMM_WR &&
     (sim_brk_test (va & 0177777, BPT_WRVIR) ||
      sim_brk_test (pa, BPT_WRPHY)))                     /* write breakpoint? */
     reason = STOP_IBKPT;                                /* report that */
-#ifdef USE_REALCONS
-	REALCONS_CPU_PDP11_MEMACCESS_VA_PA_WRITE(cpu_realcons, va, pa, data);
-#endif
+FRONTPANEL_OBSERVE_MEMACCESS_VA_PA_WRITE(va, pa, data);
 PWriteW (data, pa);
 }
 
 void PWriteW (int32 data, int32 pa)
 {
 if (ADDR_IS_MEM (pa)) {                                 /* memory address? */
-#ifdef USE_REALCONS
-	REALCONS_CPU_PDP11_MEMACCESS_PA_WRITE(cpu_realcons, pa, data);
-#endif
+    FRONTPANEL_OBSERVE_MEMACCESS_PA_WRITE(pa, data);
     WrMemW (pa, data);
     return;
     }
@@ -3086,17 +3088,13 @@ if (iopageW (data, pa, WRITE) != SCPE_OK) {             /* invalid I/O addr? */
     setCPUERR (CPUE_TMO);
     ABORT (TRAP_NXM);
     }
-#ifdef USE_REALCONS
-	REALCONS_CPU_PDP11_MEMACCESS_PA_WRITE(cpu_realcons, pa, data);
-#endif
+FRONTPANEL_OBSERVE_MEMACCESS_PA_WRITE(pa, data);
 return;
 }
 
 void PWriteB (int32 data, int32 pa)
 {
-#ifdef USE_REALCONS
-	REALCONS_CPU_PDP11_MEMACCESS_PA_WRITE(cpu_realcons, pa, data);
-#endif
+FRONTPANEL_OBSERVE_MEMACCESS_PA_WRITE(pa, data);
 if (ADDR_IS_MEM (pa)) {                                 /* memory address? */
     WrMemB (pa, data);
     return;
@@ -3109,9 +3107,7 @@ if (iopageW (data, pa, WRITEB) != SCPE_OK) {            /* invalid I/O addr? */
     setCPUERR (CPUE_TMO);
     ABORT (TRAP_NXM);
     }
-#ifdef USE_REALCONS
-	REALCONS_CPU_PDP11_MEMACCESS_PA_WRITE(cpu_realcons, pa, data);
-#endif
+FRONTPANEL_OBSERVE_MEMACCESS_PA_WRITE(pa, data);
 return;
 }
 
@@ -3752,12 +3748,20 @@ if (pcq_r)
     pcq_r->qptr = 0;
 else
     return SCPE_IERR;
+#ifdef FRONTPANEL
+    // initialize front panel cpu state extension here
+    frontpanel_IDMODE = 0;
+    frontpanel_DATAPATH = 0;
+    frontpanel_IR = 0;
+#ifndef USE_REALCONS
+    frontpanel_PA = 0;
+    frontpanel_VA = 0;
+    frontpanel_DATA = 0;
+    frontpanel_RW = 0;
+    frontpanel_HALT = 0;
+#endif
+#endif
 #ifdef USE_REALCONS
-	// initialize realcons cpu state extension here
-	realcons_bus_ID_mode = 0;
-	realcons_DATAPATH_shifter = 0;
-	realcons_IR = 0;
-	realcons_PSW = 0;
     REALCONS_EVENT(cpu_realcons, realcons_event_cpu_reset);
 #endif
 set_r_display (0, MD_KER);

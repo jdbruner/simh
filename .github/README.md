@@ -13,9 +13,10 @@ Please consult the individual README and LICENSE files in the tree.
 The BlinkenBone and PiDP sources have been reorganized into a submodule,
 with changes to simh itself in the simh source tree
 (including changes to ``scp.c`` and the addition of ``REALCONS``).
-There are additional build targets for REALCONS
-and Richard Cornwell's PIPANEL interface to the PiDP10 in the pdp10-kx simulators:
-- ``pdp11_realcons`` (for the PiDP11)
+There are additional build targets for REALCONS,
+and Richard Cornwell's PIPANEL interface to the PiDP10 in the pdp10-kx simulators,
+and a PIPANEL interface to the PiDP11 in the pdp11 simulator:
+- ``pdp11_realcons`` and ``pdp11_pipanel`` (for the PiDP11)
 - ``pdp10-ka_realcons`` and ``pdp10-ka_pipanel`` (PDP-10 model KA10)
 - ``pdp10-ki_realcons`` and ``pdp10-ki_pipanel`` (PDP-10 model KI10)
 - ``pdp10-kl_realcons`` and ``pdp10-kl_pipanel`` (PDP-10 model KL10)
@@ -137,8 +138,10 @@ Installation only runs on the build machine at this time.
 From the root of the simh repository, do the following:
 ```bash
 cd BlinkenBone
-./install.sh [-x10]
+./install.sh [-x10] [-r] [-p]
 ```
+Specify ``-r`` for the (REALCONS) panel server or
+``-p`` for the (PIPANEL) simh-integrated PiDP panel.
 Specify ``-x10`` to install PiDP10.
 The default is ``-x11``, which installs PiDP11:
 1. ``sysctl dev.tty.legacy_tiocsti=1``

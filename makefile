@@ -1826,6 +1826,7 @@ REALCONS_OPT=-DUSE_REALCONS \
 
 ### PIPANEL support
 PIDP10_OPT = -DPIDP10=1 -lgpiolib
+PIDP11_OPT = -DUSE_PIPANEL -lgpiolib
 
 #
 # Common Libraries
@@ -2718,7 +2719,7 @@ EXPERIMENTAL = alpha pdq3 sage
 
 REALCONS_TARGETS = pdp8_realcons pdp15_realcons pdp10_realcons pdp11_realcons
 
-PIPANEL_TARGETS =
+PIPANEL_TARGETS = pdp11_pipanel
 
 ifeq (,${PANDA_LIGHTS})
 # PDP10 REALCONS and PIPANEL are incompatible with PANDA_LIGHTS
@@ -2839,6 +2840,11 @@ pdp11_realcons : $(BIN)pdp11_realcons$(EXE)
 
 $(BIN)pdp11_realcons$(EXE) : ${PDP11} ${SIM} ${BUILD_ROMS} ${REALCONS} ${REALCONS_PDP11}
 	$(MAKEIT) OPTS="$(PDP11_OPT) $(REALCONS_OPT)"
+
+pdp11_pipanel : $(BIN)pdp11_pipanel$(EXE)
+
+$(BIN)pdp11_pipanel$(EXE) : ${PDP11D}/pdp11_pipanel.c ${PDP11} ${SIM} ${BUILD_ROMS}
+	$(MAKEIT) OPTS="$(PDP11_OPT) $(PIDP11_OPT)"
 
 pidp11-frontpanel : pdp11 $(BIN)pidp11-frontpanel$(EXE)
 

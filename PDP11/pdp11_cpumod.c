@@ -49,7 +49,7 @@
 */
 
 #if defined(USE_REALCONS)
-#include "realcons.h"	/* REAL-CONSOLE */
+#include "realcons.h"   /* REAL-CONSOLE */
 // !!! must be included before pd11_defs.h, because  duplicate symbol INT_PTR
 // #1: realcons.h  -> .... -> rpc_blinkenlight_api.h -> rpc.h -> windows.h --> basetsd.h
 // #2: pdp11_defs.h

@@ -353,7 +353,7 @@ void realcons_console_pdp11_40_interface_connect(realcons_console_logic_pdp11_40
         extern int  realcons_bus_ID_mode; // 1 = DATA space access, 0 = instruction space access
         extern t_value realcons_DATAPATH_shifter; // output of ALU
         extern t_value realcons_IR; // buffer for instruction register (opcode)
-        extern t_value realcons_PSW; // buffer for program status word
+        extern int32 PSW; // buffer for program status word
 
         realcons_console_halt = 0;
 
@@ -376,7 +376,7 @@ void realcons_console_pdp11_40_interface_connect(realcons_console_logic_pdp11_40
         // signal from realcons console to CPU: 1=HALTed
         // oder gleich "&(_switch_HALT->value)?"
         _this->cpusignal_instruction_register = &realcons_IR;
-        _this->cpusignal_PSW = &realcons_PSW;
+        _this->cpusignal_PSW = &PSW;
         _this->cpusignal_bus_ID_mode = &realcons_bus_ID_mode;
         _this->cpusignal_cpu_mode = (t_value*)&cm; // MD_SUP,MD_
         _this->cpusignal_R0 = (t_value*)&(R[0]); // R: global of pdp11_cpu.c
