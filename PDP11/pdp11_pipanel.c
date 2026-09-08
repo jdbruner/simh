@@ -570,9 +570,9 @@ read_line_handler(char *line)
 {
     if (line != NULL) {
        input_buffer = line;
-       input_wait = FALSE;
        add_history(line);
     }
+   input_wait = FALSE;
 }
 
 /*
@@ -588,6 +588,7 @@ vm_readline(char *prompt, char *cptr, int32 sz, FILE *file)
 {
     int fd = fileno(file);  // file descriptor for select()
     t_bool first_time = TRUE;
+    extern volatile t_bool sigterm_received;
 
     ASSURE(sz > 0);
     *cptr = '\0';
@@ -596,7 +597,7 @@ vm_readline(char *prompt, char *cptr, int32 sz, FILE *file)
     input_buffer = NULL;
     input_wait = TRUE;
     rl_callback_handler_install(prompt, (rl_vcpfunc_t *)&read_line_handler);
-    while (input_wait) {
+    while (input_wait && !sigterm_received) {
         struct timeval tv = { 0, 10000 };  // 10ms
         fd_set read_set;
 
@@ -615,6 +616,8 @@ vm_readline(char *prompt, char *cptr, int32 sz, FILE *file)
         printf("%s\n", cptr);               // print the synthesized command
     else if (input_buffer != NULL)
         strlcpy(cptr, input_buffer, sz);    // put the input into the caller's buffer
+    else
+        return NULL;                        // EOF
     return cptr;
 }
 
