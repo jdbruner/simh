@@ -426,6 +426,7 @@ t_stat realcons_disconnect(realcons_t *_this)
 void realcons_service(realcons_t *_this, int highspeed)
 {
     int i;
+    t_uint64 oldcur;
     if (!_this->connected)
         return;
 
@@ -437,7 +438,13 @@ void realcons_service(realcons_t *_this, int highspeed)
     _this->service_highspeed_prescaler = REALCONS_SERVICE_HIGHSPEED_PRESCALE; // reload
 
     // sample current time. can be used in console panel subclasses->service()
-    _this->service_cur_time_msec = sim_os_msec(); // get current time in millisec
+    // sim_os_msec returns a 32-bit value, which wraps after 49.7 days
+    // so if we see its value has decreased, assume it has wrapped
+    oldcur = _this->service_cur_time_msec;
+    _this->service_cur_time_msec =
+        (_this->service_cur_time_msec & ~(t_uint64)UINT32_MAX) | (uint32)sim_os_msec();
+    if (_this->service_cur_time_msec < oldcur)
+        _this->service_cur_time_msec += ((t_uint64)1 << 32);
     // update general purpose timers.
     for (i = 0; i < REALCONS_TIMER_COUNT; i++)
         if (_this->timer_running_msec[i]
