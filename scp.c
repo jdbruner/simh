@@ -599,6 +599,7 @@ t_stat set_asynch (int32 flag, CONST char *cptr);
 t_stat sim_show_asynch (FILE *st, DEVICE *dptr, UNIT *uptr, int32 flag, CONST char *cptr);
 t_stat do_cmd_label (int32 flag, CONST char *cptr, CONST char *label);
 void int_handler (int signal);
+static void sim_set_cmd_signals (void);
 t_stat set_prompt (int32 flag, CONST char *cptr);
 t_stat set_runlimit (int32 flag, CONST char *cptr);
 t_stat sim_set_asynch (int32 flag, CONST char *cptr);
@@ -2166,7 +2167,12 @@ static const char simh_help2[] =
       " to a simulator process, instruction execution will stop and control\n"
       " will return to either the invoking do command procedure with a SIGTERM\n"
       " status (and thus take SIGTERM ON condition) or if execution was\n"
-      " explicitly started from a sim> prompt, the program will exit\n"
+      " explicitly started from a sim> prompt, the program will exit.\n\n"
+      " A SIGTERM or SIGHUP delivered while no instructions are executing (at\n"
+      " the sim> prompt, or between the commands of a do command procedure)\n"
+      " ends the simulator as the QUIT command does, writing and closing\n"
+      " attached files, unless a do command procedure takes its SIGTERM ON\n"
+      " condition.\n"
 
 #define HLP_PROCEED     "*Commands Executing_Command_Files PROCEED"
 #define HLP_IGNORE      "*Commands Executing_Command_Files PROCEED"
@@ -3054,6 +3060,7 @@ int32 i, sw;
 t_bool lookswitch;
 t_bool register_check = FALSE;
 t_bool device_unit_tests = FALSE;
+t_bool single_command = FALSE;
 t_stat stat = SCPE_OK;
 CTAB *docmdp = NULL;
 
@@ -3141,6 +3148,8 @@ for (i = 1; i < argc; i++) {                            /* loop thru args */
         lookswitch = FALSE;                             /* no more switches */
         }
     }                                                   /* end for */
+single_command = sim_switches & SWMASK ('C');           /* remember if we're doing a single command */
+sim_switches &= ~SWMASK ('C');
 if (*argv[0]) {                                         /* sim name arg? */
     char *np;                                           /* "path.ini" */
 
@@ -3331,6 +3340,7 @@ if (device_unit_tests) {
         }
     }
 signal (SIGINT, int_handler);
+sim_set_cmd_signals ();                                 /* SIGTERM/SIGHUP at command level */
 if (!sim_quiet) {
     printf ("\n");
     show_version (stdout, NULL, NULL, 0, NULL);
@@ -3389,8 +3399,7 @@ if (docmdp) {
         stat = docmdp->action (-1, "/Library/Preferences/simh.ini");/* simh.ini proc cmd file */
     if (SCPE_BARE_STATUS(stat) == SCPE_OPENERR)
         stat = docmdp->action (-1, "/etc/simh.ini");        /* simh.ini proc cmd file */
-    if ((sim_switches & SWMASK ('C')) && (*cbuf)) {         /* single command from command line */
-        sim_switches &= ~SWMASK ('C');
+    if (single_command && (*cbuf)) {                        /* single command from command line */
         sim_brk_act[sim_do_depth] = (char *)calloc (strlen (cbuf) + 10, sizeof (*cbuf));
         strcpy (sim_brk_act[sim_do_depth], cbuf);
         strcat (sim_brk_act[sim_do_depth], ";EXIT -Q");
@@ -3537,6 +3546,10 @@ while (stat != SCPE_EXIT) {                             /* in case exit */
         else
             sim_brk_setact (sim_on_actions[sim_do_depth][0]);
         }
+    if ((stat == SCPE_SIGTERM) && (!do_called) &&       /* SIGTERM stopped execution started here */
+        !(sim_on_check[sim_do_depth] &&                 /* and no ON action taken? */
+          (sim_on_actions[sim_do_depth][SCPE_SIGTERM] || sim_on_actions[sim_do_depth][0])))
+        stop_cpu = TRUE;                                /* exit at the top of the loop */
     if (sim_vm_post != NULL)
         (*sim_vm_post) (TRUE);
     }                                                   /* end while */
@@ -4639,13 +4652,23 @@ if (strcasecmp (do_arg[0], "<stdin>") == 0) {
     }
 
 do {
-    if (stop_cpu) {                                     /* SIGINT? */
-        if (sim_on_actions[sim_do_depth][ON_SIGINT_ACTION]) {
-            stop_cpu = FALSE;
-            sim_brk_setact (sim_on_actions[sim_do_depth][ON_SIGINT_ACTION]);/* Use specified action */
+    if (stop_cpu) {                                     /* SIGINT or SIGTERM? */
+        if (sigterm_received) {                         /* SIGTERM/SIGHUP between commands? */
+            if (sim_on_check[sim_do_depth] &&           /* SIGTERM ON condition? */
+                sim_on_actions[sim_do_depth][SCPE_SIGTERM]) {
+                stop_cpu = FALSE;
+                sim_brk_setact (sim_on_actions[sim_do_depth][SCPE_SIGTERM]);/* Use specified action */
+                }
+            else
+                break;                                  /* Exit this command procedure */
             }
         else
-            break;                                      /* Exit this command procedure */
+            if (sim_on_actions[sim_do_depth][ON_SIGINT_ACTION]) {
+                stop_cpu = FALSE;
+                sim_brk_setact (sim_on_actions[sim_do_depth][ON_SIGINT_ACTION]);/* Use specified action */
+                }
+            else
+                break;                                  /* Exit this command procedure */
         }
     sim_do_ocptr[sim_do_depth] = cptr = sim_brk_getact (cbuf, sizeof(cbuf)); /* get bkpt action */
     if (!sim_do_ocptr[sim_do_depth]) {                  /* no pending action? */
@@ -6128,7 +6151,8 @@ while (*cptr) {
         sim_os_ms_sleep ((unsigned)wait);
         }
     }
-stop_cpu = FALSE;                   /* Clear in case sleep was interrupted */
+if (!sigterm_received)              /* SIGTERM stays for the command loop */
+    stop_cpu = FALSE;               /* Clear in case sleep was interrupted */
 return SCPE_OK;
 }
 
@@ -7329,6 +7353,8 @@ if (1) {
         fprintf (st, "\n        RAW disk and CD/DVD ROM support");
 #if defined (SIM_ASYNCH_IO)
     fprintf (st, "\n        Asynchronous I/O support (%s)", AIO_QUEUE_MODE);
+    if (sim_asynch_enabled == FALSE)
+        fprintf (st, "\n        Asynchronous I/O is disabled");
 #endif
 #if defined (SIM_ASYNCH_CLOCKS)
     fprintf (st, "\n        Asynchronous Clock support");
@@ -10542,10 +10568,7 @@ sim_is_running = FALSE;                                 /* flag idle */
 sim_stop_timer_services ();                             /* disable wall clock timing */
 sim_ttcmd ();                                           /* restore console */
 sim_brk_clrall (BRK_TYP_DYN_STEPOVER);                  /* cancel any step/over subroutine breakpoints */
-#ifdef SIGHUP
-signal (SIGHUP, sigterm_received ? SIG_IGN : SIG_DFL);  /* cancel WRU */
-#endif
-signal (SIGTERM, sigterm_received ? SIG_IGN : SIG_DFL); /* cancel WRU */
+sim_set_cmd_signals ();                                 /* cancel WRU */
 sim_flush_buffered_files (TRUE);
 sim_cancel (&sim_flush_unit);                           /* cancel flush timer */
 sim_cancel_step ();                                     /* cancel step timer */
@@ -10707,6 +10730,61 @@ if ((sig == SIGTERM)
    )
     sigterm_received = TRUE;
 sim_interval = 0;               /* Minimize when stop_cpu gets noticed */
+}
+
+/* Signal handler for SIGTERM and SIGHUP while no instructions are executing
+
+   Either signal ends the simulator through the same orderly exit as the
+   QUIT command (attached units detached, which writes back buffered files
+   such as NVR, and logs flushed): at the sim> prompt the command loop exits,
+   and a do command procedure takes its SIGTERM ON condition or is exited.
+   Once a SIGTERM has been received, further signals are ignored while a do
+   command procedure is active, so that its ON SIGTERM action can complete. */
+
+static void cmd_sigterm_handler (int sig)
+{
+if (sigterm_received && (sim_do_depth > 0))
+    return;
+sigterm_received = TRUE;
+stop_cpu = TRUE;
+}
+
+/* Establish cmd_sigterm_handler for SIGTERM and SIGHUP.  On POSIX hosts it
+   is installed without SA_RESTART, so that a signal interrupts a pending
+   read of a command line.  A signal that was ignored when the simulator
+   started (as SIGHUP is under nohup) stays ignored here. */
+
+static void sim_set_cmd_signals (void)
+{
+static int sigs[] = {
+#ifdef SIGHUP
+    SIGHUP,
+#endif
+    SIGTERM};
+static t_bool ignored[sizeof (sigs) / sizeof (sigs[0])];
+static t_bool initialized = FALSE;
+size_t i;
+
+for (i = 0; i < sizeof (sigs) / sizeof (sigs[0]); i++) {
+#if defined (_WIN32)
+    if (!initialized)
+        ignored[i] = (signal (sigs[i], SIG_IGN) == SIG_IGN);
+    signal (sigs[i], ignored[i] ? SIG_IGN : cmd_sigterm_handler);
+#else
+    struct sigaction act;
+
+    if (!initialized) {
+        sigaction (sigs[i], NULL, &act);
+        ignored[i] = (act.sa_handler == SIG_IGN);
+        }
+    memset (&act, 0, sizeof (act));
+    act.sa_handler = ignored[i] ? SIG_IGN : cmd_sigterm_handler;
+    sigemptyset (&act.sa_mask);
+    act.sa_flags = 0;                                   /* no SA_RESTART */
+    sigaction (sigs[i], &act, NULL);
+#endif
+    }
+initialized = TRUE;
 }
 
 /* Examine/deposit commands
@@ -11613,6 +11691,10 @@ if (prompt && (!initialized)) {
     }
 
 if (prompt) {                                           /* interactive? */
+    if (sim_log)                                        /* flush log before waiting */
+        fflush (sim_log);                               /* so it holds the output so far */
+    if (sim_deb && (sim_deb != sim_log) && (sim_deb != stdout))
+        fflush (sim_deb);                               /* likewise the debug file */
     if (p_readline) {
         char *tmpc = p_readline (prompt);               /* get cmd line */
         if (tmpc == NULL)                               /* bad result? */
