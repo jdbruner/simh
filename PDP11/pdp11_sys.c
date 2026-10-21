@@ -227,6 +227,9 @@ DEVICE *sim_devices[] = {
     &tv_dev,
 #endif
     &mb_dev,
+#ifdef USE_PIPANEL
+    &pipanel_dev,
+#endif
 #else
     &clk_dev,
     &tti_dev,
@@ -236,9 +239,6 @@ DEVICE *sim_devices[] = {
     &rk_dev,
     &uca_dev,
     &ucb_dev,
-#endif
-#ifdef USE_PIPANEL
-    &pipanel_dev,
 #endif
     NULL
     };
